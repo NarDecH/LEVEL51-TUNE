@@ -115,6 +115,11 @@ canvas{width:100%;height:70px;display:block}
   <div class="view active" id="view-overview">
     <div class="grid cols" id="hw"></div>
 
+    <div class="section" id="advice-section" style="display:none">
+      <h3>คำแนะนำสำหรับเครื่องนี้</h3>
+      <div class="card" id="advice"></div>
+    </div>
+
     <div class="section">
       <h3>โปรไฟล์</h3>
       <div class="grid cols" id="profiles"></div>
@@ -127,6 +132,7 @@ canvas{width:100%;height:70px;display:block}
       <button onclick="runBench()">วัดประสิทธิภาพ (bench)</button>
       <button onclick="runCompare()">วัด + เทียบกับครั้งก่อน</button>
       <button onclick="runLatency()">วัด latency (DPC)</button>
+      <button onclick="checkUpdate()">ตรวจอัปเดต</button>
       <button class="danger" onclick="doRestore()">ย้อนกลับ (restore)</button>
       <span class="hint" id="busy"></span>
     </div>
@@ -271,6 +277,17 @@ async function loadStatus(){
       { t: 'ดิสก์', a: d.disks.length ? esc(d.disks[0].name).slice(0,28) : '—', b: d.disks.length ? (d.disks[0].gb + ' GB · ' + d.disks[0].bus) : '' },
       { t: 'โปรไฟล์ล่าสุด', a: d.state ? esc(d.state.profile) : 'ยังไม่ apply', b: d.state ? new Date(d.state.appliedAt).toLocaleString('th-TH') : '—' }
     ];
+    const adv = d.advice;
+    if (adv){
+      let li = '';
+      (adv.warnings || []).forEach(w => { li += '<div class="kv" style="color:var(--warn)"><span>!</span><span>' + esc(w) + '</span></div>'; });
+      (adv.notes || []).forEach(n => { li += '<div class="kv"><span>•</span><span>' + esc(n) + '</span></div>'; });
+      document.getElementById('advice').innerHTML =
+        '<div class="kv" style="margin-bottom:6px"><span>โปรไฟล์ที่แนะนำ</span><span style="color:var(--accent);font-weight:600">' +
+        esc(adv.profile) + ' — ' + esc(adv.profileTitle) + '</span></div>' + li;
+      document.getElementById('advice-section').style.display = 'block';
+    }
+
     document.getElementById('hw').innerHTML = hw.map(x =>
       '<div class="card"><h2>' + x.t + '</h2><div class="kv"><span>' + x.a + '</span><span>' + x.b + '</span></div></div>'
     ).join('');
@@ -394,6 +411,27 @@ async function doRestore(){
     showResult('Restore', '<table><thead><tr><th>Tweak</th><th>สถานะ</th></tr></thead><tbody>' + rows + '</tbody></table>');
     toast('restore เสร็จ');
     loadStatus();
+  } catch(e){ toast(e.message, true); }
+  finally { busy(false); }
+}
+
+async function checkUpdate(){
+  busy(true, 'กำลังตรวจเวอร์ชันบน GitHub…');
+  try {
+    const d = await api('/api/update');
+    if (d.error){
+      showResult('ตรวจอัปเดต', '<div style="padding:12px" class="hint">ตรวจไม่ได้: ' + esc(d.error) + '<br>คำสั่งอื่นทั้งหมดทำงานแบบ offline — ต้องต่ออินเทอร์เน็ตเพื่อตรวจเวอร์ชัน</div>');
+      toast('ตรวจอัปเดตไม่ได้ (ออฟไลน์?)', true);
+      return;
+    }
+    const rows = '<tr><td>เวอร์ชันในเครื่อง</td><td>' + esc(d.local) + '</td></tr>' +
+      '<tr><td>ล่าสุดบน GitHub</td><td>' + esc(d.latest || '—') + '</td></tr>' +
+      '<tr><td>เผยแพร่</td><td>' + (d.publishedAt ? new Date(d.publishedAt).toLocaleString('th-TH') : '—') + '</td></tr>';
+    const tail = d.upToDate
+      ? '<div style="padding:10px 12px" class="hint" style="color:var(--ok)">เป็นเวอร์ชันล่าสุดแล้ว</div>'
+      : '<div style="padding:10px 12px" class="hint">มีเวอร์ชันใหม่: <a href="' + esc(d.url || '#') + '" target="_blank" rel="noopener">' + esc(d.url || '') + '</a></div>';
+    showResult('ตรวจอัปเดต', '<table><thead><tr><th>รายการ</th><th>ค่า</th></tr></thead><tbody>' + rows + '</tbody></table>' + tail);
+    toast(d.upToDate ? 'เป็นเวอร์ชันล่าสุด' : 'มีเวอร์ชันใหม่บน GitHub');
   } catch(e){ toast(e.message, true); }
   finally { busy(false); }
 }

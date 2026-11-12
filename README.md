@@ -23,8 +23,9 @@
 git clone https://github.com/NarDecH/LEVEL51-TUNE.git
 cd LEVEL51-TUNE
 
-# 1) ดูสถานะ (ไม่ต้อง admin)
+# 1) ดูสถานะ + คำแนะนำสำหรับเครื่องนี้ (ไม่ต้อง admin)
 .\Level51Tune.ps1 status
+.\Level51Tune.ps1 recommend
 
 # 2) วัดผลก่อน
 .\Level51Tune.ps1 bench -Label before
@@ -62,6 +63,8 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 ```powershell
 .\Level51Tune.Tray.ps1            # ไอคอนใน system tray: สลับโปรไฟล์ / ตรวจสถานะ / เปิด Dashboard
 .\tools\Build-Package.ps1        # สร้าง dist/LEVEL51-TUNE-<version>.zip สำหรับแจกจ่าย
+.\tools\Build-Package.ps1 -CertificateThumbprint <thumb>   # ลงนามทุก .ps1 ด้วย Authenticode
+.\Level51Tune.ps1 update         # ตรวจเวอร์ชันใหม่บน GitHub (คำสั่งเดียวที่ใช้เน็ต)
 ```
 
 ใน tray: คลิกขวาเพื่อสลับโปรไฟล์ (ขอ UAC เองทุกครั้ง), ตรวจสถานะเป็น balloon, เปิดโฟลเดอร์ log/เอกสาร — ไม่รันค้างแบบ Administrator
@@ -107,7 +110,7 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 | [12](docs/12-ความปลอดภัย-ย้อนกลับ.md) | ความปลอดภัยและการย้อนกลับ |
 | [13](docs/13-ผลตรวจเครื่องนี้.md) | ผลตรวจเครื่อง LEVEL51 (ค่าจริง) |
 | [14](docs/14-แก้ปัญหา-FAQ.md) | แก้ปัญหาและ FAQ |
-| [15](docs/15-GUI-และ-roadmap.md) | GUI ที่ทำจริง, ทางเลือกอื่น, roadmap |
+| [15](docs/15-GUI-และ-roadmap.md) | GUI ที่ทำจริง, tray, roadmap |
 
 ## โครงสร้างโปรเจกต์
 

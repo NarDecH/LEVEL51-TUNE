@@ -1153,6 +1153,151 @@ function Get-L51ProcessList {
 }
 
 # ===========================================================================
+# คำแนะนำตามฮาร์ดแวร์จริง (ใช้โดย CLI recommend และหน้า GUI)
+# ===========================================================================
+
+function Get-L51Recommendation {
+    param($Hardware)
+
+    if (-not $Hardware) { $Hardware = Get-L51Hardware -Refresh }
+
+    $notes = @()
+    $warnings = @()
+    $modules = @($Hardware.RamModules)
+    $moduleCount = $modules.Count
+    $channels = 1
+    if ($moduleCount -ge 2) { $channels = 2 }
+
+    # ---- RAM: ตัวคอขวดที่ tweak ซอฟต์แวร์แตะไม่ได้
+    if ($moduleCount -eq 1) {
+        $notes += ('แรมแท่งเดียว ({0} GB) = single channel · bandwidth ราวครึ่งของ dual channel — เพิ่มแท่งที่สองจะได้ผลมากกว่า tweak ซอฟต์แวร์ทั้งหมด' -f $modules[0].GB)
+    } elseif ($moduleCount -ge 2) {
+        $notes += ('แรม {0} แท่ง = dual channel' -f $moduleCount)
+    } else {
+        $notes += 'อ่านจำนวนแรมไม่ครบ (WMI ไม่ให้ข้อมูล module) — ตรวจด้วย CPU-Z'
+    }
+
+    # ---- CPU: คลาสเดสก์ท็อปในบอดี้โน้ตบุ๊ก = ความร้อนเป็นคอขวด
+    $cpuClass = 'mobile'
+    if ($Hardware.CpuCores -ge 8 -and $Hardware.CpuMaxMHz -ge 3500) {
+        $cpuClass = 'desktop-class'
+        $warnings += ('CPU {0} ({1}C/{2}T) เป็นคลาสเดสก์ท็อป — ระบายความร้อนจำกัด ไม่ควรใช้โปรไฟล์ max ค้างไว้' -f $Hardware.CpuName, $Hardware.CpuCores, $Hardware.CpuThreads)
+    }
+
+    # ---- GPU
+    $dgpus = @($Hardware.Gpus | Where-Object { $_.Name -match 'NVIDIA|GeForce|Radeon|Arc' })
+    $hasDgpu = $dgpus.Count -gt 0
+    if ($hasDgpu) {
+        $notes += ('มี dGPU: {0} — ถ้าเกมไปวิ่งบน iGPU ให้ตั้ง GPU ต่อแอปเป็น dgpu' -f $dgpus[0].Name)
+    } else {
+        $notes += 'ไม่พบ dGPU — โปรไฟล์ gaming/max ไม่มีประโยชน์บนเครื่องนี้'
+    }
+
+    # ---- ดิสก์
+    $unhealthy = @($Hardware.Disks | Where-Object { $_.Health -and $_.Health -ne 'Healthy' })
+    if ($unhealthy.Count -gt 0) {
+        $warnings += ('ดิสก์มีสถานะไม่ปกติ: {0} — สำรองข้อมูลก่อนทำอะไรต่อ' -f (($unhealthy | ForEach-Object { "$($_.Name)=$($_.Health)" }) -join ', '))
+    }
+    $hdd = @($Hardware.Disks | Where-Object { $_.Media -eq 'HDD' })
+    if ($hdd.Count -gt 0) { $notes += ('มี HDD {0} ลูก — เก็บเกม/โปรแกรมที่โหลดบ่อยไว้บน SSD' -f $hdd.Count) }
+
+    # ---- แบตเตอรี่
+    if ($null -ne $Hardware.BatteryPct -and $Hardware.BatteryPct -le 20) {
+        $warnings += ('แบตเหลือ {0}% — โปรไฟล์ battery ลดการใช้ไฟ แต่ performance จะกินไฟมากกว่า' -f $Hardware.BatteryPct)
+    }
+
+    # ---- เลือกโปรไฟล์
+    $profile = 'performance'
+    if (-not $hasDgpu) { $profile = 'balanced' }
+    $maxSafe = ($moduleCount -ge 2) -and ($cpuClass -ne 'desktop-class')
+    if (-not $maxSafe -and $hasDgpu) { $notes += 'ยังไม่แนะนำโปรไฟล์ max บนเครื่องนี้ (ข้อจำกัดความร้อน/แรม) — ใช้ performance หรือ gaming' }
+
+    $titleTh = $profile
+    $prof = Get-L51Profile -Id $profile
+    if ($prof) { $titleTh = $prof.TitleTh }
+
+    return [pscustomobject]@{
+        Machine      = (('{0} {1}' -f ([string]$Hardware.Manufacturer).Trim(), ([string]$Hardware.Model).Trim()).Trim())
+        KnownMachine = ($Hardware.Model -match 'N95TP6')
+        Profile      = $profile
+        ProfileTitleTh = $titleTh
+        CpuClass     = $cpuClass
+        RamChannels  = $channels
+        HasDedicatedGpu = $hasDgpu
+        MaxProfileSafe  = $maxSafe
+        Notes        = @($notes)
+        Warnings     = @($warnings)
+    }
+}
+
+# ===========================================================================
+# ตรวจอัปเดตเวอร์ชัน (อ่านเฉพาะ metadata ของ release สาธารณะ ไม่ดาวน์โหลดอะไร)
+# ===========================================================================
+
+function Get-L51UpdateInfo {
+    param([switch]$SkipNetwork, [string]$Repo = 'NarDecH/LEVEL51-TUNE')
+
+    $local = Get-L51Version
+    $info = [ordered]@{
+        Local       = $local
+        Latest      = $null
+        Url         = $null
+        PublishedAt = $null
+        UpToDate    = $null
+        Checked     = $false
+        Error       = $null
+    }
+    if ($SkipNetwork) { return [pscustomobject]$info }
+
+    $headers = @{ 'User-Agent' = 'LEVEL51-TUNE'; 'Accept' = 'application/vnd.github+json' }
+    $latest = $null
+    $url = $null
+    $published = $null
+    $errorText = $null
+
+    try {
+        $r = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers $headers -TimeoutSec 10 -ErrorAction Stop
+        $latest = [string]$r.tag_name
+        $url = [string]$r.html_url
+        $published = [string]$r.published_at
+    } catch {
+        $status = 0
+        try { $status = [int]$_.Exception.Response.StatusCode } catch { }
+        if ($status -eq 404) {
+            # repo ยังไม่เคย publish release — ลองดู tag แทน
+            try {
+                $raw = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/tags" -Headers $headers -TimeoutSec 10 -ErrorAction Stop
+                # JSON array ว่างจะถูกคืนเป็น $null — ต้องกรองทิ้งก่อนนับ
+                $tags = @($raw | Where-Object { $_ -and $_.name })
+                if ($tags.Count -gt 0) {
+                    $latest = [string]$tags[0].name
+                    $url = ('https://github.com/{0}/tree/{1}' -f $Repo, $latest)
+                } else {
+                    $errorText = 'ยังไม่มี release หรือ tag บน GitHub (repo ยังไม่เคย publish)'
+                }
+            } catch {
+                $errorText = $_.Exception.Message
+            }
+        } else {
+            $errorText = $_.Exception.Message
+        }
+    }
+
+    if ($latest) {
+        $info.Checked = $true
+        $info.Latest = $latest
+        $info.Url = $url
+        $info.PublishedAt = $published
+        $info.UpToDate = (($latest -replace '^[vV]', '') -eq $local)
+    } elseif ($errorText) {
+        $info.Error = $errorText
+        Write-L51Log "ตรวจอัปเดตไม่สำเร็จ: $errorText" 'WARN'
+    }
+
+    return [pscustomobject]$info
+}
+
+# ===========================================================================
 # Exports
 # ===========================================================================
 
@@ -1169,5 +1314,6 @@ Export-ModuleMember -Function @(
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',
     'Get-L51BackupHistory', 'Get-L51GpuPreferences', 'Set-L51GpuPreference', 'Remove-L51GpuPreference', 'Get-L51ProcessList',
+    'Get-L51Recommendation', 'Get-L51UpdateInfo',
     'Convert-L51Markdown'
 )

@@ -70,6 +70,8 @@ function Show-L51Help {
         @('bench [-Label before]', 'วัด CPU/RAM/Disk เพื่อเทียบก่อน-หลัง'),
         @('compare', 'เทียบผล benchmark 2 ครั้งล่าสุด'),
         @('latency [-Seconds 20]', 'วัด DPC / interrupt / context switch (ตัวชี้วัด jitter จริง)'),
+        @('recommend', 'วิเคราะห์ฮาร์ดแวร์และแนะนำโปรไฟล์/จุดที่ควรแก้'),
+        @('update', 'ตรวจว่ามีเวอร์ชันใหม่บน GitHub หรือไม่ (อ่าน metadata เท่านั้น)'),
         @('history', 'รายการ backup ทั้งหมด (ระบุไฟล์เพื่อ restore ทีละครั้ง)'),
         @('gpuprefs [-AppPath FILE -Mode dgpu|igpu|auto] [-Remove]', 'ตั้ง GPU ต่อแอป (Optimus)'),
         @('gpu', 'สรุปสถานะ GPU จาก nvidia-smi'),
@@ -199,6 +201,42 @@ try {
             if ($gpus.Count -eq 0) { Write-Host '  ไม่พบ GPU' -ForegroundColor Yellow; break }
             $gpus | Format-List | Out-String -Width 200 | Write-Host
             Write-Host '  คำสั่งที่มีประโยชน์: nvidia-smi -q -d CLOCK,POWER,TEMPERATURE' -ForegroundColor DarkGray
+            break
+        }
+
+        'recommend' {
+            $r = Get-L51Recommendation
+            Write-Host ''
+            Write-Host ("  เครื่อง: {0}{1}" -f $r.Machine, $(if ($r.KnownMachine) { '  (LEVEL51 / N95TP6)' } else { '' })) -ForegroundColor Cyan
+            Write-Host ("  โปรไฟล์ที่แนะนำ: {0} ({1})" -f $r.Profile, $r.ProfileTitleTh) -ForegroundColor Green
+            Write-Host ("  CPU class: {0} · RAM channels: {1} · dGPU: {2}" -f $r.CpuClass, $r.RamChannels, $r.HasDedicatedGpu) -ForegroundColor DarkGray
+            if ($r.Warnings.Count -gt 0) {
+                Write-Host ''
+                Write-Host '  ข้อควรระวัง' -ForegroundColor Yellow
+                foreach ($w in $r.Warnings) { Write-Host ('   ! ' + $w) -ForegroundColor Yellow }
+            }
+            Write-Host ''
+            Write-Host '  หมายเหตุ' -ForegroundColor DarkGray
+            foreach ($n in $r.Notes) { Write-Host ('   - ' + $n) }
+            Write-Host ''
+            Write-Host ('  apply: .\Level51Tune.ps1 apply -Profile {0} -Elevate' -f $r.Profile) -ForegroundColor DarkGray
+            break
+        }
+
+        'update' {
+            Write-Host '  กำลังตรวจเวอร์ชันบน GitHub…' -ForegroundColor DarkGray
+            $u = Get-L51UpdateInfo
+            Write-Host ''
+            Write-Host ("  เวอร์ชันในเครื่อง: {0}" -f $u.Local)
+            if ($u.Error) {
+                Write-Host ("  ตรวจไม่ได้: {0}" -f $u.Error) -ForegroundColor Yellow
+                Write-Host '  (ต้องต่ออินเทอร์เน็ต — คำสั่งอื่นทั้งหมดทำงานแบบ offline)' -ForegroundColor DarkGray
+                break
+            }
+            if (-not $u.Checked) { Write-Host '  ยังไม่ได้ตรวจ' -ForegroundColor Yellow; break }
+            Write-Host ("  ล่าสุดบน GitHub : {0}  ({1})" -f $u.Latest, ([datetime]$u.PublishedAt).ToString('yyyy-MM-dd'))
+            if ($u.UpToDate) { Write-Host '  → เป็นเวอร์ชันล่าสุดแล้ว' -ForegroundColor Green }
+            else { Write-Host ("  → มีเวอร์ชันใหม่: {0}" -f $u.Url) -ForegroundColor Yellow }
             break
         }
 

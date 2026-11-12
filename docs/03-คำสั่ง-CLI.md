@@ -24,6 +24,8 @@
 | `report` | ไม่ | ไม่ | 3-6 วินาที | รายงาน markdown |
 | `bench` | ไม่ | ไม่ | 15-25 วินาที | วัดประสิทธิภาพ |
 | `latency` | ไม่ | ไม่ | 15-25 วินาที | วัด DPC / interrupt / context switch |
+| `recommend` | ไม่ | ไม่ | 1-2 วินาที | วิเคราะห์ฮาร์ดแวร์และแนะนำโปรไฟล์ |
+| `update` | ไม่ | ไม่ | 1-3 วินาที | ตรวจเวอร์ชันใหม่บน GitHub (ต้องต่อเน็ต) |
 | `history` | ไม่ | ไม่ | ทันที | รายการ backup ทั้งหมด (เลือก restore ทีละครั้ง) |
 | `gpuprefs` | ไม่ | ใช่ (HKCU เท่านั้น) | ทันที | ตั้ง GPU ต่อแอป (Optimus) |
 | `compare` | ไม่ | ไม่ | ทันที | เทียบผลวัด |
@@ -243,6 +245,39 @@
 | `igpu` | `GpuPreference=1;` | บังคับใช้ UHD 630 (ประหยัดแบต) |
 | `auto` | `GpuPreference=0;` | ให้ Windows ตัดสินใจ |
 
+## recommend
+
+```powershell
+.\Level51Tune.ps1 recommend
+```
+
+วิเคราะห์เครื่องจริงแล้วตอบ 3 อย่าง: โปรไฟล์ที่เหมาะ, จุดที่เป็นคอขวดที่ tweak ซอฟต์แวร์แก้ไม่ได้ (เช่น แรมแท่งเดียว), และข้อควรระวัง (ความร้อน, ดิสก์ผิดปกติ, แบตต่ำ)
+
+ตัวอย่างผลบนเครื่องนี้:
+
+```
+  เครื่อง: Notebook N95TP6  (LEVEL51 / N95TP6)
+  โปรไฟล์ที่แนะนำ: performance (ประสิทธิภาพ (ใช้งานประจำวัน))
+  CPU class: desktop-class · RAM channels: 1 · dGPU: True
+
+  ข้อควรระวัง
+   ! CPU Intel Core i9-9900K (8C/16T) เป็นคลาสเดสก์ท็อป — ระบายความร้อนจำกัด ไม่ควรใช้โปรไฟล์ max ค้างไว้
+
+  หมายเหตุ
+   - แรมแท่งเดียว (32 GB) = single channel · bandwidth ราวครึ่งของ dual channel
+   - มี dGPU: NVIDIA GeForce GTX 1060 — ถ้าเกมไปวิ่งบน iGPU ให้ตั้ง GPU ต่อแอปเป็น dgpu
+```
+
+ใช้ `recommend` เป็นจุดเริ่มต้นก่อนเลือกโปรไฟล์ โดยเฉพาะบนเครื่องที่ไม่ใช่ LEVEL51
+
+## update
+
+```powershell
+.\Level51Tune.ps1 update
+```
+
+อ่าน metadata ของ release ล่าสุดจาก GitHub (`api.github.com/repos/NarDecH/LEVEL51-TUNE/releases/latest`) แล้วเทียบกับเวอร์ชันในเครื่อง — **คำสั่งเดียวในโปรแกรมที่ใช้เน็ต**, ไม่อัปเดตหรือดาวน์โหลดอะไรให้เอง ถ้าไม่มีเน็ตจะรายงานว่า "ตรวจไม่ได้" และคำสั่งอื่นทั้งหมดยังทำงานแบบ offline
+
 ## gpu
 
 ```powershell
@@ -334,6 +369,7 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 | `/api/backups` | GET | รายการ backup (สำหรับหน้า “ประวัติ/ย้อนกลับ”) |
 | `/api/gpu-prefs` | GET/POST | อ่าน/ตั้ง/ลบ GPU preference ต่อแอป |
 | `/api/processes` | GET | รายชื่อโปรเซส (ตัวช่วยเลือก .exe) |
+| `/api/update` | GET | ตรวจเวอร์ชันล่าสุดบน GitHub |
 | `/docs/*` | GET | เอกสาร HTML |
 
 header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)

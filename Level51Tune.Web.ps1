@@ -112,6 +112,16 @@ function Get-L51StatusPayload {
     }
     $schemeObj = $null
     if ($hw.PowerScheme) { $schemeObj = [pscustomobject]@{ guid = $hw.PowerScheme.Guid; name = $hw.PowerScheme.Name } }
+    $advice = $null
+    try {
+        $rec = Get-L51Recommendation -Hardware $hw
+        $advice = [pscustomobject]@{
+            profile = $rec.Profile; profileTitle = $rec.ProfileTitleTh; cpuClass = $rec.CpuClass
+            ramChannels = $rec.RamChannels; hasDedicatedGpu = $rec.HasDedicatedGpu
+            knownMachine = $rec.KnownMachine; maxProfileSafe = $rec.MaxProfileSafe
+            notes = @($rec.Notes); warnings = @($rec.Warnings)
+        }
+    } catch { }
     return [pscustomobject]@{
         computer = $hw.Computer
         model    = "$($hw.Manufacturer) $($hw.Model)".Trim()
@@ -126,6 +136,7 @@ function Get-L51StatusPayload {
         gpu      = $gpuObj
         profiles = $profiles
         state    = $stateObj
+        advice   = $advice
         # เรียงให้ดิสก์ภายใน (NVMe/SSD) ขึ้นก่อน USB
         disks    = @($hw.Disks | Sort-Object @{ Expression = { if ($_.Bus -eq 'NVMe') { 0 } elseif ($_.Bus -eq 'USB') { 2 } else { 1 } } }, @{ Expression = { $_.GB }; Descending = $true } | ForEach-Object {
                 [pscustomobject]@{ name = $_.Name; gb = $_.GB; bus = $_.Bus; health = $_.Health }
@@ -335,6 +346,16 @@ try {
                         pairs  = $pairs
                         rounds = @($pairs | Select-Object -ExpandProperty from -Unique).Count
                     } | ConvertTo-Json -Depth 5)
+                continue
+            }
+
+            if ($path -eq '/api/update') {
+                $u = Get-L51UpdateInfo
+                Send-L51Response $ctx ([pscustomobject]@{
+                        local = $u.Local; latest = $u.Latest; url = $u.Url
+                        publishedAt = $u.PublishedAt; upToDate = $u.UpToDate
+                        checked = $u.Checked; error = $u.Error
+                    } | ConvertTo-Json -Depth 4)
                 continue
             }
 

@@ -117,6 +117,8 @@ $t = Get-Content $p -Raw -Encoding UTF8
 10. **token ห้ามลงดิสก์/ไฟล์** — สร้างใหม่ทุกครั้งที่เริ่มโปรเซส และส่งให้ผู้ใช้ทาง console เท่านั้น
 11. **tray ต้องไม่รันแบบ elevated ค้างไว้** — ทุก action ที่แก้ระบบต้อง `Start-Process -Verb RunAs` แล้วจบ
 12. **GPU preference เขียนเฉพาะ `HKCU`** — ห้ามเขียน `HKLM`/ค่าทั้งระบบแทนผู้ใช้โดยไม่ได้รับการร้องขอ
+13. **เน็ตได้เฉพาะ `update`** — `Get-L51UpdateInfo` เป็นคำสั่งเดียวที่เรียกเน็ต (อ่าน metadata release) ต้องไม่ดาวน์โหลด/ติดตั้งอะไร และคำสั่งอื่นต้องทำงานแบบ offline ได้เสมอ
+14. **ห้ามผูก logic เข้ากับฮาร์ดแวร์ตัวเดียว** — `Get-L51Recommendation` ต้องคิดจากข้อมูลจริงของเครื่อง (RAM channel / CPU class / dGPU) ไม่ hard-code `LEVEL51`
 
 ## 7. กติกาเอกสาร
 

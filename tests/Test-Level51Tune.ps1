@@ -205,7 +205,7 @@ Test-Case 'audit: คืนผลครบทุก tweak ของโปรไ�
 Test-Case 'web: dashboard HTML มี token placeholder และ element หลัก' {
     $html = Get-L51DashboardHtml
     if ($html -notmatch '__TOKEN__') { throw 'ไม่พบ placeholder __TOKEN__' }
-    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log', '/api/tweaks', '/api/settings', '/api/live', '/api/compare', '/api/backups', '/api/gpu-prefs', '/api/processes')) {
+    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log', '/api/tweaks', '/api/settings', '/api/live', '/api/compare', '/api/backups', '/api/gpu-prefs', '/api/processes', '/api/update')) {
         if ($html -notmatch [regex]::Escape($needle)) { throw "ไม่พบ $needle ใน dashboard" }
     }
     ($html -match '<!DOCTYPE html>') -and ($html.Length -gt 5000)
@@ -270,6 +270,24 @@ Test-Case 'audit -TweakIds: ตรวจสถานะเฉพาะราย�
         if ($r.Applied -notin @('YES', 'no', '?')) { throw "สถานะไม่ถูกต้อง: $($r.Applied)" }
     }
     $true
+}
+
+Test-Case 'recommend: คืนโปรไฟล์และคำแนะนำครบถ้วน' {
+    $r = Get-L51Recommendation
+    if (-not $r) { throw 'ไม่ได้ผลลัพธ์' }
+    if (-not $r.Profile) { throw 'ไม่มีโปรไฟล์ที่แนะนำ' }
+    $prof = Get-L51Profile -Id $r.Profile
+    if (-not $prof) { throw "โปรไฟล์ที่แนะนำไม่มีจริง: $($r.Profile)" }
+    if ($r.RamChannels -notin @(1, 2)) { throw "RamChannels=$($r.RamChannels)" }
+    if (-not $r.Notes -or @($r.Notes).Count -eq 0) { throw 'ไม่มีหมายเหตุ' }
+    $true
+}
+
+Test-Case 'update: -SkipNetwork ไม่ยิงเน็ตและคืนโครงสร้างครบ' {
+    $u = Get-L51UpdateInfo -SkipNetwork
+    if (-not $u.Local) { throw 'ไม่มีเวอร์ชันในเครื่อง' }
+    if ($u.Checked) { throw 'ควรเป็น Checked=false เมื่อ SkipNetwork' }
+    $u.Local -eq (Get-L51Version)
 }
 
 Test-Case 'history: อ่านรายการ backup ได้ (ถ้ามี)' {

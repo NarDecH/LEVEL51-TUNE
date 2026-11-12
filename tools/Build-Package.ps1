@@ -11,7 +11,11 @@
     .\tools\Build-Package.ps1 -OutDir D:\release
 #>
 [CmdletBinding()]
-param([string]$OutDir = 'dist')
+param(
+    [string]$OutDir = 'dist',
+    [string]$CertificateThumbprint,
+    [string]$TimestampServer = 'http://timestamp.digicert.com'
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -52,6 +56,26 @@ if (Test-Path $assetsSrc) {
     Get-ChildItem $assetsSrc -File | ForEach-Object { Copy-Item $_.FullName -Destination (Join-Path $docsDst 'assets') -Force }
 }
 
+$signed = 0
+$signStatus = 'none'
+if ($CertificateThumbprint) {
+    $cert = @(Get-ChildItem -Path Cert:\CurrentUser\My, Cert:\LocalMachine\My -CodeSigningCert -ErrorAction SilentlyContinue |
+            Where-Object { $_.Thumbprint -eq $CertificateThumbprint } | Select-Object -First 1)
+    if ($cert.Count -eq 0) { throw "ไม่พบ code-signing certificate ที่มี thumbprint $CertificateThumbprint" }
+    foreach ($f in @(Get-ChildItem $staging -Recurse -Include *.ps1, *.psm1)) {
+        $sig = Set-AuthenticodeSignature -FilePath $f.FullName -Certificate $cert[0] -TimestampServer $TimestampServer -ErrorAction SilentlyContinue
+        if (-not $sig) { $sig = Set-AuthenticodeSignature -FilePath $f.FullName -Certificate $cert[0] -ErrorAction SilentlyContinue }
+        if ($sig) {
+            $signed++
+            $signStatus = [string]$sig.Status
+        }
+    }
+    Write-Host ('  ลงนาม {0} ไฟล์ · status: {1}' -f $signed, $signStatus) -ForegroundColor DarkGray
+    if ($signStatus -eq 'UnknownError') {
+        Write-Host '  หมายเหตุ: certificate ยังไม่ถูก trust ในเครื่องนี้ (self-signed) — เครื่องปลายทางจะยังเตือน' -ForegroundColor Yellow
+    }
+}
+
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path $staging -DestinationPath $zip -CompressionLevel Optimal
 Remove-Item $staging -Recurse -Force
@@ -67,7 +91,11 @@ Write-Host '  สร้างแพ็กเกจเสร็จ' -ForegroundCo
 Write-Host ('  ไฟล์ : {0}' -f $info.FullName)
 Write-Host ('  ขนาด: {0:N0} KB · เวอร์ชัน: {1}' -f ($info.Length / 1KB), $version)
 Write-Host '  ผู้รับแตกไฟล์แล้วดับเบิลคลิก Start-LEVEL51.cmd ได้เลย' -ForegroundColor DarkGray
-Write-Host '  ยังไม่ได้ code signing — Windows SmartScreen อาจเตือน' -ForegroundColor Yellow
+if ($signed -eq 0) {
+    Write-Host '  ยังไม่ได้ code signing — ใช้ -CertificateThumbprint <thumbprint> เพื่อลงนาม' -ForegroundColor Yellow
+} else {
+    Write-Host ('  ลงนามแล้ว {0} ไฟล์ ({1})' -f $signed, $signStatus) -ForegroundColor Green
+}
 Write-Host ''
 
 return [pscustomobject]@{
@@ -75,4 +103,5 @@ return [pscustomobject]@{
     SizeKB  = [math]::Round($info.Length / 1KB, 0)
     Version = $version
     Files   = $count
+    Signed  = $signed
 }

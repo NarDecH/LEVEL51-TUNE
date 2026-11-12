@@ -28,6 +28,7 @@
       <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+      <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
     <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
   </aside>
@@ -49,11 +50,13 @@
 <li><a href="#sec-10">backup</a></li>
 <li><a href="#sec-11">report</a></li>
 <li><a href="#sec-12">bench / compare</a></li>
-<li><a href="#sec-13">gpu</a></li>
-<li><a href="#sec-14">docs</a></li>
-<li><a href="#sec-15">Exit codes</a></li>
-<li><a href="#sec-16">การใช้จาก PowerShell profile</a></li>
-<li><a href="#sec-17">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</a></li>
+<li><a href="#sec-13">latency</a></li>
+<li><a href="#sec-14">gpu</a></li>
+<li><a href="#sec-15">docs</a></li>
+<li><a href="#sec-16">Exit codes</a></li>
+<li><a href="#sec-17">การใช้จาก PowerShell profile</a></li>
+<li><a href="#sec-18">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</a></li>
+<li><a href="#sec-19">Web GUI</a></li>
 </ol></nav>
 <h2 id="sec-2">สรุปคำสั่งทั้งหมด</h2>
 <div class="table-wrap"><table>
@@ -70,6 +73,7 @@
 <tr><td><code>backup</code></td><td>ใช่</td><td>ไม่ (แค่อ่าน)</td><td>1 วินาที</td><td>snapshot สถานะ</td></tr>
 <tr><td><code>report</code></td><td>ไม่</td><td>ไม่</td><td>3-6 วินาที</td><td>รายงาน markdown</td></tr>
 <tr><td><code>bench</code></td><td>ไม่</td><td>ไม่</td><td>15-25 วินาที</td><td>วัดประสิทธิภาพ</td></tr>
+<tr><td><code>latency</code></td><td>ไม่</td><td>ไม่</td><td>15-25 วินาที</td><td>วัด DPC / interrupt / context switch</td></tr>
 <tr><td><code>compare</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>เทียบผลวัด</td></tr>
 <tr><td><code>gpu</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สถานะ GPU</td></tr>
 <tr><td><code>docs</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สร้าง HTML</td></tr>
@@ -88,7 +92,7 @@
 <tr><td><code>-BackupPath &lt;file&gt;</code></td><td>string</td><td>restore</td><td>ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด)</td></tr>
 <tr><td><code>-Path &lt;file&gt;</code></td><td>string</td><td>report</td><td>ที่เก็บรายงาน</td></tr>
 <tr><td><code>-Label &lt;text&gt;</code></td><td>string</td><td>bench</td><td>ชื่อกำกับผล (เช่น <code>before</code>, <code>after</code>, <code>max-profile</code>)</td></tr>
-<tr><td><code>-Seconds &lt;n&gt;</code></td><td>int</td><td>bench</td><td>เวลาต่อรอบ CPU (ค่าเริ่มต้น 3)</td></tr>
+<tr><td><code>-Seconds &lt;n&gt;</code></td><td>int</td><td>bench, latency</td><td>เวลาต่อรอบ CPU / เวลาที่เฝ้าดู counter (ค่าเริ่มต้น 3 / 20)</td></tr>
 <tr><td><code>-Last &lt;n&gt;</code></td><td>int</td><td>compare</td><td>จำนวนผลที่จะเทียบ (ค่าเริ่มต้น 2)</td></tr>
 <tr><td><code>-Open</code></td><td>switch</td><td>docs</td><td>เปิด index.html หลังสร้าง</td></tr>
 </tbody>
@@ -175,16 +179,42 @@
 </tbody>
 </table></div>
 <p><code>compare</code> แสดง delta เป็น % พร้อมสี (เขียว = ดีขึ้น, แดง = แย่ลง) และย้ำว่า noise &#177;3-5%</p>
-<h2 id="sec-13">gpu</h2>
+<h2 id="sec-13">latency</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 latency
+.\Level51Tune.ps1 latency -Seconds 30</code></pre>
+<p>อ่าน Windows performance counter ระหว่างเฝ้าดูตามเวลาที่กำหนด (ไม่ต้อง admin) แล้วสรุปว่า latency ผิดปกติหรือไม่</p>
+<div class="table-wrap"><table>
+<thead><tr><th>counter</th><th>บอกอะไร</th><th>ค่าที่ดี</th></tr></thead>
+<tbody>
+<tr><td><code>% DPC Time</code></td><td>เวลาที่ Kernel ใช้ใน deferred procedure call (ไดรเวอร์)</td><td>&lt; 3%</td></tr>
+<tr><td><code>% Interrupt Time</code></td><td>เวลาที่ใช้รับ interrupt จากฮาร์ดแวร์</td><td>&lt; 1%</td></tr>
+<tr><td><code>% Idle Time</code></td><td>เครื่องว่างมากน้อยแค่ไหน (ใช้เทียบว่าตอนวัดมีงานอื่นวิ่งอยู่ไหม)</td><td>&gt; 50% ตอน idle</td></tr>
+<tr><td><code>Context Switches/sec</code></td><td>ความถี่ในการสลับ thread</td><td>ยิ่งต่ำยิ่งดีเมื่อ idle</td></tr>
+</tbody>
+</table></div>
+<p>ใช้ <code>latency</code> เพื่อตรวจว่า &quot;มีไดรเวอร์หรืออุปกรณ์ไหนทำให้เกิด jitter&quot; ก่อนจูน — ถ้า DPC สูงผิดปกติ (&gt; 3%) ให้ตามหาไดรเวอร์นั้นด้วย LatencyMon ก่อน เพราะ tweak พลังงานแก้ไม่ได้</p>
+<p>ตัวอย่างผลจริงบนเครื่องนี้ (หลัง apply โปรไฟล์ performance, 15 วินาที):</p>
+<pre><code>  Counter                                          Avg      Max
+  -------                                          ---      ---
+  processor information(_total)\% dpc time         0.03     0.10
+  processor_info(_total)\% idle time               84.76    88.37
+  processor information(_total)\% interrupt time   0.17     0.39
+  system\context switches/sec                   8426.16 10582.26
+
+  สรุป: ปกติ</code></pre>
+<p>สำหรับการเทียบก่อน/หลังแบบเป็นระบบ (สลับ scheme A-B-B-A) ใช้ <code>tools\AB-Latency.ps1</code> — ต้องรันแบบ Administrator เพราะต้องสลับ power scheme</p>
+<pre><code class="lang-powershell"># เปิด PowerShell แบบ Administrator
+.\tools\AB-Latency.ps1 -Seconds 12</code></pre>
+<h2 id="sec-14">gpu</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
 <p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>
 <pre><code class="lang-powershell">nvidia-smi -q -d CLOCK,POWER,TEMPERATURE
 nvidia-smi --query-gpu=clocks.gr,clocks.throttle --format=csv</code></pre>
-<h2 id="sec-14">docs</h2>
+<h2 id="sec-15">docs</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 docs
 .\Level51Tune.ps1 docs -Open</code></pre>
 <p>แปลง <code>docs/*.md</code> ทั้งหมดเป็น HTML พร้อม sidebar, TOC, ตาราง, ปุ่มก่อนหน้า/ถัดไป และสร้าง <code>docs/index.html</code> เป็นสารบัญ ไม่ต้องติดตั้ง pandoc หรืออะไรเพิ่ม</p>
-<h2 id="sec-15">Exit codes</h2>
+<h2 id="sec-16">Exit codes</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>code</th><th>ความหมาย</th></tr></thead>
 <tbody>
@@ -196,18 +226,37 @@ nvidia-smi --query-gpu=clocks.gr,clocks.throttle --format=csv</code></pre>
 <p>ใช้ในสคริปต์ได้:</p>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -DryRun
 if ($LASTEXITCODE -ne 0) { Write-Error &#39;dry-run ล้มเหลว&#39; }</code></pre>
-<h2 id="sec-16">การใช้จาก PowerShell profile</h2>
+<h2 id="sec-17">การใช้จาก PowerShell profile</h2>
 <p>ถ้าอยากเรียกสั้น ๆ ให้เพิ่ม function ใน <code>$PROFILE</code>:</p>
 <pre><code class="lang-powershell">function l51 { &amp; &#39;C:\_Project\LEVEL51-TUNE\Level51Tune.ps1&#39; @args }</code></pre>
 <p>แล้วใช้ <code>l51 status</code>, <code>l51 apply -Profile gaming -DryRun</code> ได้เลย</p>
-<h2 id="sec-17">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</h2>
+<h2 id="sec-18">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</h2>
 <pre><code class="lang-powershell">Import-Module C:\_Project\LEVEL51-TUNE\src\Level51Tune.psm1 -Force
 
 $hw = Get-L51Hardware
 $rows = Invoke-L51Audit -Profile &#39;gaming&#39;
 $result = Invoke-L51Apply -Profile &#39;performance&#39; -DryRun
 $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
-<p>ฟังก์ชันที่ export: <code>Get-L51Hardware</code>, <code>Get-L51GpuState</code>, <code>Get-L51Catalog</code>, <code>Get-L51Profiles</code>, <code>Get-L51ProfileTweaks</code>, <code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Backup</code>, <code>Get-L51Status</code>, <code>New-L51Report</code>, <code>Invoke-L51Bench</code>, <code>Compare-L51Bench</code>, <code>Build-L51Docs</code>, <code>Get-L51PowerValue</code>, <code>Set-L51PowerValue</code>, <code>Test-L51TweakApplied</code></p>
+<p>ฟังก์ชันที่ export: <code>Get-L51Hardware</code>, <code>Get-L51GpuState</code>, <code>Get-L51Catalog</code>, <code>Get-L51Profiles</code>, <code>Get-L51ProfileTweaks</code>, <code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Backup</code>, <code>Get-L51Status</code>, <code>New-L51Report</code>, <code>Invoke-L51Bench</code>, <code>Compare-L51Bench</code>, <code>Measure-L51Latency</code>, <code>Build-L51Docs</code>, <code>Get-L51DashboardHtml</code>, <code>Get-L51LogPath</code>, <code>Get-L51PowerValue</code>, <code>Set-L51PowerValue</code>, <code>Test-L51TweakApplied</code></p>
+<h2 id="sec-19">Web GUI</h2>
+<pre><code class="lang-powershell">.\Level51Tune.Web.ps1
+.\Level51Tune.Web.ps1 -Port 8899 -NoBrowser</code></pre>
+<p>เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (<code>System.Net.HttpListener</code>) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request</p>
+<div class="table-wrap"><table>
+<thead><tr><th>endpoint</th><th>method</th><th>ทำอะไร</th></tr></thead>
+<tbody>
+<tr><td><code>/api/status</code></td><td>GET</td><td>ฮาร์ดแวร์, scheme, โปรไฟล์ล่าสุด</td></tr>
+<tr><td><code>/api/audit</code></td><td>POST</td><td>ตรวจสถานะ tweak ของโปรไฟล์</td></tr>
+<tr><td><code>/api/apply</code></td><td>POST</td><td>apply หรือ dry-run</td></tr>
+<tr><td><code>/api/restore</code></td><td>POST</td><td>ย้อนกลับจาก backup ล่าสุด</td></tr>
+<tr><td><code>/api/bench</code></td><td>POST</td><td>วัด CPU/RAM/Disk</td></tr>
+<tr><td><code>/api/latency</code></td><td>POST</td><td>วัด DPC/interrupt</td></tr>
+<tr><td><code>/api/log</code></td><td>GET</td><td>log ล่าสุด (กรอง DEBUG)</td></tr>
+<tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML</td></tr>
+</tbody>
+</table></div>
+<p>header ที่ต้องส่ง: <code>X-L51-Token: &lt;token&gt;</code> (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)</p>
+<p>ดูเหตุผลการออกแบบและ roadmap ที่ <a href="15-GUI-และ-roadmap.md">GUI และ roadmap</a></p>
 
     </article>
       <nav class="pager"><a class="pager-prev" href="02-เริ่มต้นใช้งาน.html">&larr; ติดตั้งและเริ่มต้นใช้งาน</a><a class="pager-next" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน &rarr;</a></nav>

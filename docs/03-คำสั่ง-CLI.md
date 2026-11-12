@@ -23,6 +23,7 @@
 | `backup` | ใช่ | ไม่ (แค่อ่าน) | 1 วินาที | snapshot สถานะ |
 | `report` | ไม่ | ไม่ | 3-6 วินาที | รายงาน markdown |
 | `bench` | ไม่ | ไม่ | 15-25 วินาที | วัดประสิทธิภาพ |
+| `latency` | ไม่ | ไม่ | 15-25 วินาที | วัด DPC / interrupt / context switch |
 | `compare` | ไม่ | ไม่ | ทันที | เทียบผลวัด |
 | `gpu` | ไม่ | ไม่ | 1 วินาที | สถานะ GPU |
 | `docs` | ไม่ | ไม่ | 1 วินาที | สร้าง HTML |
@@ -40,7 +41,7 @@
 | `-BackupPath <file>` | string | restore | ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด) |
 | `-Path <file>` | string | report | ที่เก็บรายงาน |
 | `-Label <text>` | string | bench | ชื่อกำกับผล (เช่น `before`, `after`, `max-profile`) |
-| `-Seconds <n>` | int | bench | เวลาต่อรอบ CPU (ค่าเริ่มต้น 3) |
+| `-Seconds <n>` | int | bench, latency | เวลาต่อรอบ CPU / เวลาที่เฝ้าดู counter (ค่าเริ่มต้น 3 / 20) |
 | `-Last <n>` | int | compare | จำนวนผลที่จะเทียบ (ค่าเริ่มต้น 2) |
 | `-Open` | switch | docs | เปิด index.html หลังสร้าง |
 
@@ -170,6 +171,44 @@
 
 `compare` แสดง delta เป็น % พร้อมสี (เขียว = ดีขึ้น, แดง = แย่ลง) และย้ำว่า noise ±3-5%
 
+## latency
+
+```powershell
+.\Level51Tune.ps1 latency
+.\Level51Tune.ps1 latency -Seconds 30
+```
+
+อ่าน Windows performance counter ระหว่างเฝ้าดูตามเวลาที่กำหนด (ไม่ต้อง admin) แล้วสรุปว่า latency ผิดปกติหรือไม่
+
+| counter | บอกอะไร | ค่าที่ดี |
+|---|---|---|
+| `% DPC Time` | เวลาที่ Kernel ใช้ใน deferred procedure call (ไดรเวอร์) | < 3% |
+| `% Interrupt Time` | เวลาที่ใช้รับ interrupt จากฮาร์ดแวร์ | < 1% |
+| `% Idle Time` | เครื่องว่างมากน้อยแค่ไหน (ใช้เทียบว่าตอนวัดมีงานอื่นวิ่งอยู่ไหม) | > 50% ตอน idle |
+| `Context Switches/sec` | ความถี่ในการสลับ thread | ยิ่งต่ำยิ่งดีเมื่อ idle |
+
+ใช้ `latency` เพื่อตรวจว่า "มีไดรเวอร์หรืออุปกรณ์ไหนทำให้เกิด jitter" ก่อนจูน — ถ้า DPC สูงผิดปกติ (> 3%) ให้ตามหาไดรเวอร์นั้นด้วย LatencyMon ก่อน เพราะ tweak พลังงานแก้ไม่ได้
+
+ตัวอย่างผลจริงบนเครื่องนี้ (หลัง apply โปรไฟล์ performance, 15 วินาที):
+
+```
+  Counter                                          Avg      Max
+  -------                                          ---      ---
+  processor information(_total)\% dpc time         0.03     0.10
+  processor_info(_total)\% idle time               84.76    88.37
+  processor information(_total)\% interrupt time   0.17     0.39
+  system\context switches/sec                   8426.16 10582.26
+
+  สรุป: ปกติ
+```
+
+สำหรับการเทียบก่อน/หลังแบบเป็นระบบ (สลับ scheme A-B-B-A) ใช้ `tools\AB-Latency.ps1` — ต้องรันแบบ Administrator เพราะต้องสลับ power scheme
+
+```powershell
+# เปิด PowerShell แบบ Administrator
+.\tools\AB-Latency.ps1 -Seconds 12
+```
+
 ## gpu
 
 ```powershell
@@ -228,4 +267,28 @@ $result = Invoke-L51Apply -Profile 'performance' -DryRun
 $result.Results | Where-Object Status -ne 'OK'
 ```
 
-ฟังก์ชันที่ export: `Get-L51Hardware`, `Get-L51GpuState`, `Get-L51Catalog`, `Get-L51Profiles`, `Get-L51ProfileTweaks`, `Invoke-L51Apply`, `Invoke-L51Restore`, `Invoke-L51Audit`, `Invoke-L51Backup`, `Get-L51Status`, `New-L51Report`, `Invoke-L51Bench`, `Compare-L51Bench`, `Build-L51Docs`, `Get-L51PowerValue`, `Set-L51PowerValue`, `Test-L51TweakApplied`
+ฟังก์ชันที่ export: `Get-L51Hardware`, `Get-L51GpuState`, `Get-L51Catalog`, `Get-L51Profiles`, `Get-L51ProfileTweaks`, `Invoke-L51Apply`, `Invoke-L51Restore`, `Invoke-L51Audit`, `Invoke-L51Backup`, `Get-L51Status`, `New-L51Report`, `Invoke-L51Bench`, `Compare-L51Bench`, `Measure-L51Latency`, `Build-L51Docs`, `Get-L51DashboardHtml`, `Get-L51LogPath`, `Get-L51PowerValue`, `Set-L51PowerValue`, `Test-L51TweakApplied`
+
+## Web GUI
+
+```powershell
+.\Level51Tune.Web.ps1
+.\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
+```
+
+เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (`System.Net.HttpListener`) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request
+
+| endpoint | method | ทำอะไร |
+|---|---|---|
+| `/api/status` | GET | ฮาร์ดแวร์, scheme, โปรไฟล์ล่าสุด |
+| `/api/audit` | POST | ตรวจสถานะ tweak ของโปรไฟล์ |
+| `/api/apply` | POST | apply หรือ dry-run |
+| `/api/restore` | POST | ย้อนกลับจาก backup ล่าสุด |
+| `/api/bench` | POST | วัด CPU/RAM/Disk |
+| `/api/latency` | POST | วัด DPC/interrupt |
+| `/api/log` | GET | log ล่าสุด (กรอง DEBUG) |
+| `/docs/*` | GET | เอกสาร HTML |
+
+header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)
+
+ดูเหตุผลการออกแบบและ roadmap ที่ [GUI และ roadmap](15-GUI-และ-roadmap.md)

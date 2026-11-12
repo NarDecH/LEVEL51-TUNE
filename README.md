@@ -15,7 +15,7 @@
 | **Network** | NetworkThrottlingIndex, MMCSS Games priority, Nagle/delayed-ACK, TCP global tuning |
 | **Windows** | Game Mode, mouse acceleration, keyboard delay, visual effects, background apps, telemetry services, boot configuration |
 
-รวม **60 tweaks** ใน 5 โปรไฟล์ (`balanced`, `performance`, `gaming`, `max`, `battery`) พร้อมระบบสำรอง/ย้อนกลับอัตโนมัติ
+รวม **60 tweaks** ใน 5 โปรไฟล์ (`balanced`, `performance`, `gaming`, `max`, `battery`) พร้อมระบบสำรอง/ย้อนกลับอัตโนมัติ — ใช้ได้ทั้งจาก **CLI** และ **Web GUI** ในเบราว์เซอร์
 
 ## เริ่มใช้งาน 60 วินาที
 
@@ -43,6 +43,17 @@ cd LEVEL51-TUNE
 .\Level51Tune.ps1 restore
 ```
 
+## Web GUI (ใช้ผ่านเบราว์เซอร์)
+
+```powershell
+.\Level51Tune.Web.ps1            # เปิด http://localhost:8730/ พร้อม token
+.\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
+```
+
+dashboard มีการ์ดฮาร์ดแวร์, ปุ่ม Dry run / Apply ของทั้ง 5 โปรไฟล์, ปุ่ม audit / bench / latency / restore และ log สด — ไม่ต้องติดตั้งอะไรเพิ่ม ไม่มี node_modules ฟังเฉพาะ loopback และบังคับ token ทุก request
+
+ปุ่ม Apply/Restore ต้องเปิดโปรแกรมแบบ Administrator (ไม่งั้นได้ 403 พร้อมคำอธิบาย) — ดูการวิเคราะห์/roadmap ที่ [docs/15](docs/15-GUI-และ-roadmap.md)
+
 ## โปรไฟล์
 
 | โปรไฟล์ | เหมาะกับ | แลกกับ |
@@ -62,7 +73,7 @@ cd LEVEL51-TUNE
 
 ## เอกสาร
 
-เอกสารภาษาไทยฉบับเต็ม 13 บท อยู่ใน [`docs/`](docs/index.html) — เปิดด้วย
+เอกสารภาษาไทยฉบับเต็ม 15 บท อยู่ใน [`docs/`](docs/index.html) — เปิดด้วย
 
 ```powershell
 .\Level51Tune.ps1 docs -Open
@@ -84,18 +95,22 @@ cd LEVEL51-TUNE
 | [12](docs/12-ความปลอดภัย-ย้อนกลับ.md) | ความปลอดภัยและการย้อนกลับ |
 | [13](docs/13-ผลตรวจเครื่องนี้.md) | ผลตรวจเครื่อง LEVEL51 (ค่าจริง) |
 | [14](docs/14-แก้ปัญหา-FAQ.md) | แก้ปัญหาและ FAQ |
+| [15](docs/15-GUI-และ-roadmap.md) | GUI ที่ทำจริง, ทางเลือกอื่น, roadmap |
 
 ## โครงสร้างโปรเจกต์
 
 ```
 Level51Tune.ps1              CLI entry point
+Level51Tune.Web.ps1          Web GUI server (HttpListener + token, loopback only)
 src/Level51Tune.psm1         engine (detect, backup, apply, restore, audit, status, docs)
 src/Catalog.ps1              นิยาม tweaks 60 รายการ (declarative)
 src/Markdown.ps1             markdown → HTML renderer
-src/Bench.ps1                micro-benchmark + history + compare
+src/Bench.ps1                micro-benchmark + history + compare + latency
+src/WebUI.ps1                HTML dashboard แบบ single-page (ไม่มี asset ภายนอก)
 docs/                        เอกสาร .md (ต้นฉบับ) และ .html (สร้างอัตโนมัติ)
 tools/Build-Docs.ps1         สร้าง docs/*.html
-tools/AB-Bench.ps1          วัด A/B ระหว่างสอง power scheme (A-B-B-A)
+tools/AB-Bench.ps1           วัด A/B throughput ระหว่างสอง power scheme (A-B-B-A)
+tools/AB-Latency.ps1         วัด A/B DPC/interrupt (ต้อง admin)
 tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง admin, ไม่แก้ระบบ)
 ```
 
@@ -105,7 +120,7 @@ tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง adm
 .\tests\Test-Level51Tune.ps1
 ```
 
-ตรวจ schema ของแค็ตตาล็อก, markdown renderer, docs build และ dry-run apply ทุกโปรไฟล์ (ไม่ต้องใช้สิทธิ์ admin และไม่เปลี่ยนแปลงระบบ)
+ตรวจ schema ของแค็ตตาล็อก, markdown renderer, docs build, dashboard HTML, latency counter และ dry-run apply ทุกโปรไฟล์ (ไม่ต้องใช้สิทธิ์ admin และไม่เปลี่ยนแปลงระบบ)
 
 ## ความต้องการของระบบ
 

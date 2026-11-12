@@ -28,6 +28,7 @@
       <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
       <a class="nav-item active" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+      <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
     <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
   </aside>
@@ -46,6 +47,7 @@
 <li><a href="#sec-15">7. ข้อจำกัดของการวัดชุดนี้</a></li>
 <li><a href="#sec-16">8. การตรวจซ้ำด้วยตัวเอง</a></li>
 <li><a href="#sec-17">9. ภาคผนวก: ผลหลัง apply โปรไฟล์ performance (12 พ.ย. 2026, 12:04)</a></li>
+<li><a href="#sec-22">10. ภาคผนวก: วัด latency หลัง apply (DPC / interrupt)</a></li>
 </ol></nav>
 <h2 id="sec-2">1. ภาพรวมฮาร์ดแวร์</h2>
 <div class="table-wrap"><table>
@@ -222,6 +224,26 @@ nvidia-smi -q -d PERFORMANCE</code></pre>
 <h3 id="sec-21">ถ้าไม่ต้องการโปรไฟล์นี้ต่อ</h3>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 restore      # กลับไป Balanced ตาม backup ล่าสุด</code></pre>
 <p>หรือสลับเองใน Control Panel → Power Options → Balanced (scheme <code>LEVEL51-TUNE performance</code> จะยังอยู่ให้สลับกลับได้)</p>
+<h2 id="sec-22">10. ภาคผนวก: วัด latency หลัง apply (DPC / interrupt)</h2>
+<p>รัน <code>.\Level51Tune.ps1 latency -Seconds 15</code> บน scheme <code>LEVEL51-TUNE performance</code> (เครื่อง idle, ไม่มีงานหนักรันอยู่):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>counter</th><th>Avg</th><th>Max</th><th>เกณฑ์</th></tr></thead>
+<tbody>
+<tr><td><code>% DPC Time</code></td><td>0.03%</td><td>0.10%</td><td>&lt; 3%</td></tr>
+<tr><td><code>% Interrupt Time</code></td><td>0.17%</td><td>0.39%</td><td>&lt; 1%</td></tr>
+<tr><td><code>% Idle Time</code></td><td>84.76%</td><td>88.37%</td><td>สูง = เครื่องว่างจริง</td></tr>
+<tr><td><code>Context Switches/sec</code></td><td>8,426</td><td>10,582</td><td>ยิ่งต่ำยิ่งดีเมื่อ idle</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-23">วิธีตีความ</h3>
+<ul>
+<li>DPC/interrupt ต่ำมาก (0.03% / 0.17%) → <strong>ไม่มีไดรเวอร์หรืออุปกรณ์ที่ก่อ jitter</strong> บนเครื่องนี้ คอขวดไม่ใช่ interrupt storm</li>
+<li>ค่า <code>% Idle Time</code> 84% ยืนยันว่าการวัดทำตอนเครื่องว่างจริง ตัวเลข DPC จึงไม่ถูกเจือจางด้วยงานอื่น</li>
+<li>ค่าเหล่านี้เป็น <strong>baseline หลัง apply</strong> เท่านั้น — การเทียบก่อน/หลังแบบสลับ scheme ต้องรัน <code>tools\AB-Latency.ps1</code> แบบ Administrator (ยังไม่ได้รันในรอบนี้)</li>
+<li>ถ้าต้องการ frametime จริงในเกม ต้องใช้ PresentMon/CapFrameX เพราะ performance counter ไม่ได้วัดเส้นทาง render</li>
+</ul>
+<h3 id="sec-24">ข้อสรุปที่เกี่ยวข้อง</h3>
+<p>ผลรวมของหลักฐาน (throughput ไม่เปลี่ยน, memory +17.5% เป็น warm-up artifact, DPC ปกติ) ชี้ว่า <strong>โปรไฟล์ performance ไม่ได้ทำให้เครื่องเร็วขึ้น แต่ก็ไม่ได้ทำให้แย่ลง</strong> — สิ่งที่ได้คือค่าที่นิ่งขึ้นและ fitur ที่ปิดไป (core parking, ASPM, disk timeout, Nagle) ซึ่งช่วยเรื่อง jitter ในสถานการณ์จริงมากกว่าตัวเลข benchmark</p>
 
     </article>
       <nav class="pager"><a class="pager-prev" href="12-ความปลอดภัย-ย้อนกลับ.html">&larr; ความปลอดภัย การสำรอง และการย้อนกลับ</a><a class="pager-next" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย &rarr;</a></nav>

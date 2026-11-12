@@ -28,6 +28,7 @@
       <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+      <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
     <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
   </aside>
@@ -45,7 +46,8 @@
 <li><a href="#sec-9">ขั้นตอนที่ 7: วัดผลหลัง และเปรียบเทียบ</a></li>
 <li><a href="#sec-10">โครงสร้างไฟล์ที่โปรแกรมสร้าง</a></li>
 <li><a href="#sec-11">คำสั่งที่ใช้บ่อย</a></li>
-<li><a href="#sec-12">ถ้าติดปัญหา</a></li>
+<li><a href="#sec-12">ทางลัด: ใช้ GUI ผ่านเบราว์เซอร์</a></li>
+<li><a href="#sec-13">ถ้าติดปัญหา</a></li>
 </ol></nav>
 <h2 id="sec-2">สิ่งที่ต้องมี</h2>
 <div class="table-wrap"><table>
@@ -157,8 +159,29 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
 .\Level51Tune.ps1 list -Category GPU      # ดู tweaks หมวด GPU
 .\Level51Tune.ps1 apply -Profile performance
 .\Level51Tune.ps1 restore                 # ย้อนกลับจาก backup ล่าสุด
-.\Level51Tune.ps1 docs -Open              # เปิดเอกสาร HTML</code></pre>
-<h2 id="sec-12">ถ้าติดปัญหา</h2>
+.\Level51Tune.ps1 docs -Open              # เปิดเอกสาร HTML
+.\Level51Tune.ps1 latency                 # วัด DPC/interrupt latency
+.\Level51Tune.Web.ps1                     # เปิด GUI บนเบราว์เซอร์</code></pre>
+<h2 id="sec-12">ทางลัด: ใช้ GUI ผ่านเบราว์เซอร์</h2>
+<p>ถ้าไม่อยากพิมพ์คำสั่งทุกครั้ง ให้เปิด dashboard:</p>
+<pre><code class="lang-powershell">.\Level51Tune.Web.ps1                     # http://localhost:8730/
+.\Level51Tune.Web.ps1 -Port 8899          # เปลี่ยน port
+.\Level51Tune.Web.ps1 -NoBrowser          # ไม่ต้องเปิดเบราว์เซอร์เอง</code></pre>
+<p>โปรแกรมจะพิมพ์ URL พร้อม token ลง console (เช่น <code>http://localhost:8730/?t=abc123...</code>) — เปิด URL นั้นในเบราว์เซอร์ dashboard จะมี:</p>
+<ul>
+<li>การ์ดฮาร์ดแวร์ (CPU / RAM / GPU / ดิสก์ / โปรไฟล์ล่าสุด)</li>
+<li>การ์ดโปรไฟล์ทั้ง 5 พร้อมปุ่ม <strong>Dry run</strong> และ <strong>Apply</strong></li>
+<li>แถบเครื่องมือ: รีเฟรชสถานะ, ตรวจ audit, วัดประสิทธิภาพ, วัด latency, ย้อนกลับ (restore)</li>
+<li>log สด (กรอง DEBUG ออกให้อัตโนมัติ)</li>
+</ul>
+<p>ข้อควรรู้:</p>
+<ul>
+<li>เปิดได้โดยไม่ต้อง admin แต่ปุ่ม Apply/Restore จะถูกปฏิเสธ (403) — ให้เปิด PowerShell แบบ Administrator แล้วรัน <code>Level51Tune.Web.ps1</code> อีกครั้ง</li>
+<li>ทุกปุ่มเรียก engine ตัวเดียวกับ CLI ผลลัพธ์จึงเหมือนกันทุกประการ</li>
+<li>token อยู่ใน URL เพราะเป็นเซิร์ฟเวอร์ท้องถิ่น (loopback) ไม่ได้เปิดออกเครือข่าย — อย่าแชร์ URL นี้</li>
+</ul>
+<p>ดูรายละเอียด ทางเลือกอื่น และ roadmap ที่ <a href="15-GUI-และ-roadmap.md">GUI และ roadmap</a></p>
+<h2 id="sec-13">ถ้าติดปัญหา</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>อาการ</th><th>วิธีแก้</th></tr></thead>
 <tbody>
@@ -166,6 +189,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
 <tr><td><code>ต้องใช้สิทธิ์ Administrator</code></td><td>เปิด PowerShell แบบ Run as administrator หรือเพิ่ม <code>-Elevate</code></td></tr>
 <tr><td>สคริปต์ถูกบล็อก</td><td><code>Unblock-File</code> ตามขั้นตอนที่ 2</td></tr>
 <tr><td>ตัวอักษรไทยใน console เพี้ยน</td><td>ใช้ Windows Terminal หรือรัน <code>chcp 65001</code> ก่อน (เฉพาะ PowerShell 5.1)</td></tr>
+<tr><td>เปิด GUI แล้วขึ้น 403</td><td>เปิด PowerShell แบบ Administrator ก่อนรัน <code>Level51Tune.Web.ps1</code></td></tr>
+<tr><td>port 8730 ถูกใช้อยู่</td><td><code>-Port 8899</code></td></tr>
 <tr><td><code>powercfg</code> ปฏิเสธค่า (WARN)</td><td>ค่านั้นถูกซ่อนอยู่ — apply โปรไฟล์ที่มี <code>win.unhide-power-settings</code> ก่อน</td></tr>
 </tbody>
 </table></div>

@@ -170,6 +170,68 @@ function Invoke-L51Bench {
     return $result
 }
 
+function Measure-L51Latency {
+    param([int]$Seconds = 20)
+
+    $counters = @(
+        '\Processor Information(_Total)\% DPC Time',
+        '\Processor Information(_Total)\% Interrupt Time',
+        '\Processor Information(_Total)\% Idle Time',
+        '\System\Context Switches/sec'
+    )
+    Write-L51Log ("เก็บตัวอย่าง latency {0} วินาที (DPC / interrupt / context switch)" -f $Seconds) 'STEP'
+
+    $data = $null
+    try {
+        $data = Get-Counter -Counter $counters -SampleInterval 1 -MaxSamples $Seconds -ErrorAction Stop
+    } catch {
+        throw "อ่าน performance counter ไม่ได้: $($_.Exception.Message)"
+    }
+
+    $rows = foreach ($group in ($data.CounterSamples | Group-Object Path)) {
+        $vals = @($group.Group | ForEach-Object { [double]$_.CookedValue })
+        # ตัด prefix \\<host>\\ ออกจาก counter path เพื่อให้อ่านง่าย
+        $name = $group.Name
+        $name = [regex]::Replace($name, '^\\\\[^\\]+\\', '')
+        [pscustomobject]@{
+            Counter = $name
+            Avg     = [math]::Round((($vals | Measure-Object -Average).Average), 2)
+            Max     = [math]::Round((($vals | Measure-Object -Maximum).Maximum), 2)
+        }
+    }
+
+    Write-Host ''
+    $rows | Format-Table -AutoSize | Out-String -Width 120 | Write-Host
+
+    $dpc = $rows | Where-Object { $_.Counter -match 'dpc' } | Select-Object -First 1
+    $isr = $rows | Where-Object { $_.Counter -match 'interrupt' } | Select-Object -First 1
+    $verdict = 'ปกติ'
+    $color = 'Green'
+    if ($dpc -and $dpc.Avg -gt 3) { $verdict = 'DPC สูง — มีไดรเวอร์กิน CPU ตอน interrupt'; $color = 'Yellow' }
+    if ($dpc -and $dpc.Avg -gt 6) { $verdict = 'DPC สูงมาก — ต้องหาไดรเวอร์ต้นเหตุ'; $color = 'Red' }
+    if ($isr -and $isr.Avg -gt 2) { $verdict = 'Interrupt time สูงผิดปกติ'; $color = 'Yellow' }
+    Write-Host ("  สรุป: {0}" -f $verdict) -ForegroundColor $color
+    Write-Host '  อ้างอิง: DPC < 3% และ interrupt < 1% ถือว่าดี · ค่าที่ดีขึ้นหลังจูน = jitter น้อยลง' -ForegroundColor DarkGray
+    Write-Host ''
+
+    $dpcAvg = $null
+    $isrAvg = $null
+    if ($dpc) { $dpcAvg = $dpc.Avg }
+    if ($isr) { $isrAvg = $isr.Avg }
+    $schemeName = ''
+    $active = Get-L51ActiveScheme
+    if ($active) { $schemeName = $active.Name }
+
+    return [pscustomobject]@{
+        Timestamp = (Get-Date).ToString('o')
+        Seconds   = $Seconds
+        Scheme    = $schemeName
+        Counters  = $rows
+        DpcAvg    = $dpcAvg
+        IsrAvg    = $isrAvg
+    }
+}
+
 function Compare-L51Bench {
     param([int]$Count = 2)
     $hist = @(Get-L51BenchHistory -Last $Count)

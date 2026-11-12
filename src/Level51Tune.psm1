@@ -13,6 +13,7 @@ $script:L51Hardware = $null
 . (Join-Path $PSScriptRoot 'Catalog.ps1')
 . (Join-Path $PSScriptRoot 'Markdown.ps1')
 . (Join-Path $PSScriptRoot 'Bench.ps1')
+. (Join-Path $PSScriptRoot 'WebUI.ps1')
 
 # ===========================================================================
 # Infrastructure
@@ -996,7 +997,7 @@ __PAGER__
 # ===========================================================================
 
 Export-ModuleMember -Function @(
-    'Write-L51Log', 'Get-L51Paths', 'Test-L51Admin', 'Assert-L51Admin', 'Invoke-L51External',
+    'Write-L51Log', 'Get-L51Paths', 'Get-L51LogPath', 'Test-L51Admin', 'Assert-L51Admin', 'Invoke-L51External',
     'Get-L51RegState', 'Set-L51RegValue', 'Restore-L51RegState', 'Compare-L51RegValue',
     'Get-L51PowerSchemes', 'Get-L51ActiveScheme', 'Get-L51PowerValue', 'Set-L51PowerValue',
     'New-L51TuneScheme', 'Remove-L51Scheme',
@@ -1004,7 +1005,7 @@ Export-ModuleMember -Function @(
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
     'Get-L51State', 'Save-L51State', 'Get-L51Status', 'New-L51Report',
-    'Test-L51TweakApplied', 'Build-L51Docs', 'Get-L51Version',
-    'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench',
+    'Test-L51TweakApplied', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
+    'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency',
     'Convert-L51Markdown'
 )

@@ -16,8 +16,12 @@
 | `src/Level51Tune.psm1` | engine: detect hardware, backup, apply, restore, audit, status, report, docs build | แก้กลไก ไม่ใช่ค่า tweak |
 | `src/Catalog.ps1` | **ข้อมูล** tweaks 60 รายการ + นิยามโปรไฟล์ | เพิ่ม/แก้ tweak |
 | `src/Markdown.ps1` | markdown → HTML (ไม่มี dependency) | แก้ renderer เท่านั้น |
-| `src/Bench.ps1` | micro-benchmark, history, compare | แก้วิธีวัด |
+| `src/Bench.ps1` | micro-benchmark, history, compare, `Measure-L51Latency` | แก้วิธีวัด |
+| `Level51Tune.Web.ps1` | Web GUI server: HttpListener, token, routing, เสิร์ฟ `/docs/*` | เพิ่ม/แก้ endpoint GUI |
+| `src/WebUI.ps1` | HTML dashboard แบบ single-page (placeholder `__TOKEN__`) | แก้หน้าตา/JS ของ GUI |
 | `tools/Build-Docs.ps1` | wrapper สำหรับสร้าง docs | แทบไม่ต้องแตะ |
+| `tools/AB-Bench.ps1` | A/B throughput ระหว่าง 2 power scheme (A-B-B-A) | แก้วิธีทดลอง |
+| `tools/AB-Latency.ps1` | A/B DPC/interrupt (ต้อง admin เพราะสลับ scheme) | แก้วิธีทดลอง |
 | `tests/Test-Level51Tune.ps1` | test suite (ไม่ต้อง admin) | เพิ่ม test เมื่อเพิ่มความสามารถ |
 | `docs/*.md` | เอกสารต้นฉบับ (ภาษาไทย) | แก้เอกสาร |
 | `docs/*.html` | **ไฟล์ที่สร้างอัตโนมัติ** — ห้ามแก้ด้วยมือ | ถูกเขียนทับโดย `docs` command |
@@ -28,6 +32,7 @@
 # รัน CLI
 pwsh -NoProfile -File .\Level51Tune.ps1 status
 pwsh -NoProfile -File .\Level51Tune.ps1 apply -Profile gaming -DryRun
+pwsh -NoProfile -File .\Level51Tune.Web.ps1 -NoBrowser   # GUI (เปิดค้างไว้ แล้วเปิด URL จาก console)
 
 # test (ต้องผ่านก่อน commit ทุกครั้ง)
 pwsh -NoProfile -File .\tests\Test-Level51Tune.ps1
@@ -104,6 +109,9 @@ $t = Get-Content $p -Raw -Encoding UTF8
 5. **ห้ามรันคำสั่งที่ต้อง admin เองในระหว่างพัฒนา** — ใช้ `-DryRun` ในการตรวจสอบ
 6. **ห้าม commit** `backups/`, `logs/`, `state/`, `benchmarks/`, `reports/` (อยู่ใน `.gitignore` แล้ว)
 7. **ห้ามอ้างว่าเร็วขึ้นโดยไม่มีตัวเลข** — ถ้าจะกล่าวถึง performance ต้องมีผลจาก `bench` หรือระบุว่า "ยังไม่ได้วัด"
+8. **GUI ต้องเป็น thin adapter** — `Level51Tune.Web.ps1` และ `src/WebUI.ps1` ห้ามมี logic ปรับแต่งระบบเอง ต้องเรียกฟังก์ชันใน `Level51Tune.psm1` เท่านั้น
+9. **GUI ต้องฟังเฉพาะ loopback และบังคับ token** — ห้าม bind `0.0.0.0`, ห้ามเพิ่ม CORS, ห้ามให้ endpoint ที่ mutate ทำงานได้โดยไม่ผ่าน `Assert-L51Admin`
+10. **token ห้ามลงดิสก์/ไฟล์** — สร้างใหม่ทุกครั้งที่เริ่มโปรเซส และส่งให้ผู้ใช้ทาง console เท่านั้น
 
 ## 7. กติกาเอกสาร
 

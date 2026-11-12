@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+      <a class="nav-item active" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">คำตอบสั้น</a></li>
+<li><a href="#sec-3">สถาปัตยกรรมที่ใช้ (และการแยกชั้น)</a></li>
+<li><a href="#sec-4">API ของ GUI</a></li>
+<li><a href="#sec-5">ความปลอดภัยของ Web GUI</a></li>
+<li><a href="#sec-6">ทางเลือกอื่นและเหตุผลที่ไม่เลือก (ตอนนี้)</a></li>
+<li><a href="#sec-7">สิ่งที่ยังขาดถ้าจะเรียกว่า &quot;GUI ใช้งานง่ายจริง&quot;</a></li>
+<li><a href="#sec-8">Roadmap ที่แนะนำ</a></li>
+<li><a href="#sec-13">ข้อควรระวังในการทำ GUI ต่อ</a></li>
+<li><a href="#sec-14">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">คำตอบสั้น</h2>
+<p><strong>ได้ และทำเสร็จแล้วในรอบนี้</strong> — โปรเจกต์มี Web GUI ที่ทำงานจริงอยู่ที่ <code>Level51Tune.Web.ps1</code> (dashboard บน <code>http://localhost:8730/</code>) ซึ่งเรียก engine ตัวเดียวกับ CLI ทุกฟังก์ชัน: ดูสถานะ, audit, apply, dry-run, bench, latency, restore และ log</p>
+<p>เหตุผลที่เลือก Web GUI เป็น GUI ตัวแรก ไม่ใช่ WPF/WinForms:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>เหตุผล</th><th>รายละเอียด</th></tr></thead>
+<tbody>
+<tr><td>ไม่ต้องติดตั้งอะไร</td><td>ใช้ <code>System.Net.HttpListener</code> ที่มีใน .NET/Windows อยู่แล้ว ไม่มี node_modules, ไม่มี Electron 200 MB</td></tr>
+<tr><td>หน้าตาควบคุมได้เต็มที่</td><td>HTML/CSS ทำ responsive, dark theme, ฟอนต์ไทย ได้ในไฟล์เดียว</td></tr>
+<tr><td>ทดสอบได้จริง</td><td>เปิดในเบราว์เซอร์ ตรวจ DOM/network/console ได้ (WPF ตรวจยากกว่าและต้องมีจอ)</td></tr>
+<tr><td>ใช้จากมือถือใน LAN ได้ถ้าต้องการ</td><td>เปลี่ยน bind address ได้ในอนาคต (ปัจจุบันล็อก loopback เพื่อความปลอดภัย)</td></tr>
+<tr><td>ต่อยอดเป็น desktop app ได้</td><td>ถ้าอยากได้ tray icon + auto-elevate ให้ห่อด้วย WPF ทีหลัง โดยไม่ต้องเขียน UI ใหม่</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">สถาปัตยกรรมที่ใช้ (และการแยกชั้น)</h2>
+<pre><code>Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench / latency)
+   ├── Level51Tune.ps1        CLI  (thin adapter: parse args → เรียก engine)
+   ├── Level51Tune.Web.ps1    GUI  (thin adapter: HTTP → เรียก engine)
+   │      └── src/WebUI.ps1   HTML dashboard (string เดียว, ไม่มี asset ภายนอก)
+   └── tools/*.ps1            benchmark / A-B tester</code></pre>
+<p>หลักสำคัญ: <strong>GUI ไม่มี logic ของตัวเอง</strong> ทุกอย่างเรียกฟังก์ชันเดียวกับ CLI (<code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Bench</code>, <code>Measure-L51Latency</code>) ทำให้:</p>
+<ul>
+<li>ไม่มีโอกาสที่ CLI กับ GUI ให้ผลไม่ตรงกัน</li>
+<li>การเพิ่ม tweak ใหม่ปรากฏใน GUI ทันทีโดยไม่ต้องแก้ UI</li>
+<li>test ที่มีอยู่ (23 เคส) ครอบคลุมทั้งสองทาง</li>
+</ul>
+<h2 id="sec-4">API ของ GUI</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Endpoint</th><th>Method</th><th>ทำอะไร</th><th>ต้อง admin</th></tr></thead>
+<tbody>
+<tr><td><code>/api/status</code></td><td>GET</td><td>ฮาร์ดแวร์, scheme, โปรไฟล์, สถานะล่าสุด</td><td>ไม่</td></tr>
+<tr><td><code>/api/audit</code></td><td>POST <code>{profile}</code></td><td>ตรวจว่าอะไรถูกปรับแล้ว</td><td>ไม่</td></tr>
+<tr><td><code>/api/apply</code></td><td>POST <code>{profile, dryRun, includeHigh}</code></td><td>apply หรือ dry-run</td><td>ใช่ (ถ้าไม่ dry)</td></tr>
+<tr><td><code>/api/restore</code></td><td>POST</td><td>ย้อนกลับจาก backup ล่าสุด</td><td>ใช่</td></tr>
+<tr><td><code>/api/bench</code></td><td>POST <code>{seconds, label}</code></td><td>วัด CPU/RAM/Disk</td><td>ไม่</td></tr>
+<tr><td><code>/api/latency</code></td><td>POST <code>{seconds}</code></td><td>วัด DPC/interrupt</td><td>ไม่</td></tr>
+<tr><td><code>/api/log</code></td><td>GET</td><td>log ล่าสุด (กรอง DEBUG ออก)</td><td>ไม่</td></tr>
+<tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML ใน <code>docs/</code></td><td>ไม่</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-5">ความปลอดภัยของ Web GUI</h2>
+<p>ออกแบบให้ปลอดภัยพอสำหรับเครื่องส่วนตัว และไม่เป็นช่องโหว่ใหม่:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>มาตรการ</th><th>รายละเอียด</th></tr></thead>
+<tbody>
+<tr><td>bind เฉพาะ loopback</td><td><code>http://localhost:8730/</code> เท่านั้น ไม่รับจากเครือข่าย</td></tr>
+<tr><td>token สุ่มต่อ session</td><td>สร้างตอนเริ่ม ออกใน URL ที่พิมพ์ใน console; ทุก API ต้องมี <code>X-L51-Token</code></td></tr>
+<tr><td>ไม่มี CORS</td><td>ไม่มี header <code>Access-Control-Allow-Origin</code> → หน้าจากเว็บอื่นเรียก API ไม่ได้</td></tr>
+<tr><td>path traversal guard</td><td><code>/docs/..</code> ถูก normalize และปฏิเสธ (ทดสอบแล้วได้ 404)</td></tr>
+<tr><td>ไม่เก็บ credential</td><td>ไม่มี password/token ลงดิสก์</td></tr>
+<tr><td>admin เป็นของผู้ใช้</td><td>ถ้าไม่ได้เปิดแบบ Administrator ปุ่ม apply จะได้ 403 พร้อมข้อความบอก</td></tr>
+</tbody>
+</table></div>
+<p><strong>ข้อจำกัดที่ต้องรู้</strong>: token อยู่ใน URL (history/log ของเบราว์เซอร์อาจเก็บไว้) และไม่มี TLS เพราะเป็น loopback — ห้ามเปลี่ยนให้ bind <code>0.0.0.0</code> โดยไม่มี auth ที่แข็งแรงกว่านี้</p>
+<h2 id="sec-6">ทางเลือกอื่นและเหตุผลที่ไม่เลือก (ตอนนี้)</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ทางเลือก</th><th>ข้อดี</th><th>ข้อเสีย</th><th>เหมาะเมื่อ</th></tr></thead>
+<tbody>
+<tr><td><strong>WPF/WinForms ใน PowerShell</strong></td><td>native, มี tray icon, เปิดได้ทันทีไม่ต้องมีเบราว์เซอร์</td><td>XAML ยาว, ฟอนต์ไทยต้องตั้งเอง, ทดสอบอัตโนมัติยาก, ต้องมีจอ</td><td>ต้องการ tray + auto-start + หน้าตาแบบแอปWindows</td></tr>
+<tr><td><strong>Web GUI (ที่ทำแล้ว)</strong></td><td>ไม่มี dependency, ทดสอบได้, ปรับ UI เร็ว</td><td>ต้องเปิดเบราว์เซอร์, ไม่มี tray</td><td>ใช้เป็น GUI หลักระยะแรก</td></tr>
+<tr><td><strong>Electron/Tauri</strong></td><td>UI สวย, ecosystem ใหญ่</td><td>ต้องติดตั้ง build toolchain, ขนาดใหญ่, ซ้ำซ้อนกับ PowerShell engine</td><td>เมื่อมีทีม frontend และต้องการแจกจ่ายเป็นแอป</td></tr>
+<tr><td><strong>.NET MAUI / WinUI 3</strong></td><td>native สมัยใหม่, cross-device</td><td>ต้องเขียน engine ใหม่เป็น C#, งานใหญ่</td><td>เมื่อจะทำเป็นผลิตภัณฑ์จริงจัง</td></tr>
+<tr><td><strong>PowerShell + Terminal GUI (Spectre.Console)</strong></td><td>เร็ว, สวยใน terminal</td><td>ไม่ใช่ GUI จริง, ใช้เมาส์จำกัด</td><td>ผู้ใช้สาย CLI</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-7">สิ่งที่ยังขาดถ้าจะเรียกว่า &quot;GUI ใช้งานง่ายจริง&quot;</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>งาน</th><th>ผลลัพธ์</th><th>แรงโดยประมาณ</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>ตัวเรียก 1 คลิก (<code>Start-LEVEL51.cmd</code> + shortcut) ที่ขอ UAC เองและเปิด GUI</td><td>ผู้ใช้ไม่ต้องพิมพ์ PowerShell</td><td>30 นาที</td></tr>
+<tr><td>2</td><td>tray icon + เมนูสลับโปรไฟล์ (WPF ห่อรอบ engine)</td><td>สลับ performance/gaming ได้จาก tray</td><td>1-2 วัน</td></tr>
+<tr><td>3</td><td>หน้าตั้งค่าละเอียด (toggle ราย tweak + คำอธิบายไทย)</td><td>ไม่ต้องจำโปรไฟล์</td><td>2-3 วัน</td></tr>
+<tr><td>4</td><td>กราฟ realtime (clock/temp/power จาก nvidia-smi + performance counter)</td><td>เห็นผลทันที ไม่ต้องเปิด HWiNFO</td><td>1-2 วัน</td></tr>
+<tr><td>5</td><td>ตาราง per-app GPU preference (อ่าน/เขียน <code>UserGpuPreferences</code>)</td><td>แก้ปัญหา Optimus ได้ในคลิกเดียว</td><td>1 วัน</td></tr>
+<tr><td>6</td><td>ประวัติการเปลี่ยนแปลง + ปุ่ม rollback ทีละครั้ง</td><td>ปลอดภัยขึ้นมาก</td><td>1 วัน</td></tr>
+<tr><td>7</td><td>แพ็กเป็น .exe (ps2exe) หรือ MSIX พร้อม code signing</td><td>แจกจ่ายง่าย</td><td>1 วัน + ค่า certificate</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-8">Roadmap ที่แนะนำ</h2>
+<h3 id="sec-9">ระยะ 1 (เสร็จแล้วในรอบนี้)</h3>
+<ul>
+<li>engine + CLI + 60 tweaks + backup/restore + bench + latency</li>
+<li>Web GUI: สถานะ, โปรไฟล์, dry-run, apply, audit, bench, latency, restore, log, ลิงก์เอกสาร</li>
+<li>เอกสารไทย 15 บท + test 23 เคส</li>
+</ul>
+<h3 id="sec-10">ระยะ 2 (คุ้มที่สุดเป็นอันดับต่อไป)</h3>
+<ol>
+<li><code>Start-LEVEL51.cmd</code> ที่ auto-elevate แล้วเปิด GUI (ปิดช่องว่าง &quot;ต้องพิมพ์ command&quot; ทั้งหมด)</li>
+<li>หน้า Settings ราย tweak (เปิด/ปิดทีละตัว, แสดง Risk + คำอธิบาย)</li>
+<li>กราฟ realtime ของ CPU/GPU clock, temp, power</li>
+<li>ปุ่ม &quot;เปรียบเทียบก่อน/หลัง&quot; ที่เรียก <code>bench</code> + <code>compare</code> ในคลิกเดียว</li>
+</ol>
+<h3 id="sec-11">ระยะ 3</h3>
+<ol>
+<li>Tray app (WPF) ห่อ GUI + สลับโปรไฟล์ + เตือนเมื่ออุณหภูมิสูงเกินไป</li>
+<li>per-app GPU editor</li>
+<li>ประวัติ + rollback ทีละครั้ง</li>
+</ol>
+<h3 id="sec-12">ระยะ 4</h3>
+<ol>
+<li>แพ็กเป็น executable เดียว, code signing, หน้าอัปเดตเวอร์ชัน</li>
+<li>(ถ้าต้องการ) รองรับเครื่องอื่นที่ไม่ใช่ LEVEL51 ด้วย profile detection</li>
+</ol>
+<h2 id="sec-13">ข้อควรระวังในการทำ GUI ต่อ</h2>
+<ol>
+<li><strong>อย่าลอกจาก engine</strong> — GUI ต้องเรียกฟังก์ชันใน <code>Level51Tune.psm1</code> เท่านั้น</li>
+<li><strong>อย่าให้ UI ตัดสินใจเรื่องสิทธิ์</strong> — ตรวจ admin ที่ engine เสมอ (<code>Assert-L51Admin</code>)</li>
+<li><strong>ทุก action ที่แก้ระบบต้องมี confirm</strong> — ตอนนี้ apply/restore มี <code>confirm()</code> แล้ว</li>
+<li><strong>อย่าเก็บ state ใน UI</strong> — อ่านจาก engine ทุกครั้ง (single source of truth)</li>
+<li><strong>ทดสอบด้วย dry-run ก่อนเสมอ</strong> เมื่อเพิ่ม endpoint ใหม่</li>
+</ol>
+<h2 id="sec-14">สรุป</h2>
+<ul>
+<li>ทำ GUI ได้ และทำแล้ว: Web GUI ทำงานจริง ตรวจด้วยเบราว์เซอร์แล้ว (สถานะ, dry-run 17 OK/1 SKIP, log)</li>
+<li>จุดที่ควรลงทุนต่อไม่ใช่ &quot;หน้าตา&quot; แต่คือ <strong>ทางเข้า</strong> (one-click + UAC) และ <strong>การเห็นผล</strong> (กราฟ/ประวัติ) เพราะ engine ทำงานครบแล้ว</li>
+<li>ถ้าต้องการแอป Windows แท้ ๆ ให้ห่อ Web GUI ด้วย WPF + WebView2 หรือทำ tray shell — ไม่ต้องเขียน engine ใหม่</li>
+</ul>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="14-แก้ปัญหา-FAQ.html">&larr; แก้ปัญหาและคำถามที่พบบ่อย</a><span></span></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

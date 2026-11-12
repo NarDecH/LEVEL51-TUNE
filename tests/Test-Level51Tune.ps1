@@ -202,6 +202,31 @@ Test-Case 'audit: คืนผลครบทุก tweak ของโปรไ�
     $rows.Count -eq $expected.Count
 }
 
+Test-Case 'web: dashboard HTML มี token placeholder และ element หลัก' {
+    $html = Get-L51DashboardHtml
+    if ($html -notmatch '__TOKEN__') { throw 'ไม่พบ placeholder __TOKEN__' }
+    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log')) {
+        if ($html -notmatch [regex]::Escape($needle)) { throw "ไม่พบ $needle ใน dashboard" }
+    }
+    ($html -match '<!DOCTYPE html>') -and ($html.Length -gt 5000)
+}
+
+Test-Case 'web: log path อยู่ใน logs/ และสร้าง log ได้' {
+    $p = Get-L51LogPath
+    if (-not $p) { throw 'Get-L51LogPath คืนค่าว่าง' }
+    $p -like '*\logs\l51-*.log'
+}
+
+Test-Case 'latency: วัด counter ได้และให้ค่าตัวเลข 4 รายการ' {
+    $r = Measure-L51Latency -Seconds 3
+    if (-not $r -or -not $r.Counters) { throw 'ไม่ได้ผลลัพธ์' }
+    if (@($r.Counters).Count -lt 4) { throw "ได้ $(@($r.Counters).Count) แถว" }
+    foreach ($row in @($r.Counters)) {
+        if (-not $row.Counter) { throw 'แถวที่ไม่มีชื่อ counter' }
+    }
+    ($null -ne $r.DpcAvg) -and ($r.DpcAvg -ge 0)
+}
+
 Test-Case 'hardware: ตรวจ CPU/RAM ได้' {
     $hw = Get-L51Hardware -Refresh
     ($hw.CpuCores -gt 0) -and ($hw.RamGB -gt 0) -and $hw.CpuName

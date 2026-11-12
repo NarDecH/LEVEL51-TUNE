@@ -64,6 +64,7 @@ function Show-L51Help {
         @('report [-Path FILE]', 'สร้างรายงานสถานะเป็น markdown'),
         @('bench [-Label before]', 'วัด CPU/RAM/Disk เพื่อเทียบก่อน-หลัง'),
         @('compare', 'เทียบผล benchmark 2 ครั้งล่าสุด'),
+        @('latency [-Seconds 20]', 'วัด DPC / interrupt / context switch (ตัวชี้วัด jitter จริง)'),
         @('gpu', 'สรุปสถานะ GPU จาก nvidia-smi'),
         @('docs [-Open]', 'สร้าง docs/*.html จาก docs/*.md'),
         @('version', 'แสดงเวอร์ชัน')
@@ -166,6 +167,13 @@ try {
         }
 
         'compare' { Compare-L51Bench -Count $Last; break }
+
+        'latency' {
+            $secs = 20
+            if ($Seconds -gt 0) { $secs = $Seconds }
+            $null = Measure-L51Latency -Seconds $secs
+            break
+        }
 
         'gpu' {
             $gpus = @(Get-L51GpuState)

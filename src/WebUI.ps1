@@ -428,7 +428,7 @@ async function checkUpdate(){
       '<tr><td>ล่าสุดบน GitHub</td><td>' + esc(d.latest || '—') + '</td></tr>' +
       '<tr><td>เผยแพร่</td><td>' + (d.publishedAt ? new Date(d.publishedAt).toLocaleString('th-TH') : '—') + '</td></tr>';
     const tail = d.upToDate
-      ? '<div style="padding:10px 12px" class="hint" style="color:var(--ok)">เป็นเวอร์ชันล่าสุดแล้ว</div>'
+      ? '<div class="hint" style="padding:10px 12px;color:var(--ok)">เป็นเวอร์ชันล่าสุดแล้ว</div>'
       : '<div style="padding:10px 12px" class="hint">มีเวอร์ชันใหม่: <a href="' + esc(d.url || '#') + '" target="_blank" rel="noopener">' + esc(d.url || '') + '</a></div>';
     showResult('ตรวจอัปเดต', '<table><thead><tr><th>รายการ</th><th>ค่า</th></tr></thead><tbody>' + rows + '</tbody></table>' + tail);
     toast(d.upToDate ? 'เป็นเวอร์ชันล่าสุด' : 'มีเวอร์ชันใหม่บน GitHub');

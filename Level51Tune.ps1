@@ -234,7 +234,9 @@ try {
                 break
             }
             if (-not $u.Checked) { Write-Host '  ยังไม่ได้ตรวจ' -ForegroundColor Yellow; break }
-            Write-Host ("  ล่าสุดบน GitHub : {0}  ({1})" -f $u.Latest, ([datetime]$u.PublishedAt).ToString('yyyy-MM-dd'))
+            $pubText = ''
+            if ($u.PublishedAt) { $pubText = '  (' + ([datetime]$u.PublishedAt).ToString('yyyy-MM-dd') + ')' }
+            Write-Host ("  ล่าสุดบน GitHub : {0}{1}" -f $u.Latest, $pubText)
             if ($u.UpToDate) { Write-Host '  → เป็นเวอร์ชันล่าสุดแล้ว' -ForegroundColor Green }
             else { Write-Host ("  → มีเวอร์ชันใหม่: {0}" -f $u.Url) -ForegroundColor Yellow }
             break

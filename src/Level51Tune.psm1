@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.0'
+$script:L51Version = '1.0.1'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -998,7 +998,7 @@ function New-L51HtmlPage {
     <nav class="nav">
 __NAV__
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v__VERSION__</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -1011,7 +1011,7 @@ __PAGER__
 </body>
 </html>
 '@
-    return $template.Replace('__TITLE__', $Title).Replace('__NAV__', $navHtml.ToString().TrimEnd()).Replace('__BODY__', $Body).Replace('__PAGER__', $pagerHtml)
+    return $template.Replace('__TITLE__', $Title).Replace('__NAV__', $navHtml.ToString().TrimEnd()).Replace('__BODY__', $Body).Replace('__PAGER__', $pagerHtml).Replace('__VERSION__', $script:L51Version)
 }
 
 # ===========================================================================

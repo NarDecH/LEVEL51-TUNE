@@ -165,7 +165,7 @@ Test-Case 'docs: html ที่ได้มี template ครบและไม
     foreach ($f in Get-ChildItem (Join-Path $root 'docs') -Filter '*.html') {
         $t = Get-Content $f.FullName -Raw -Encoding UTF8
         if ($t -notmatch '<!DOCTYPE html>') { $bad++; continue }
-        if ($t -match '__TITLE__|__NAV__|__BODY__') { $bad++ }
+        if ($t -match '__TITLE__|__NAV__|__BODY__|__PAGER__|__VERSION__') { $bad++ }
         if ($t -notmatch 'assets/style.css') { $bad++ }
     }
     if ($bad -gt 0) { throw "$bad ไฟล์มีปัญหา" }

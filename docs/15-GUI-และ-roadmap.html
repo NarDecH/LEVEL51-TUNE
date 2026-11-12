@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -153,7 +153,7 @@
 <h3 id="sec-14">ระยะ 4 (บางส่วน)</h3>
 <ol>
 <li><code>tools/Build-Package.ps1</code> — สร้าง <code>dist/LEVEL51-TUNE-&lt;version&gt;.zip</code> พร้อมใช้ (เสร็จแล้ว)</li>
-<li><del>หน้าตรวจอัปเดตเวอร์ชัน</del> <strong>เสร็จแล้ว</strong>: CLI <code>update</code> + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release)</li>
+<li><del>หน้าตรวจอัปเดตเวอร์ชัน</del> <strong>เสร็จแล้ว</strong>: CLI <code>update</code> + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี tag <code>v1.0.0</code> ให้เทียบแล้ว)</li>
 <li><del>profile detection</del> <strong>เสร็จแล้ว</strong>: <code>recommend</code> + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)</li>
 <li><del>code signing</del> <strong>ทำไปป์ไลน์แล้ว</strong>: <code>Build-Package.ps1 -CertificateThumbprint &lt;thumb&gt;</code> ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา</li>
 <li>MSIX — <strong>ยังไม่ทำโดยเจตนา</strong>: แอปนี้เป็นสคริปต์ PowerShell ไม่มี .exe entry point ที่ MSIX ต้องใช้; ถ้าต้องการจริงต้องห่อด้วย ps2exe หรือเขียน launcher เป็น C# ก่อน</li>

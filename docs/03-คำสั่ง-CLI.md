@@ -278,6 +278,15 @@
 
 อ่าน metadata ของ release ล่าสุดจาก GitHub (`api.github.com/repos/NarDecH/LEVEL51-TUNE/releases/latest`) แล้วเทียบกับเวอร์ชันในเครื่อง — **คำสั่งเดียวในโปรแกรมที่ใช้เน็ต**, ไม่อัปเดตหรือดาวน์โหลดอะไรให้เอง ถ้าไม่มีเน็ตจะรายงานว่า "ตรวจไม่ได้" และคำสั่งอื่นทั้งหมดยังทำงานแบบ offline
 
+ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน `/tags` และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:
+
+```bash
+git tag -a v1.0.0 -m "LEVEL51-TUNE 1.0.0"
+git push origin v1.0.0
+```
+
+หรือสร้าง Release จากหน้า GitHub (แนบ `dist/LEVEL51-TUNE-1.0.0.zip` ได้) — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
+
 ## gpu
 
 ```powershell

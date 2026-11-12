@@ -66,10 +66,13 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 .\Level51Tune.Tray.ps1            # ไอคอนใน system tray: สลับโปรไฟล์ / ตรวจสถานะ / เปิด Dashboard
 .\tools\Build-Package.ps1        # สร้าง dist/LEVEL51-TUNE-<version>.zip สำหรับแจกจ่าย
 .\tools\Build-Package.ps1 -CertificateThumbprint <thumb>   # ลงนามทุก .ps1 ด้วย Authenticode
+.\tools\Build-Msix.ps1           # สร้าง dist/LEVEL51-TUNE-<version>.msix (ต้องมี Windows SDK)
 .\Level51Tune.ps1 update         # ตรวจเวอร์ชันใหม่บน GitHub (คำสั่งเดียวที่ใช้เน็ต)
 ```
 
 ใน tray: คลิกขวาเพื่อสลับโปรไฟล์ (ขอ UAC เองทุกครั้ง), ตรวจสถานะเป็น balloon, เปิดโฟลเดอร์ log/เอกสาร — ไม่รันค้างแบบ Administrator
+
+MSIX (`Build-Msix.ps1`) ห่อแอปเป็นแพ็กเกจติดตั้งได้ โดยมี launcher เล็ก ๆ ที่เปิด dashboard — แต่ MSIX รันใน container จึงขอ UAC ไม่ได้ ปุ่ม Apply/Restore ในโหมดนั้นจะได้ 403 (ใช้ `Start-LEVEL51.cmd` เมื่อต้อง apply)
 
 ## โปรไฟล์
 
@@ -131,6 +134,7 @@ tools/Build-Docs.ps1         สร้าง docs/*.html
 tools/AB-Bench.ps1           วัด A/B throughput ระหว่างสอง power scheme (A-B-B-A)
 tools/AB-Latency.ps1         วัด A/B DPC/interrupt (ต้อง admin)
 tools/Build-Package.ps1      สร้าง zip แจกจ่าย (dist/)
+tools/Build-Msix.ps1         สร้าง MSIX (launcher .exe + manifest) สำหรับติดตั้งเป็นแอป
 tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง admin, ไม่แก้ระบบ)
 ```
 

@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.2</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.3</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -256,10 +256,10 @@
 <pre><code class="lang-powershell">.\Level51Tune.ps1 update</code></pre>
 <p>อ่าน metadata ของ release ล่าสุดจาก GitHub (<code>api.github.com/repos/NarDecH/LEVEL51-TUNE/releases/latest</code>) แล้วเทียบกับเวอร์ชันในเครื่อง — <strong>คำสั่งเดียวในโปรแกรมที่ใช้เน็ต</strong>, ไม่อัปเดตหรือดาวน์โหลดอะไรให้เอง ถ้าไม่มีเน็ตจะรายงานว่า &quot;ตรวจไม่ได้&quot; และคำสั่งอื่นทั้งหมดยังทำงานแบบ offline</p>
 <p>ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน <code>/tags</code> และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:</p>
-<pre><code class="lang-bash">git tag -a v1.0.2 -m &quot;LEVEL51-TUNE 1.0.2&quot;
-git push origin v1.0.2</code></pre>
-<p>หรือสร้าง Release จากหน้า GitHub / <code>gh</code> CLI (แนบ <code>dist/LEVEL51-TUNE-1.0.2.zip</code> ได้):</p>
-<pre><code class="lang-bash">gh release create v1.0.2 dist/LEVEL51-TUNE-1.0.2.zip --title &quot;LEVEL51-TUNE 1.0.2&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
+<pre><code class="lang-bash">git tag -a v1.0.3 -m &quot;LEVEL51-TUNE 1.0.3&quot;
+git push origin v1.0.3</code></pre>
+<p>หรือสร้าง Release จากหน้า GitHub / <code>gh</code> CLI (แนบทั้ง zip และ msix):</p>
+<pre><code class="lang-bash">gh release create v1.0.3 dist/LEVEL51-TUNE-1.0.3.zip dist/LEVEL51-TUNE-1.0.3.msix --title &quot;LEVEL51-TUNE 1.0.3&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
 <h2 id="sec-18">gpu</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
 <p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>

@@ -113,10 +113,10 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 ### ระยะ 4 (บางส่วน)
 
 9. `tools/Build-Package.ps1` — สร้าง `dist/LEVEL51-TUNE-<version>.zip` พร้อมใช้ (เสร็จแล้ว)
-10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.2` พร้อมไฟล์ zip แนบให้เทียบแล้ว)
+10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.3` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
 11. ~~profile detection~~ **เสร็จแล้ว**: `recommend` + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)
 12. ~~code signing~~ **ทำไปป์ไลน์แล้ว**: `Build-Package.ps1 -CertificateThumbprint <thumb>` ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา
-13. MSIX — **ยังไม่ทำโดยเจตนา**: แอปนี้เป็นสคริปต์ PowerShell ไม่มี .exe entry point ที่ MSIX ต้องใช้; ถ้าต้องการจริงต้องห่อด้วย ps2exe หรือเขียน launcher เป็น C# ก่อน
+13. ~~MSIX~~ **เสร็จแล้ว**: `tools/Build-Msix.ps1` คอมไพล์ launcher (C# ผ่าน `csc.exe`) + `AppxManifest.xml` + assets แล้ว pack ด้วย `makeappx.exe` → `dist/LEVEL51-TUNE-<version>.msix` · ข้อจำกัด: MSIX รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated) และไฟล์ยังไม่ลงนาม
 
 ## ข้อควรระวังในการทำ GUI ต่อ
 

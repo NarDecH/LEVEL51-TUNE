@@ -21,6 +21,7 @@
 | `Start-LEVEL51.cmd` | ตัวเรียก GUI 1 คลิก (UAC → `Level51Tune.Web.ps1 -Elevate`) | แทบไม่ต้องแตะ |
 | `Level51Tune.Tray.ps1` | tray icon (WinForms): สลับโปรไฟล์/สถานะ/เปิด Dashboard | เพิ่มเมนู tray |
 | `tools/Build-Package.ps1` | สร้าง `dist/LEVEL51-TUNE-<version>.zip` | แก้รายการไฟล์ที่แจกจ่าย |
+| `tools/Build-Msix.ps1` | สร้าง MSIX (launcher C# + AppxManifest + makeappx) | แก้ manifest/launcher |
 | `src/WebUI.ps1` | HTML dashboard แบบ single-page 3 แท็บ (placeholder `__TOKEN__`) | แก้หน้าตา/JS ของ GUI |
 | `tools/Build-Docs.ps1` | wrapper สำหรับสร้าง docs | แทบไม่ต้องแตะ |
 | `tools/AB-Bench.ps1` | A/B throughput ระหว่าง 2 power scheme (A-B-B-A) | แก้วิธีทดลอง |
@@ -119,6 +120,7 @@ $t = Get-Content $p -Raw -Encoding UTF8
 12. **GPU preference เขียนเฉพาะ `HKCU`** — ห้ามเขียน `HKLM`/ค่าทั้งระบบแทนผู้ใช้โดยไม่ได้รับการร้องขอ
 13. **เน็ตได้เฉพาะ `update`** — `Get-L51UpdateInfo` เป็นคำสั่งเดียวที่เรียกเน็ต (อ่าน metadata release) ต้องไม่ดาวน์โหลด/ติดตั้งอะไร และคำสั่งอื่นต้องทำงานแบบ offline ได้เสมอ
 14. **ห้ามผูก logic เข้ากับฮาร์ดแวร์ตัวเดียว** — `Get-L51Recommendation` ต้องคิดจากข้อมูลจริงของเครื่อง (RAM channel / CPU class / dGPU) ไม่ hard-code `LEVEL51`
+15. **MSIX ต้องไม่แอบขอสิทธิ์** — launcher ใน MSIX ต้องไม่พยายามยกระดับสิทธิ์/หลบ UAC; ถ้า MSIX ถูกจำกัดให้ document ข้อจำกัดนั้น ไม่ใช่หาทางเลี่ยง
 
 ## 7. กติกาเอกสาร
 

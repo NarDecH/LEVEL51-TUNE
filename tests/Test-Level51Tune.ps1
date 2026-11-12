@@ -322,7 +322,7 @@ Test-Case 'gpuprefs: เพิ่ม/อ่าน/ลบ preference ได้ (H
 }
 
 Test-Case 'scripts: tray / package parse ได้' {
-    foreach ($rel in @('Level51Tune.Tray.ps1', 'tools\Build-Package.ps1')) {
+    foreach ($rel in @('Level51Tune.Tray.ps1', 'tools\Build-Package.ps1', 'tools\Build-Msix.ps1')) {
         $p = Join-Path $root $rel
         if (-not (Test-Path $p)) { throw "ไม่พบ $rel" }
         $errors = $null

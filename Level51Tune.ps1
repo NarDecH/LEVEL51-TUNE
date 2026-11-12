@@ -29,7 +29,8 @@ param(
     [switch]$DryRun,
     [switch]$Elevate,
     [switch]$IncludeHigh,
-    [switch]$Open
+    [switch]$Open,
+    [switch]$Custom
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +60,7 @@ function Show-L51Help {
         @('list [-Category X]', 'แสดง tweaks ในแค็ตตาล็อก (CPU/GPU/Power/Memory/Storage/Network/Windows)'),
         @('audit [-Profile X] [-Category Y]', 'ตรวจว่าอะไรถูกปรับแล้ว/ยังไม่ถูกปรับ'),
         @('apply -Profile X', 'ปรับตามโปรไฟล์ (สำรองสถานะก่อนทุกครั้ง)'),
+        @('apply -Custom', 'ปรับเฉพาะ tweak ที่เลือกไว้ (state/custom.json จาก GUI/CLI)'),
         @('restore [-BackupPath FILE]', 'ย้อนกลับจาก backup (ค่าเริ่มต้น: ไฟล์ล่าสุด)'),
         @('backup', 'สำรองสถานะปัจจุบันอย่างเดียว ไม่แก้อะไร'),
         @('report [-Path FILE]', 'สร้างรายงานสถานะเป็น markdown'),
@@ -76,6 +78,7 @@ function Show-L51Help {
         @('-Elevate', 'เปิด PowerShell ใหม่แบบ Administrator อัตโนมัติ (มี UAC)'),
         @('-Include high', 'อนุญาตให้รวม tweaks ความเสี่ยงสูง (IDLEDISABLE, bcdedit, P-State)'),
         @('-IncludeHigh', 'เหมือน -Include high'),
+        @('-Custom', 'ใช้รายการ tweak ที่บันทึกไว้ (หน้า Settings ของ GUI เป็นตัวเลือก)'),
         @('-Category', 'กรองตามหมวด (ใช้กับ list/audit)'),
         @('-Seconds', 'ระยะเวลา benchmark ต่อรอบ (วินาที, ค่าเริ่มต้น 3)')
     ) | ForEach-Object { Write-Host ("   {0,-34} {1}" -f $_[0], $_[1]) }
@@ -87,6 +90,8 @@ function Show-L51Help {
     Write-Host '   .\Level51Tune.ps1 apply -Profile gaming -Elevate'
     Write-Host '   .\Level51Tune.ps1 bench -Label after ; .\Level51Tune.ps1 compare'
     Write-Host '   .\Level51Tune.ps1 restore'
+    Write-Host '   .\Start-LEVEL51.cmd            (GUI + UAC)'
+    Write-Host '   .\Level51Tune.Web.ps1          (GUI เฉพาะ loopback)'
     Write-Host ''
     Write-Host '  เอกสาร: docs/index.html   ·   คำเตือน: เครื่องจะร้อน/กินไฟขึ้นเมื่อใช้โปรไฟล์ max' -ForegroundColor DarkGray
     Write-Host ''
@@ -135,6 +140,14 @@ try {
         }
 
         'apply' {
+            if ($Custom) {
+                $ids = @(Get-L51CustomSelection)
+                if ($ids.Count -eq 0) { throw 'ยังไม่มีรายการที่เลือกไว้ — เลือกได้ที่หน้า Settings ของ Web GUI หรือใช้ -Profile แทน' }
+                Write-Host ("  ใช้รายการที่เลือกไว้: {0} tweaks" -f $ids.Count) -ForegroundColor Cyan
+                $r = Invoke-L51Apply -TweakIds $ids -DryRun:$DryRun -Include $Include -Elevate:$Elevate
+                if ($r -and $r.PSObject.Properties['Elevated']) { break }
+                break
+            }
             if (-not $Profile) { throw 'ต้องระบุ -Profile (ดูรายการได้ด้วย: .\Level51Tune.ps1 profiles)' }
             $r = Invoke-L51Apply -Profile $Profile -DryRun:$DryRun -Include $Include -Elevate:$Elevate
             if ($r -and $r.PSObject.Properties['Elevated']) { break }

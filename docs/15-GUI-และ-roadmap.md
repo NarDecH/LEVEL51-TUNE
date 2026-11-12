@@ -41,6 +41,10 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 | `/api/bench` | POST `{seconds, label}` | วัด CPU/RAM/Disk | ไม่ |
 | `/api/latency` | POST `{seconds}` | วัด DPC/interrupt | ไม่ |
 | `/api/log` | GET | log ล่าสุด (กรอง DEBUG ออก) | ไม่ |
+| `/api/tweaks` | GET | tweak ทั้ง 60 รายการ + รายการที่บันทึกไว้ | ไม่ |
+| `/api/settings` | GET/POST | อ่าน/บันทึก tweak ที่เลือกเอง (`state/custom.json`) | ไม่ |
+| `/api/live` | GET | ค่าสด: CPU load/clock, RAM, GPU clock/temp/power | ไม่ |
+| `/api/compare` | POST | วัด benchmark ใหม่ + เทียบกับครั้งก่อน | ไม่ |
 | `/docs/*` | GET | เอกสาร HTML ใน `docs/` | ไม่ |
 
 ## ความปลอดภัยของ Web GUI
@@ -72,10 +76,10 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 
 | # | งาน | ผลลัพธ์ | แรงโดยประมาณ |
 |---|---|---|---|
-| 1 | ตัวเรียก 1 คลิก (`Start-LEVEL51.cmd` + shortcut) ที่ขอ UAC เองและเปิด GUI | ผู้ใช้ไม่ต้องพิมพ์ PowerShell | 30 นาที |
+| 1 | ~~ตัวเรียก 1 คลิก~~ **เสร็จแล้ว**: `Start-LEVEL51.cmd` ขอ UAC เองแล้วเปิด GUI | ผู้ใช้ไม่ต้องพิมพ์ PowerShell | เสร็จ |
 | 2 | tray icon + เมนูสลับโปรไฟล์ (WPF ห่อรอบ engine) | สลับ performance/gaming ได้จาก tray | 1-2 วัน |
-| 3 | หน้าตั้งค่าละเอียด (toggle ราย tweak + คำอธิบายไทย) | ไม่ต้องจำโปรไฟล์ | 2-3 วัน |
-| 4 | กราฟ realtime (clock/temp/power จาก nvidia-smi + performance counter) | เห็นผลทันที ไม่ต้องเปิด HWiNFO | 1-2 วัน |
+| 3 | ~~หน้าตั้งค่าละเอียด~~ **เสร็จแล้ว**: tab “ตั้งค่า tweak” (ค้นหา/กรอง/เลือกตามโปรไฟล์/บันทึก) | ไม่ต้องจำโปรไฟล์ | เสร็จ |
+| 4 | ~~กราฟ realtime~~ **เสร็จแล้ว**: tab “กราฟสด” 6 กราฟ + ปุ่ม “วัด + เทียบกับครั้งก่อน” | เห็นผลทันที ไม่ต้องเปิด HWiNFO | เสร็จ |
 | 5 | ตาราง per-app GPU preference (อ่าน/เขียน `UserGpuPreferences`) | แก้ปัญหา Optimus ได้ในคลิกเดียว | 1 วัน |
 | 6 | ประวัติการเปลี่ยนแปลง + ปุ่ม rollback ทีละครั้ง | ปลอดภัยขึ้นมาก | 1 วัน |
 | 7 | แพ็กเป็น .exe (ps2exe) หรือ MSIX พร้อม code signing | แจกจ่ายง่าย | 1 วัน + ค่า certificate |
@@ -88,18 +92,19 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 - Web GUI: สถานะ, โปรไฟล์, dry-run, apply, audit, bench, latency, restore, log, ลิงก์เอกสาร
 - เอกสารไทย 15 บท + test 23 เคส
 
-### ระยะ 2 (คุ้มที่สุดเป็นอันดับต่อไป)
+### ระยะ 2 (เสร็จแล้ว)
 
-1. `Start-LEVEL51.cmd` ที่ auto-elevate แล้วเปิด GUI (ปิดช่องว่าง "ต้องพิมพ์ command" ทั้งหมด)
-2. หน้า Settings ราย tweak (เปิด/ปิดทีละตัว, แสดง Risk + คำอธิบาย)
-3. กราฟ realtime ของ CPU/GPU clock, temp, power
-4. ปุ่ม "เปรียบเทียบก่อน/หลัง" ที่เรียก `bench` + `compare` ในคลิกเดียว
+1. `Start-LEVEL51.cmd` — ดับเบิลคลิกเดียว ขอ UAC แล้วเปิด dashboard (ปิดช่องว่าง "ต้องพิมพ์ command")
+2. หน้า Settings ราย tweak — ค้นหา/กรองหมวด/เลือกตามโปรไฟล์/บันทึกเป็น `state/custom.json` แล้ว apply ได้ทั้ง GUI และ CLI (`apply -Custom`)
+3. กราฟ realtime 6 ตัว — CPU load, CPU clock, GPU temp, GPU power, RAM used, GPU clock (อัปเดตทุก 2 วินาที, เก็บ 60 จุด)
+4. ปุ่ม "วัด + เทียบกับครั้งก่อน" — รัน `bench` แล้วแสดง delta เทียบผลครั้งก่อนในคลิกเดียว
 
 ### ระยะ 3
 
 5. Tray app (WPF) ห่อ GUI + สลับโปรไฟล์ + เตือนเมื่ออุณหภูมิสูงเกินไป
 6. per-app GPU editor
 7. ประวัติ + rollback ทีละครั้ง
+8. แสดงผล audit แบบราย tweak ในหน้า Settings (ตอนนี้ต้องกด audit แยก)
 
 ### ระยะ 4
 

@@ -477,21 +477,34 @@ function Invoke-L51Backup {
 
 function Invoke-L51Apply {
     param(
-        [Parameter(Mandatory)][string]$Profile,
+        [string]$Profile = 'custom',
         [switch]$DryRun,
         [string[]]$Include = @(),
-        [switch]$Elevate
+        [switch]$Elevate,
+        [string[]]$TweakIds = @()
     )
 
-    $prof = Get-L51Profile -Id $Profile
-    if (-not $prof) {
-        $ids = ($script:L51ProfileCatalog | ForEach-Object { $_.Id }) -join ', '
-        throw "ไม่รู้จักโปรไฟล์ '$Profile' (มี: $ids)"
+    $custom = (@($TweakIds).Count -gt 0)
+    $prof = $null
+    if (-not $custom) {
+        $prof = Get-L51Profile -Id $Profile
+        if (-not $prof) {
+            $ids = ($script:L51ProfileCatalog | ForEach-Object { $_.Id }) -join ', '
+            throw "ไม่รู้จักโปรไฟล์ '$Profile' (มี: $ids)"
+        }
+    } else {
+        $Profile = 'custom'
+        $prof = [pscustomobject]@{
+            Id      = 'custom'
+            TitleTh = 'ตั้งค่าเอง (custom)'
+            Summary = ('{0} tweaks ที่เลือกจากหน้า Settings/CLI -Custom' -f @($TweakIds).Count)
+        }
     }
 
     if ($Elevate -and -not (Test-L51Admin) -and -not $DryRun) {
         $exe = (Get-Process -Id $PID).Path
         $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $script:L51Root 'Level51Tune.ps1'), 'apply', '-Profile', $Profile)
+        if ($custom) { $argList += @('-Custom') }
         if ($Include.Count -gt 0) { $argList += @('-Include', ($Include -join ',')) }
         Write-L51Log "กำลังเปิด PowerShell ใหม่แบบ Administrator..." 'STEP'
         Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
@@ -501,7 +514,12 @@ function Invoke-L51Apply {
     if (-not $DryRun) { Assert-L51Admin -Action 'การ apply tweaks' }
 
     $includeHigh = ($Include -contains 'high') -or ($Include -contains 'all')
-    $all = Get-L51ProfileTweaks -Profile $Profile
+    if ($custom) {
+        $all = @(Get-L51Catalog | Where-Object { $TweakIds -contains $_.Id })
+        if ($all.Count -eq 0) { throw 'ไม่มี tweak ที่ตรงกับรายการที่เลือก (ตรวจ Id ให้ถูกต้อง)' }
+    } else {
+        $all = Get-L51ProfileTweaks -Profile $Profile
+    }
     $apply = @($all | Where-Object { $_.Risk -ne 'High' -or $includeHigh })
     $skipped = @($all | Where-Object { $_.Risk -eq 'High' -and -not $includeHigh })
 
@@ -993,6 +1011,39 @@ __PAGER__
 }
 
 # ===========================================================================
+# Custom selection (tweak ที่ผู้ใช้เลือกเองจากหน้า Settings / CLI -Custom)
+# ===========================================================================
+
+function Get-L51CustomSelection {
+    $file = Join-Path (Join-Path $script:L51Root 'state') 'custom.json'
+    if (-not (Test-Path $file)) { return @() }
+    try {
+        $j = Get-Content $file -Raw -Encoding UTF8 | ConvertFrom-Json
+        return @($j.Tweaks)
+    } catch {
+        Write-L51Log "อ่าน state/custom.json ไม่ได้: $($_.Exception.Message)" 'WARN'
+        return @()
+    }
+}
+
+function Save-L51CustomSelection {
+    param([string[]]$TweakIds = @())
+
+    $known = @(Get-L51Catalog | ForEach-Object { $_.Id })
+    $valid = @($TweakIds | Where-Object { $known -contains $_ } | Select-Object -Unique)
+    $unknown = @($TweakIds | Where-Object { $known -notcontains $_ })
+    if ($unknown.Count -gt 0) { Write-L51Log ("ข้าม tweak ที่ไม่รู้จัก: {0}" -f ($unknown -join ', ')) 'WARN' }
+
+    $dir = Join-Path $script:L51Root 'state'
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $obj = [ordered]@{ Saved = (Get-Date).ToString('o'); Count = $valid.Count; Tweaks = $valid }
+    $file = Join-Path $dir 'custom.json'
+    [IO.File]::WriteAllText($file, ($obj | ConvertTo-Json -Depth 4), (New-Object System.Text.UTF8Encoding($false)))
+    Write-L51Log ("บันทึกการเลือก tweak {0} รายการ: {1}" -f $valid.Count, $file) 'OK'
+    return $valid
+}
+
+# ===========================================================================
 # Exports
 # ===========================================================================
 
@@ -1006,6 +1057,7 @@ Export-ModuleMember -Function @(
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
     'Get-L51State', 'Save-L51State', 'Get-L51Status', 'New-L51Report',
     'Test-L51TweakApplied', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
-    'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency',
+    'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
+    'Get-L51CustomSelection', 'Save-L51CustomSelection',
     'Convert-L51Markdown'
 )

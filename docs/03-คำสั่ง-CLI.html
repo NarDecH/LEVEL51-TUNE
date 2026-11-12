@@ -88,6 +88,7 @@
 <tr><td><code>-DryRun</code></td><td>switch</td><td>apply</td><td>เดินทุกอย่างแต่ไม่เปลี่ยนแปลงระบบ</td></tr>
 <tr><td><code>-Elevate</code></td><td>switch</td><td>apply, restore</td><td>เปิด PowerShell ใหม่แบบ admin (UAC)</td></tr>
 <tr><td><code>-Include high</code></td><td>string[]</td><td>apply</td><td>อนุญาต tweaks ความเสี่ยงสูง</td></tr>
+<tr><td><code>-Custom</code></td><td>switch</td><td>apply</td><td>ใช้รายการ tweak ที่บันทึกไว้ใน <code>state/custom.json</code> (จากหน้า Settings ของ GUI)</td></tr>
 <tr><td><code>-IncludeHigh</code></td><td>switch</td><td>audit</td><td>แสดง/ตรวจ tweaks High ด้วย</td></tr>
 <tr><td><code>-BackupPath &lt;file&gt;</code></td><td>string</td><td>restore</td><td>ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด)</td></tr>
 <tr><td><code>-Path &lt;file&gt;</code></td><td>string</td><td>report</td><td>ที่เก็บรายงาน</td></tr>
@@ -125,6 +126,9 @@
 
 # apply จริง (ต้อง admin)
 .\Level51Tune.ps1 apply -Profile performance
+
+# apply เฉพาะ tweak ที่เลือกเองไว้ (บันทึกจากหน้า Settings ของ GUI)
+.\Level51Tune.ps1 apply -Custom -DryRun
 
 # ขอ UAC เอง
 .\Level51Tune.ps1 apply -Profile gaming -Elevate
@@ -239,8 +243,11 @@ $result = Invoke-L51Apply -Profile &#39;performance&#39; -DryRun
 $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <p>ฟังก์ชันที่ export: <code>Get-L51Hardware</code>, <code>Get-L51GpuState</code>, <code>Get-L51Catalog</code>, <code>Get-L51Profiles</code>, <code>Get-L51ProfileTweaks</code>, <code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Backup</code>, <code>Get-L51Status</code>, <code>New-L51Report</code>, <code>Invoke-L51Bench</code>, <code>Compare-L51Bench</code>, <code>Measure-L51Latency</code>, <code>Build-L51Docs</code>, <code>Get-L51DashboardHtml</code>, <code>Get-L51LogPath</code>, <code>Get-L51PowerValue</code>, <code>Set-L51PowerValue</code>, <code>Test-L51TweakApplied</code></p>
 <h2 id="sec-19">Web GUI</h2>
-<pre><code class="lang-powershell">.\Level51Tune.Web.ps1
-.\Level51Tune.Web.ps1 -Port 8899 -NoBrowser</code></pre>
+<pre><code class="lang-powershell">.\Start-LEVEL51.cmd                     # 1 คลิก: ขอ UAC → เปิด dashboard
+.\Level51Tune.Web.ps1                  # เปิดเอง (ไม่ elevate)
+.\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
+.\Level51Tune.Web.ps1 -Elevate         # ขอ UAC แล้วเปิดตัวใหม่แบบ Administrator</code></pre>
+<p>dashboard มี 3 แท็บ: <strong>ภาพรวม</strong> (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), <strong>ตั้งค่า tweak</strong> (เลือกทีละตัว ค้นหา/กรอง/บันทึก) และ <strong>กราฟสด</strong> (CPU load/clock, GPU temp/power/clock, RAM อัปเดตทุก 2 วินาที)</p>
 <p>เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (<code>System.Net.HttpListener</code>) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request</p>
 <div class="table-wrap"><table>
 <thead><tr><th>endpoint</th><th>method</th><th>ทำอะไร</th></tr></thead>
@@ -252,6 +259,10 @@ $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <tr><td><code>/api/bench</code></td><td>POST</td><td>วัด CPU/RAM/Disk</td></tr>
 <tr><td><code>/api/latency</code></td><td>POST</td><td>วัด DPC/interrupt</td></tr>
 <tr><td><code>/api/log</code></td><td>GET</td><td>log ล่าสุด (กรอง DEBUG)</td></tr>
+<tr><td><code>/api/tweaks</code></td><td>GET</td><td>tweaks ทั้งหมด + รายการที่บันทึกไว้</td></tr>
+<tr><td><code>/api/settings</code></td><td>GET/POST</td><td>อ่าน/บันทึก tweak ที่เลือกเอง</td></tr>
+<tr><td><code>/api/live</code></td><td>GET</td><td>ค่าสด (CPU/GPU/RAM) สำหรับกราฟ</td></tr>
+<tr><td><code>/api/compare</code></td><td>POST</td><td>วัด benchmark + เทียบกับครั้งก่อน</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML</td></tr>
 </tbody>
 </table></div>

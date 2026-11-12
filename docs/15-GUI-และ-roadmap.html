@@ -82,6 +82,10 @@
 <tr><td><code>/api/bench</code></td><td>POST <code>{seconds, label}</code></td><td>วัด CPU/RAM/Disk</td><td>ไม่</td></tr>
 <tr><td><code>/api/latency</code></td><td>POST <code>{seconds}</code></td><td>วัด DPC/interrupt</td><td>ไม่</td></tr>
 <tr><td><code>/api/log</code></td><td>GET</td><td>log ล่าสุด (กรอง DEBUG ออก)</td><td>ไม่</td></tr>
+<tr><td><code>/api/tweaks</code></td><td>GET</td><td>tweak ทั้ง 60 รายการ + รายการที่บันทึกไว้</td><td>ไม่</td></tr>
+<tr><td><code>/api/settings</code></td><td>GET/POST</td><td>อ่าน/บันทึก tweak ที่เลือกเอง (<code>state/custom.json</code>)</td><td>ไม่</td></tr>
+<tr><td><code>/api/live</code></td><td>GET</td><td>ค่าสด: CPU load/clock, RAM, GPU clock/temp/power</td><td>ไม่</td></tr>
+<tr><td><code>/api/compare</code></td><td>POST</td><td>วัด benchmark ใหม่ + เทียบกับครั้งก่อน</td><td>ไม่</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML ใน <code>docs/</code></td><td>ไม่</td></tr>
 </tbody>
 </table></div>
@@ -114,10 +118,10 @@
 <div class="table-wrap"><table>
 <thead><tr><th>#</th><th>งาน</th><th>ผลลัพธ์</th><th>แรงโดยประมาณ</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>ตัวเรียก 1 คลิก (<code>Start-LEVEL51.cmd</code> + shortcut) ที่ขอ UAC เองและเปิด GUI</td><td>ผู้ใช้ไม่ต้องพิมพ์ PowerShell</td><td>30 นาที</td></tr>
+<tr><td>1</td><td><del>ตัวเรียก 1 คลิก</del> <strong>เสร็จแล้ว</strong>: <code>Start-LEVEL51.cmd</code> ขอ UAC เองแล้วเปิด GUI</td><td>ผู้ใช้ไม่ต้องพิมพ์ PowerShell</td><td>เสร็จ</td></tr>
 <tr><td>2</td><td>tray icon + เมนูสลับโปรไฟล์ (WPF ห่อรอบ engine)</td><td>สลับ performance/gaming ได้จาก tray</td><td>1-2 วัน</td></tr>
-<tr><td>3</td><td>หน้าตั้งค่าละเอียด (toggle ราย tweak + คำอธิบายไทย)</td><td>ไม่ต้องจำโปรไฟล์</td><td>2-3 วัน</td></tr>
-<tr><td>4</td><td>กราฟ realtime (clock/temp/power จาก nvidia-smi + performance counter)</td><td>เห็นผลทันที ไม่ต้องเปิด HWiNFO</td><td>1-2 วัน</td></tr>
+<tr><td>3</td><td><del>หน้าตั้งค่าละเอียด</del> <strong>เสร็จแล้ว</strong>: tab “ตั้งค่า tweak” (ค้นหา/กรอง/เลือกตามโปรไฟล์/บันทึก)</td><td>ไม่ต้องจำโปรไฟล์</td><td>เสร็จ</td></tr>
+<tr><td>4</td><td><del>กราฟ realtime</del> <strong>เสร็จแล้ว</strong>: tab “กราฟสด” 6 กราฟ + ปุ่ม “วัด + เทียบกับครั้งก่อน”</td><td>เห็นผลทันที ไม่ต้องเปิด HWiNFO</td><td>เสร็จ</td></tr>
 <tr><td>5</td><td>ตาราง per-app GPU preference (อ่าน/เขียน <code>UserGpuPreferences</code>)</td><td>แก้ปัญหา Optimus ได้ในคลิกเดียว</td><td>1 วัน</td></tr>
 <tr><td>6</td><td>ประวัติการเปลี่ยนแปลง + ปุ่ม rollback ทีละครั้ง</td><td>ปลอดภัยขึ้นมาก</td><td>1 วัน</td></tr>
 <tr><td>7</td><td>แพ็กเป็น .exe (ps2exe) หรือ MSIX พร้อม code signing</td><td>แจกจ่ายง่าย</td><td>1 วัน + ค่า certificate</td></tr>
@@ -130,18 +134,19 @@
 <li>Web GUI: สถานะ, โปรไฟล์, dry-run, apply, audit, bench, latency, restore, log, ลิงก์เอกสาร</li>
 <li>เอกสารไทย 15 บท + test 23 เคส</li>
 </ul>
-<h3 id="sec-10">ระยะ 2 (คุ้มที่สุดเป็นอันดับต่อไป)</h3>
+<h3 id="sec-10">ระยะ 2 (เสร็จแล้ว)</h3>
 <ol>
-<li><code>Start-LEVEL51.cmd</code> ที่ auto-elevate แล้วเปิด GUI (ปิดช่องว่าง &quot;ต้องพิมพ์ command&quot; ทั้งหมด)</li>
-<li>หน้า Settings ราย tweak (เปิด/ปิดทีละตัว, แสดง Risk + คำอธิบาย)</li>
-<li>กราฟ realtime ของ CPU/GPU clock, temp, power</li>
-<li>ปุ่ม &quot;เปรียบเทียบก่อน/หลัง&quot; ที่เรียก <code>bench</code> + <code>compare</code> ในคลิกเดียว</li>
+<li><code>Start-LEVEL51.cmd</code> — ดับเบิลคลิกเดียว ขอ UAC แล้วเปิด dashboard (ปิดช่องว่าง &quot;ต้องพิมพ์ command&quot;)</li>
+<li>หน้า Settings ราย tweak — ค้นหา/กรองหมวด/เลือกตามโปรไฟล์/บันทึกเป็น <code>state/custom.json</code> แล้ว apply ได้ทั้ง GUI และ CLI (<code>apply -Custom</code>)</li>
+<li>กราฟ realtime 6 ตัว — CPU load, CPU clock, GPU temp, GPU power, RAM used, GPU clock (อัปเดตทุก 2 วินาที, เก็บ 60 จุด)</li>
+<li>ปุ่ม &quot;วัด + เทียบกับครั้งก่อน&quot; — รัน <code>bench</code> แล้วแสดง delta เทียบผลครั้งก่อนในคลิกเดียว</li>
 </ol>
 <h3 id="sec-11">ระยะ 3</h3>
 <ol>
 <li>Tray app (WPF) ห่อ GUI + สลับโปรไฟล์ + เตือนเมื่ออุณหภูมิสูงเกินไป</li>
 <li>per-app GPU editor</li>
 <li>ประวัติ + rollback ทีละครั้ง</li>
+<li>แสดงผล audit แบบราย tweak ในหน้า Settings (ตอนนี้ต้องกด audit แยก)</li>
 </ol>
 <h3 id="sec-12">ระยะ 4</h3>
 <ol>

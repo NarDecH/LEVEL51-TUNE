@@ -37,6 +37,7 @@
 | `-DryRun` | switch | apply | เดินทุกอย่างแต่ไม่เปลี่ยนแปลงระบบ |
 | `-Elevate` | switch | apply, restore | เปิด PowerShell ใหม่แบบ admin (UAC) |
 | `-Include high` | string[] | apply | อนุญาต tweaks ความเสี่ยงสูง |
+| `-Custom` | switch | apply | ใช้รายการ tweak ที่บันทึกไว้ใน `state/custom.json` (จากหน้า Settings ของ GUI) |
 | `-IncludeHigh` | switch | audit | แสดง/ตรวจ tweaks High ด้วย |
 | `-BackupPath <file>` | string | restore | ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด) |
 | `-Path <file>` | string | report | ที่เก็บรายงาน |
@@ -97,6 +98,9 @@
 
 # apply จริง (ต้อง admin)
 .\Level51Tune.ps1 apply -Profile performance
+
+# apply เฉพาะ tweak ที่เลือกเองไว้ (บันทึกจากหน้า Settings ของ GUI)
+.\Level51Tune.ps1 apply -Custom -DryRun
 
 # ขอ UAC เอง
 .\Level51Tune.ps1 apply -Profile gaming -Elevate
@@ -272,9 +276,13 @@ $result.Results | Where-Object Status -ne 'OK'
 ## Web GUI
 
 ```powershell
-.\Level51Tune.Web.ps1
+.\Start-LEVEL51.cmd                     # 1 คลิก: ขอ UAC → เปิด dashboard
+.\Level51Tune.Web.ps1                  # เปิดเอง (ไม่ elevate)
 .\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
+.\Level51Tune.Web.ps1 -Elevate         # ขอ UAC แล้วเปิดตัวใหม่แบบ Administrator
 ```
+
+dashboard มี 3 แท็บ: **ภาพรวม** (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), **ตั้งค่า tweak** (เลือกทีละตัว ค้นหา/กรอง/บันทึก) และ **กราฟสด** (CPU load/clock, GPU temp/power/clock, RAM อัปเดตทุก 2 วินาที)
 
 เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (`System.Net.HttpListener`) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request
 
@@ -287,6 +295,10 @@ $result.Results | Where-Object Status -ne 'OK'
 | `/api/bench` | POST | วัด CPU/RAM/Disk |
 | `/api/latency` | POST | วัด DPC/interrupt |
 | `/api/log` | GET | log ล่าสุด (กรอง DEBUG) |
+| `/api/tweaks` | GET | tweaks ทั้งหมด + รายการที่บันทึกไว้ |
+| `/api/settings` | GET/POST | อ่าน/บันทึก tweak ที่เลือกเอง |
+| `/api/live` | GET | ค่าสด (CPU/GPU/RAM) สำหรับกราฟ |
+| `/api/compare` | POST | วัด benchmark + เทียบกับครั้งก่อน |
 | `/docs/*` | GET | เอกสาร HTML |
 
 header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)

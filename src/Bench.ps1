@@ -233,17 +233,20 @@ function Measure-L51Latency {
 }
 
 function Compare-L51Bench {
-    param([int]$Count = 2)
+    param([int]$Count = 2, [switch]$AsObject)
     $hist = @(Get-L51BenchHistory -Last $Count)
     if ($hist.Count -lt 2) {
-        Write-L51Log 'ต้องมีผลอย่างน้อย 2 ครั้งใน benchmarks/history.jsonl เพื่อเปรียบเทียบ' 'WARN'
-        return
+        if (-not $AsObject) { Write-L51Log 'ต้องมีผลอย่างน้อย 2 ครั้งใน benchmarks/history.jsonl เพื่อเปรียบเทียบ' 'WARN' }
+        return @()
     }
+    $out = @()
     for ($i = 1; $i -lt $hist.Count; $i++) {
         $a = $hist[$i - 1]
         $b = $hist[$i]
-        Write-Host ''
-        Write-Host ("  {0}  ->  {1}" -f $a.Label, $b.Label) -ForegroundColor Cyan
+        if (-not $AsObject) {
+            Write-Host ''
+            Write-Host ("  {0}  ->  {1}" -f $a.Label, $b.Label) -ForegroundColor Cyan
+        }
         $rows = @(
             @{ Name = 'CPU 1 thread (MB/s)'; A = $a.CpuSingleMBps; B = $b.CpuSingleMBps },
             @{ Name = 'CPU all threads (MB/s)'; A = $a.CpuMultiMBps; B = $b.CpuMultiMBps },
@@ -254,12 +257,80 @@ function Compare-L51Bench {
         foreach ($r in $rows) {
             $delta = 0
             if ($r.A -gt 0) { $delta = [math]::Round(($r.B - $r.A) / $r.A * 100, 1) }
+            $out += [pscustomobject]@{
+                From = $a.Label; To = $b.Label; Metric = $r.Name
+                A = $r.A; B = $r.B; DeltaPct = $delta
+            }
+            if ($AsObject) { continue }
             $color = 'Gray'
             if ($delta -gt 1) { $color = 'Green' }
             if ($delta -lt -1) { $color = 'Red' }
             Write-Host ("   {0,-22} {1,10:N1} -> {2,10:N1}   {3,6}%" -f $r.Name, $r.A, $r.B, $delta) -ForegroundColor $color
         }
     }
-    Write-Host ''
-    Write-Host '  หมายเหตุ: micro-benchmark มี noise ±3-5% — ต่างน้อยกว่านั้นถือว่าไม่ต่าง' -ForegroundColor DarkGray
+    if (-not $AsObject) {
+        Write-Host ''
+        Write-Host '  หมายเหตุ: micro-benchmark มี noise ±3-5% — ต่างน้อยกว่านั้นถือว่าไม่ต่าง' -ForegroundColor DarkGray
+    }
+    return $out
+}
+
+# ===========================================================================
+# Live metrics (ใช้โดยหน้า "กราฟสด" ของ Web GUI)
+# ===========================================================================
+
+function Get-L51LiveMetrics {
+    $cpuLoad = $null
+    $cpuClock = $null
+    $ramUsed = $null
+    $gpu = $null
+
+    try {
+        $sample = Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
+        if ($sample) { $cpuLoad = [int]$sample.PercentProcessorTime }
+    } catch { }
+
+    try {
+        $cpu = Get-CimInstance Win32_Processor -ErrorAction Stop | Select-Object -First 1
+        if ($cpu) { $cpuClock = [int]$cpu.CurrentClockSpeed }
+    } catch { }
+
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $usedKB = [double]$os.TotalVisibleMemorySize - [double]$os.FreePhysicalMemory
+        $ramUsed = [math]::Round(($usedKB / 1MB), 1)
+    } catch { }
+
+    try {
+        $state = @(Get-L51GpuState | Where-Object { $_.Source -ne 'wmi' })
+        if ($state.Count -eq 0) { $state = @(Get-L51GpuState) }
+        if ($state.Count -gt 0) {
+            $g = $state[0]
+            # ค่าจาก nvidia-smi เป็น string และอาจเป็น '[N/A]' — แปลงเฉพาะค่าที่เป็นตัวเลขได้
+            $clock = $null; $temp = $null; $util = $null; $power = $null
+            $tmp = 0.0
+            if ([double]::TryParse([string]$g.ClockMHz, [ref]$tmp)) { $clock = $tmp }
+            $tmp = 0.0
+            if ([double]::TryParse([string]$g.TempC, [ref]$tmp)) { $temp = $tmp }
+            $tmp = 0.0
+            if ([double]::TryParse([string]$g.UtilPct, [ref]$tmp)) { $util = $tmp }
+            $tmp = 0.0
+            if ([double]::TryParse([string]$g.PowerW, [ref]$tmp)) { $power = $tmp }
+            $gpu = [pscustomobject]@{
+                Name     = $g.Name
+                ClockMHz = $clock
+                TempC    = $temp
+                UtilPct  = $util
+                PowerW   = $power
+            }
+        }
+    } catch { }
+
+    return [pscustomobject]@{
+        Timestamp  = (Get-Date).ToString('o')
+        CpuLoadPct = $cpuLoad
+        CpuClockMHz = $cpuClock
+        RamUsedGB  = $ramUsed
+        Gpu        = $gpu
+    }
 }

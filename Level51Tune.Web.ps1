@@ -16,13 +16,24 @@
 [CmdletBinding()]
 param(
     [int]$Port = 8730,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$Elevate
 )
 
 $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot 'src\Level51Tune.psm1'
 Import-Module $modulePath -Force -DisableNameChecking
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
+
+# -Elevate: เปิดตัวเองใหม่แบบ Administrator แล้วจบโปรเซสนี้ (ใช้โดย Start-LEVEL51.cmd)
+if ($Elevate -and -not (Test-L51Admin)) {
+    $exe = (Get-Process -Id $PID).Path
+    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-Port', "$Port", '-Elevate')
+    if ($NoBrowser) { $argList += '-NoBrowser' }
+    Write-Host '  กำลังขอสิทธิ์ Administrator (UAC)…' -ForegroundColor Yellow
+    Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
+    exit 0
+}
 
 $token = -join ((48..57) + (97..102) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
 $docsDir = Join-Path $PSScriptRoot 'docs'
@@ -194,9 +205,17 @@ try {
                 $dry = [bool]$body.dryRun
                 $include = @()
                 if ($body.includeHigh) { $include = @('high') }
-                $r = Invoke-L51Apply -Profile $body.profile -DryRun:$dry -Include $include
+                $ids = @()
+                if ($body.tweakIds) { $ids = @($body.tweakIds | ForEach-Object { [string]$_ }) }
+                $appliedTo = $body.profile
+                if ($ids.Count -gt 0) {
+                    $appliedTo = 'custom'
+                    $r = Invoke-L51Apply -TweakIds $ids -DryRun:$dry -Include $include
+                } else {
+                    $r = Invoke-L51Apply -Profile $body.profile -DryRun:$dry -Include $include
+                }
                 Send-L51Response $ctx ([pscustomobject]@{
-                        profile = $body.profile
+                        profile = $appliedTo
                         dryRun  = $dry
                         backup  = $r.Backup
                         scheme  = $r.Scheme
@@ -237,6 +256,80 @@ try {
                         dpc = $r.DpcAvg; isr = $r.IsrAvg; scheme = $r.Scheme
                         rows = @($r.Counters | ForEach-Object { [pscustomobject]@{ counter = $_.Counter; avg = $_.Avg; max = $_.Max } })
                     } | ConvertTo-Json -Depth 4)
+                continue
+            }
+
+            if ($path -eq '/api/tweaks') {
+                $rows = @(Get-L51Catalog | ForEach-Object {
+                        [pscustomobject]@{
+                            id       = $_.Id
+                            category = $_.Category
+                            title    = $_.Title
+                            titleTh  = $_.TitleTh
+                            risk     = $_.Risk
+                            type     = $_.Type
+                            admin    = [bool]$_.Admin
+                            reboot   = [bool]$_.Reboot
+                            profiles = @($_.Profiles)
+                            notes    = $_.Notes
+                        }
+                    })
+                $saved = @(Get-L51CustomSelection)
+                Send-L51Response $ctx ([pscustomobject]@{ rows = $rows; saved = $saved } | ConvertTo-Json -Depth 5)
+                continue
+            }
+
+            if ($path -eq '/api/settings') {
+                if ($req.HttpMethod -eq 'POST') {
+                    $body = Get-L51JsonBody $ctx
+                    $ids = @()
+                    if ($body.tweakIds) { $ids = @($body.tweakIds | ForEach-Object { [string]$_ }) }
+                    $saved = @(Save-L51CustomSelection -TweakIds $ids)
+                    Send-L51Response $ctx ([pscustomobject]@{ saved = $saved; count = $saved.Count } | ConvertTo-Json -Depth 4)
+                } else {
+                    $saved = @(Get-L51CustomSelection)
+                    Send-L51Response $ctx ([pscustomobject]@{ saved = $saved; count = $saved.Count } | ConvertTo-Json -Depth 4)
+                }
+                continue
+            }
+
+            if ($path -eq '/api/live') {
+                $m = Get-L51LiveMetrics
+                $g = $null
+                if ($m.Gpu) {
+                    $g = [pscustomobject]@{
+                        name = $m.Gpu.Name; clockMHz = $m.Gpu.ClockMHz; temp = $m.Gpu.TempC
+                        util = $m.Gpu.UtilPct; power = $m.Gpu.PowerW
+                    }
+                }
+                # ใช้ชื่อแบบ camelCase ให้ตรงกับฝั่ง JS
+                Send-L51Response $ctx ([pscustomobject]@{
+                        ts          = $m.Timestamp
+                        cpuLoadPct  = $m.CpuLoadPct
+                        cpuClockMHz = $m.CpuClockMHz
+                        ramUsedGB   = $m.RamUsedGB
+                        gpu         = $g
+                    } | ConvertTo-Json -Depth 4)
+                continue
+            }
+
+            if ($path -eq '/api/compare') {
+                $body = Get-L51JsonBody $ctx
+                $secs = 3
+                if ($body.seconds) { $secs = [int]$body.seconds }
+                $last = Invoke-L51Bench -Seconds $secs -Label ('web-' + (Get-Date).ToString('HHmmss'))
+                $rows = @(Compare-L51Bench -Count 2 -AsObject)
+                $pairs = @($rows | ForEach-Object {
+                        [pscustomobject]@{
+                            from = $_.From; to = $_.To; metric = $_.Metric
+                            a = $_.A; b = $_.B; delta = $_.DeltaPct
+                        }
+                    })
+                Send-L51Response $ctx ([pscustomobject]@{
+                        label  = $last.Label
+                        pairs  = $pairs
+                        rounds = @($pairs | Select-Object -ExpandProperty from -Unique).Count
+                    } | ConvertTo-Json -Depth 5)
                 continue
             }
 

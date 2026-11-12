@@ -18,7 +18,8 @@
 | `src/Markdown.ps1` | markdown → HTML (ไม่มี dependency) | แก้ renderer เท่านั้น |
 | `src/Bench.ps1` | micro-benchmark, history, compare, `Measure-L51Latency` | แก้วิธีวัด |
 | `Level51Tune.Web.ps1` | Web GUI server: HttpListener, token, routing, เสิร์ฟ `/docs/*` | เพิ่ม/แก้ endpoint GUI |
-| `src/WebUI.ps1` | HTML dashboard แบบ single-page (placeholder `__TOKEN__`) | แก้หน้าตา/JS ของ GUI |
+| `Start-LEVEL51.cmd` | ตัวเรียก GUI 1 คลิก (UAC → `Level51Tune.Web.ps1 -Elevate`) | แทบไม่ต้องแตะ |
+| `src/WebUI.ps1` | HTML dashboard แบบ single-page 3 แท็บ (placeholder `__TOKEN__`) | แก้หน้าตา/JS ของ GUI |
 | `tools/Build-Docs.ps1` | wrapper สำหรับสร้าง docs | แทบไม่ต้องแตะ |
 | `tools/AB-Bench.ps1` | A/B throughput ระหว่าง 2 power scheme (A-B-B-A) | แก้วิธีทดลอง |
 | `tools/AB-Latency.ps1` | A/B DPC/interrupt (ต้อง admin เพราะสลับ scheme) | แก้วิธีทดลอง |

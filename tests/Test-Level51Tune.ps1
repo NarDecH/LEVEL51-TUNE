@@ -205,7 +205,7 @@ Test-Case 'audit: คืนผลครบทุก tweak ของโปรไ�
 Test-Case 'web: dashboard HTML มี token placeholder และ element หลัก' {
     $html = Get-L51DashboardHtml
     if ($html -notmatch '__TOKEN__') { throw 'ไม่พบ placeholder __TOKEN__' }
-    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log')) {
+    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log', '/api/tweaks', '/api/settings', '/api/live', '/api/compare')) {
         if ($html -notmatch [regex]::Escape($needle)) { throw "ไม่พบ $needle ใน dashboard" }
     }
     ($html -match '<!DOCTYPE html>') -and ($html.Length -gt 5000)
@@ -215,6 +215,41 @@ Test-Case 'web: log path อยู่ใน logs/ และสร้าง log �
     $p = Get-L51LogPath
     if (-not $p) { throw 'Get-L51LogPath คืนค่าว่าง' }
     $p -like '*\logs\l51-*.log'
+}
+
+Test-Case 'settings: บันทึก/อ่านรายการ tweak ที่เลือกได้' {
+    $dir = Join-Path $root 'state'
+    $file = Join-Path $dir 'custom.json'
+    $hadFile = Test-Path $file
+    $backup = $null
+    if ($hadFile) { $backup = Get-Content $file -Raw -Encoding UTF8 }
+    try {
+        $ids = @('gpu.hags', 'win.gamemode-on')
+        $saved = @(Save-L51CustomSelection -TweakIds $ids)
+        if ($saved.Count -ne 2) { throw "บันทึกได้ $($saved.Count) รายการ" }
+        $back = @(Get-L51CustomSelection)
+        if ($back.Count -ne 2) { throw "อ่านกลับได้ $($back.Count) รายการ" }
+    } finally {
+        if ($hadFile) { [IO.File]::WriteAllText($file, $backup, (New-Object Text.UTF8Encoding($false))) }
+        elseif (Test-Path $file) { Remove-Item $file -Force }
+    }
+    $true
+}
+
+Test-Case 'apply -TweakIds: dry-run เฉพาะที่เลือกทำงานได้' {
+    $ids = @(Get-L51Catalog | Select-Object -First 3 | ForEach-Object { $_.Id })
+    $r = Invoke-L51Apply -TweakIds $ids -DryRun
+    if (-not $r) { throw 'ไม่ได้ผลลัพธ์' }
+    if (@($r.Results).Count -ne 3) { throw "ได้ $(@($r.Results).Count) ผล ลคาด 3" }
+    $r.Profile -eq 'custom'
+}
+
+Test-Case 'live: อ่านค่าสด (CPU load / clock / RAM) ได้' {
+    $m = Get-L51LiveMetrics
+    if (-not $m) { throw 'ไม่ได้ผลลัพธ์' }
+    if ($null -eq $m.CpuLoadPct) { throw 'CPU load เป็น null' }
+    if ($null -eq $m.RamUsedGB) { throw 'RAM used เป็น null' }
+    ($m.CpuLoadPct -ge 0) -and ($m.CpuLoadPct -le 100) -and ($m.RamUsedGB -gt 0)
 }
 
 Test-Case 'latency: วัด counter ได้และให้ค่าตัวเลข 4 รายการ' {

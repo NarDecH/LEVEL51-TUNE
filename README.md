@@ -74,6 +74,8 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 
 MSIX (`Build-Msix.ps1`) ห่อแอปเป็นแพ็กเกจติดตั้งได้ โดยมี launcher เล็ก ๆ ที่เปิด dashboard — แต่ MSIX รันใน container จึงขอ UAC ไม่ได้ ปุ่ม Apply/Restore ในโหมดนั้นจะได้ 403 (ใช้ `Start-LEVEL51.cmd` เมื่อต้อง apply)
 
+ไฟล์ `.msix` ที่ build ยังไม่ลงนาม: ติดตั้งได้เมื่อเปิด Developer Mode (`Add-AppxPackage -AllowUnsigned`) หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`
+
 ## โปรไฟล์
 
 | โปรไฟล์ | เหมาะกับ | แลกกับ |

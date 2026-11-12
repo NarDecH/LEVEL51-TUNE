@@ -156,7 +156,9 @@
 <li><del>หน้าตรวจอัปเดตเวอร์ชัน</del> <strong>เสร็จแล้ว</strong>: CLI <code>update</code> + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release <code>v1.0.3</code> พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)</li>
 <li><del>profile detection</del> <strong>เสร็จแล้ว</strong>: <code>recommend</code> + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)</li>
 <li><del>code signing</del> <strong>ทำไปป์ไลน์แล้ว</strong>: <code>Build-Package.ps1 -CertificateThumbprint &lt;thumb&gt;</code> ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา</li>
-<li><del>MSIX</del> <strong>เสร็จแล้ว</strong>: <code>tools/Build-Msix.ps1</code> คอมไพล์ launcher (C# ผ่าน <code>csc.exe</code>) + <code>AppxManifest.xml</code> + assets แล้ว pack ด้วย <code>makeappx.exe</code> → <code>dist/LEVEL51-TUNE-&lt;version&gt;.msix</code> &#183; ข้อจำกัด: MSIX รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated) และไฟล์ยังไม่ลงนาม</li>
+<li><del>MSIX</del> <strong>เสร็จแล้ว</strong>: <code>tools/Build-Msix.ps1</code> คอมไพล์ launcher (C# ผ่าน <code>csc.exe</code>) + <code>AppxManifest.xml</code> + assets แล้ว pack ด้วย <code>makeappx.exe</code> → <code>dist/LEVEL51-TUNE-&lt;version&gt;.msix</code></li>
+<li>MSIX — ผลตรวจบนเครื่องนี้: แตกแพ็กเกจแล้วรัน launcher ได้จริง (สตาร์ท <code>Level51Tune.Web.ps1</code> และ dashboard ตอบ HTTP 401 โดยไม่มี token = เซิร์ฟเวอร์ทำงาน) แต่ <strong>ติดตั้งไม่ได้ถ้าไม่ลงนาม</strong>: <code>Add-AppxPackage -AllowUnsigned</code> ตอบ error <code>0x80073D2C</code> เพราะยังไม่เปิด Developer Mode — ต้องเลือกอย่างใดอย่างหนึ่ง: เปิด Settings → System → For developers → Developer Mode หรือลงนามด้วย certificate ที่ Publisher ตรงกับ <code>CN=LEVEL51-TUNE</code></li>
+<li>ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ <code>Start-LEVEL51.cmd</code>)</li>
 </ol>
 <h2 id="sec-15">ข้อควรระวังในการทำ GUI ต่อ</h2>
 <ol>

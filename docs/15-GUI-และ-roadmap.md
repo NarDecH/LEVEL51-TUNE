@@ -116,7 +116,9 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.3` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
 11. ~~profile detection~~ **เสร็จแล้ว**: `recommend` + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)
 12. ~~code signing~~ **ทำไปป์ไลน์แล้ว**: `Build-Package.ps1 -CertificateThumbprint <thumb>` ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา
-13. ~~MSIX~~ **เสร็จแล้ว**: `tools/Build-Msix.ps1` คอมไพล์ launcher (C# ผ่าน `csc.exe`) + `AppxManifest.xml` + assets แล้ว pack ด้วย `makeappx.exe` → `dist/LEVEL51-TUNE-<version>.msix` · ข้อจำกัด: MSIX รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated) และไฟล์ยังไม่ลงนาม
+13. ~~MSIX~~ **เสร็จแล้ว**: `tools/Build-Msix.ps1` คอมไพล์ launcher (C# ผ่าน `csc.exe`) + `AppxManifest.xml` + assets แล้ว pack ด้วย `makeappx.exe` → `dist/LEVEL51-TUNE-<version>.msix`
+14. MSIX — ผลตรวจบนเครื่องนี้: แตกแพ็กเกจแล้วรัน launcher ได้จริง (สตาร์ท `Level51Tune.Web.ps1` และ dashboard ตอบ HTTP 401 โดยไม่มี token = เซิร์ฟเวอร์ทำงาน) แต่ **ติดตั้งไม่ได้ถ้าไม่ลงนาม**: `Add-AppxPackage -AllowUnsigned` ตอบ error `0x80073D2C` เพราะยังไม่เปิด Developer Mode — ต้องเลือกอย่างใดอย่างหนึ่ง: เปิด Settings → System → For developers → Developer Mode หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`
+15. ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ `Start-LEVEL51.cmd`)
 
 ## ข้อควรระวังในการทำ GUI ต่อ
 

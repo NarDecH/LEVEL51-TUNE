@@ -281,11 +281,15 @@
 ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน `/tags` และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:
 
 ```bash
-git tag -a v1.0.1 -m "LEVEL51-TUNE 1.0.1"
-git push origin v1.0.1
+git tag -a v1.0.2 -m "LEVEL51-TUNE 1.0.2"
+git push origin v1.0.2
 ```
 
-หรือสร้าง Release จากหน้า GitHub (แนบ `dist/LEVEL51-TUNE-1.0.1.zip` ได้) — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
+หรือสร้าง Release จากหน้า GitHub / `gh` CLI (แนบ `dist/LEVEL51-TUNE-1.0.2.zip` ได้):
+
+```bash
+gh release create v1.0.2 dist/LEVEL51-TUNE-1.0.2.zip --title "LEVEL51-TUNE 1.0.2" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
+``` — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
 
 ## gpu
 

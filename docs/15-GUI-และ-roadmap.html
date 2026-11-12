@@ -43,8 +43,8 @@
 <li><a href="#sec-6">ทางเลือกอื่นและเหตุผลที่ไม่เลือก (ตอนนี้)</a></li>
 <li><a href="#sec-7">สิ่งที่ยังขาดถ้าจะเรียกว่า &quot;GUI ใช้งานง่ายจริง&quot;</a></li>
 <li><a href="#sec-8">Roadmap ที่แนะนำ</a></li>
-<li><a href="#sec-13">ข้อควรระวังในการทำ GUI ต่อ</a></li>
-<li><a href="#sec-14">สรุป</a></li>
+<li><a href="#sec-15">ข้อควรระวังในการทำ GUI ต่อ</a></li>
+<li><a href="#sec-16">สรุป</a></li>
 </ol></nav>
 <h2 id="sec-2">คำตอบสั้น</h2>
 <p><strong>ได้ และทำเสร็จแล้วในรอบนี้</strong> — โปรเจกต์มี Web GUI ที่ทำงานจริงอยู่ที่ <code>Level51Tune.Web.ps1</code> (dashboard บน <code>http://localhost:8730/</code>) ซึ่งเรียก engine ตัวเดียวกับ CLI ทุกฟังก์ชัน: ดูสถานะ, audit, apply, dry-run, bench, latency, restore และ log</p>
@@ -119,12 +119,12 @@
 <thead><tr><th>#</th><th>งาน</th><th>ผลลัพธ์</th><th>แรงโดยประมาณ</th></tr></thead>
 <tbody>
 <tr><td>1</td><td><del>ตัวเรียก 1 คลิก</del> <strong>เสร็จแล้ว</strong>: <code>Start-LEVEL51.cmd</code> ขอ UAC เองแล้วเปิด GUI</td><td>ผู้ใช้ไม่ต้องพิมพ์ PowerShell</td><td>เสร็จ</td></tr>
-<tr><td>2</td><td>tray icon + เมนูสลับโปรไฟล์ (WPF ห่อรอบ engine)</td><td>สลับ performance/gaming ได้จาก tray</td><td>1-2 วัน</td></tr>
+<tr><td>2</td><td><del>tray icon</del> <strong>เสร็จแล้ว</strong>: <code>Level51Tune.Tray.ps1</code> (WinForms NotifyIcon, เมนูสลับโปรไฟล์ + balloon สถานะ)</td><td>สลับ performance/gaming ได้จาก tray</td><td>เสร็จ</td></tr>
 <tr><td>3</td><td><del>หน้าตั้งค่าละเอียด</del> <strong>เสร็จแล้ว</strong>: tab “ตั้งค่า tweak” (ค้นหา/กรอง/เลือกตามโปรไฟล์/บันทึก)</td><td>ไม่ต้องจำโปรไฟล์</td><td>เสร็จ</td></tr>
 <tr><td>4</td><td><del>กราฟ realtime</del> <strong>เสร็จแล้ว</strong>: tab “กราฟสด” 6 กราฟ + ปุ่ม “วัด + เทียบกับครั้งก่อน”</td><td>เห็นผลทันที ไม่ต้องเปิด HWiNFO</td><td>เสร็จ</td></tr>
-<tr><td>5</td><td>ตาราง per-app GPU preference (อ่าน/เขียน <code>UserGpuPreferences</code>)</td><td>แก้ปัญหา Optimus ได้ในคลิกเดียว</td><td>1 วัน</td></tr>
-<tr><td>6</td><td>ประวัติการเปลี่ยนแปลง + ปุ่ม rollback ทีละครั้ง</td><td>ปลอดภัยขึ้นมาก</td><td>1 วัน</td></tr>
-<tr><td>7</td><td>แพ็กเป็น .exe (ps2exe) หรือ MSIX พร้อม code signing</td><td>แจกจ่ายง่าย</td><td>1 วัน + ค่า certificate</td></tr>
+<tr><td>5</td><td><del>per-app GPU preference</del> <strong>เสร็จแล้ว</strong>: แท็บ “GPU ต่อแอป” + CLI <code>gpuprefs</code></td><td>แก้ปัญหา Optimus ได้ในคลิกเดียว</td><td>เสร็จ</td></tr>
+<tr><td>6</td><td><del>ประวัติ + rollback</del> <strong>เสร็จแล้ว</strong>: แท็บ “ประวัติ/ย้อนกลับ” + CLI <code>history</code></td><td>ปลอดภัยขึ้นมาก</td><td>เสร็จ</td></tr>
+<tr><td>7</td><td><del>แพ็กเกจ</del> <strong>เสร็จบางส่วน</strong>: <code>tools/Build-Package.ps1</code> สร้าง zip แจกจ่าย (ยังไม่ sign/MSIX)</td><td>แจกจ่ายง่าย</td><td>เหลือ certificate</td></tr>
 </tbody>
 </table></div>
 <h2 id="sec-8">Roadmap ที่แนะนำ</h2>
@@ -142,18 +142,21 @@
 <li>ปุ่ม &quot;วัด + เทียบกับครั้งก่อน&quot; — รัน <code>bench</code> แล้วแสดง delta เทียบผลครั้งก่อนในคลิกเดียว</li>
 </ol>
 <h3 id="sec-11">ระยะ 3</h3>
+<h3 id="sec-12">ระยะ 3 (เสร็จแล้ว)</h3>
 <ol>
-<li>Tray app (WPF) ห่อ GUI + สลับโปรไฟล์ + เตือนเมื่ออุณหภูมิสูงเกินไป</li>
-<li>per-app GPU editor</li>
-<li>ประวัติ + rollback ทีละครั้ง</li>
-<li>แสดงผล audit แบบราย tweak ในหน้า Settings (ตอนนี้ต้องกด audit แยก)</li>
+<li>Tray app — <code>Level51Tune.Tray.ps1</code> (WinForms NotifyIcon): เปิด Dashboard, สลับโปรไฟล์, ตรวจสถานะเป็น balloon, เปิด log/docs, ออก</li>
+<li>per-app GPU editor — แท็บ “GPU ต่อแอป” + CLI <code>gpuprefs</code> (เขียน <code>HKCU\...\UserGpuPreferences</code>)</li>
+<li>ประวัติ + rollback ทีละครั้ง — แท็บ “ประวัติ/ย้อนกลับ” อ่าน <code>backups/</code> และ restore ไฟล์ที่เลือก + CLI <code>history</code></li>
+<li>audit ราย tweak ในหน้า Settings — ปุ่ม “ตรวจสถานะที่เลือก” ใช้ <code>Invoke-L51Audit -TweakIds</code></li>
 </ol>
-<h3 id="sec-12">ระยะ 4</h3>
+<h3 id="sec-13">ระยะ 4</h3>
+<h3 id="sec-14">ระยะ 4 (บางส่วน)</h3>
 <ol>
-<li>แพ็กเป็น executable เดียว, code signing, หน้าอัปเดตเวอร์ชัน</li>
+<li><code>tools/Build-Package.ps1</code> — สร้าง <code>dist/LEVEL51-TUNE-&lt;version&gt;.zip</code> พร้อมใช้ (เสร็จแล้ว)</li>
+<li>ยังเหลือ: code signing (ต้องมี certificate), MSIX, หน้าตรวจอัปเดตเวอร์ชัน</li>
 <li>(ถ้าต้องการ) รองรับเครื่องอื่นที่ไม่ใช่ LEVEL51 ด้วย profile detection</li>
 </ol>
-<h2 id="sec-13">ข้อควรระวังในการทำ GUI ต่อ</h2>
+<h2 id="sec-15">ข้อควรระวังในการทำ GUI ต่อ</h2>
 <ol>
 <li><strong>อย่าลอกจาก engine</strong> — GUI ต้องเรียกฟังก์ชันใน <code>Level51Tune.psm1</code> เท่านั้น</li>
 <li><strong>อย่าให้ UI ตัดสินใจเรื่องสิทธิ์</strong> — ตรวจ admin ที่ engine เสมอ (<code>Assert-L51Admin</code>)</li>
@@ -161,7 +164,7 @@
 <li><strong>อย่าเก็บ state ใน UI</strong> — อ่านจาก engine ทุกครั้ง (single source of truth)</li>
 <li><strong>ทดสอบด้วย dry-run ก่อนเสมอ</strong> เมื่อเพิ่ม endpoint ใหม่</li>
 </ol>
-<h2 id="sec-14">สรุป</h2>
+<h2 id="sec-16">สรุป</h2>
 <ul>
 <li>ทำ GUI ได้ และทำแล้ว: Web GUI ทำงานจริง ตรวจด้วยเบราว์เซอร์แล้ว (สถานะ, dry-run 17 OK/1 SKIP, log)</li>
 <li>จุดที่ควรลงทุนต่อไม่ใช่ &quot;หน้าตา&quot; แต่คือ <strong>ทางเข้า</strong> (one-click + UAC) และ <strong>การเห็นผล</strong> (กราฟ/ประวัติ) เพราะ engine ทำงานครบแล้ว</li>

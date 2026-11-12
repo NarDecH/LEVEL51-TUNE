@@ -51,12 +51,14 @@
 <li><a href="#sec-11">report</a></li>
 <li><a href="#sec-12">bench / compare</a></li>
 <li><a href="#sec-13">latency</a></li>
-<li><a href="#sec-14">gpu</a></li>
-<li><a href="#sec-15">docs</a></li>
-<li><a href="#sec-16">Exit codes</a></li>
-<li><a href="#sec-17">การใช้จาก PowerShell profile</a></li>
-<li><a href="#sec-18">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</a></li>
-<li><a href="#sec-19">Web GUI</a></li>
+<li><a href="#sec-14">history</a></li>
+<li><a href="#sec-15">gpuprefs</a></li>
+<li><a href="#sec-16">gpu</a></li>
+<li><a href="#sec-17">docs</a></li>
+<li><a href="#sec-18">Exit codes</a></li>
+<li><a href="#sec-19">การใช้จาก PowerShell profile</a></li>
+<li><a href="#sec-20">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</a></li>
+<li><a href="#sec-21">Web GUI</a></li>
 </ol></nav>
 <h2 id="sec-2">สรุปคำสั่งทั้งหมด</h2>
 <div class="table-wrap"><table>
@@ -74,6 +76,8 @@
 <tr><td><code>report</code></td><td>ไม่</td><td>ไม่</td><td>3-6 วินาที</td><td>รายงาน markdown</td></tr>
 <tr><td><code>bench</code></td><td>ไม่</td><td>ไม่</td><td>15-25 วินาที</td><td>วัดประสิทธิภาพ</td></tr>
 <tr><td><code>latency</code></td><td>ไม่</td><td>ไม่</td><td>15-25 วินาที</td><td>วัด DPC / interrupt / context switch</td></tr>
+<tr><td><code>history</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>รายการ backup ทั้งหมด (เลือก restore ทีละครั้ง)</td></tr>
+<tr><td><code>gpuprefs</code></td><td>ไม่</td><td>ใช่ (HKCU เท่านั้น)</td><td>ทันที</td><td>ตั้ง GPU ต่อแอป (Optimus)</td></tr>
 <tr><td><code>compare</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>เทียบผลวัด</td></tr>
 <tr><td><code>gpu</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สถานะ GPU</td></tr>
 <tr><td><code>docs</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สร้าง HTML</td></tr>
@@ -89,6 +93,9 @@
 <tr><td><code>-Elevate</code></td><td>switch</td><td>apply, restore</td><td>เปิด PowerShell ใหม่แบบ admin (UAC)</td></tr>
 <tr><td><code>-Include high</code></td><td>string[]</td><td>apply</td><td>อนุญาต tweaks ความเสี่ยงสูง</td></tr>
 <tr><td><code>-Custom</code></td><td>switch</td><td>apply</td><td>ใช้รายการ tweak ที่บันทึกไว้ใน <code>state/custom.json</code> (จากหน้า Settings ของ GUI)</td></tr>
+<tr><td><code>-AppPath &lt;exe&gt;</code></td><td>string</td><td>gpuprefs</td><td>ไฟล์ .exe ที่ต้องการตั้งค่า GPU</td></tr>
+<tr><td><code>-Mode &lt;mode&gt;</code></td><td>string</td><td>gpuprefs</td><td><code>dgpu</code> (GTX 1060), <code>igpu</code> (UHD 630), <code>auto</code></td></tr>
+<tr><td><code>-Remove</code></td><td>switch</td><td>gpuprefs</td><td>ลบรายการของแอปนั้น</td></tr>
 <tr><td><code>-IncludeHigh</code></td><td>switch</td><td>audit</td><td>แสดง/ตรวจ tweaks High ด้วย</td></tr>
 <tr><td><code>-BackupPath &lt;file&gt;</code></td><td>string</td><td>restore</td><td>ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด)</td></tr>
 <tr><td><code>-Path &lt;file&gt;</code></td><td>string</td><td>report</td><td>ที่เก็บรายงาน</td></tr>
@@ -209,16 +216,33 @@
 <p>สำหรับการเทียบก่อน/หลังแบบเป็นระบบ (สลับ scheme A-B-B-A) ใช้ <code>tools\AB-Latency.ps1</code> — ต้องรันแบบ Administrator เพราะต้องสลับ power scheme</p>
 <pre><code class="lang-powershell"># เปิด PowerShell แบบ Administrator
 .\tools\AB-Latency.ps1 -Seconds 12</code></pre>
-<h2 id="sec-14">gpu</h2>
+<h2 id="sec-14">history</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 history
+.\Level51Tune.ps1 restore -BackupPath .\backups\20261112-120049_apply-performance.json</code></pre>
+<p>แสดงไฟล์ backup ทั้งหมดใน <code>backups/</code> เรียงใหม่สุดก่อน พร้อมโปรไฟล์ จำนวน tweak และบอกว่าไฟล์ไหนย้อนกลับได้ (เฉพาะ <code>*_apply-*.json</code>) — ใช้เมื่อต้องการย้อนกลับไปจุดใดจุดหนึ่ง ไม่ใช่แค่จุดล่าสุด</p>
+<h2 id="sec-15">gpuprefs</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 gpuprefs
+.\Level51Tune.ps1 gpuprefs -AppPath &quot;C:\Games\Game\game.exe&quot; -Mode dgpu
+.\Level51Tune.ps1 gpuprefs -AppPath &quot;C:\Games\Game\game.exe&quot; -Remove</code></pre>
+<p>จัดการ per-app GPU preference ใน <code>HKCU\Software\Microsoft\DirectX\UserGpuPreferences</code> (ไม่ต้อง admin, ไม่แตะเครื่องของผู้ใช้อื่น) — มีผลหลังปิด-เปิดแอปนั้น</p>
+<div class="table-wrap"><table>
+<thead><tr><th>โหมด</th><th>ค่าที่เขียน</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td><code>dgpu</code></td><td><code>GpuPreference=2;</code></td><td>บังคับใช้ GTX 1060 (แก้ปัญหาเกมไปวิ่งบน UHD 630)</td></tr>
+<tr><td><code>igpu</code></td><td><code>GpuPreference=1;</code></td><td>บังคับใช้ UHD 630 (ประหยัดแบต)</td></tr>
+<tr><td><code>auto</code></td><td><code>GpuPreference=0;</code></td><td>ให้ Windows ตัดสินใจ</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-16">gpu</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
 <p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>
 <pre><code class="lang-powershell">nvidia-smi -q -d CLOCK,POWER,TEMPERATURE
 nvidia-smi --query-gpu=clocks.gr,clocks.throttle --format=csv</code></pre>
-<h2 id="sec-15">docs</h2>
+<h2 id="sec-17">docs</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 docs
 .\Level51Tune.ps1 docs -Open</code></pre>
 <p>แปลง <code>docs/*.md</code> ทั้งหมดเป็น HTML พร้อม sidebar, TOC, ตาราง, ปุ่มก่อนหน้า/ถัดไป และสร้าง <code>docs/index.html</code> เป็นสารบัญ ไม่ต้องติดตั้ง pandoc หรืออะไรเพิ่ม</p>
-<h2 id="sec-16">Exit codes</h2>
+<h2 id="sec-18">Exit codes</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>code</th><th>ความหมาย</th></tr></thead>
 <tbody>
@@ -230,11 +254,11 @@ nvidia-smi --query-gpu=clocks.gr,clocks.throttle --format=csv</code></pre>
 <p>ใช้ในสคริปต์ได้:</p>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -DryRun
 if ($LASTEXITCODE -ne 0) { Write-Error &#39;dry-run ล้มเหลว&#39; }</code></pre>
-<h2 id="sec-17">การใช้จาก PowerShell profile</h2>
+<h2 id="sec-19">การใช้จาก PowerShell profile</h2>
 <p>ถ้าอยากเรียกสั้น ๆ ให้เพิ่ม function ใน <code>$PROFILE</code>:</p>
 <pre><code class="lang-powershell">function l51 { &amp; &#39;C:\_Project\LEVEL51-TUNE\Level51Tune.ps1&#39; @args }</code></pre>
 <p>แล้วใช้ <code>l51 status</code>, <code>l51 apply -Profile gaming -DryRun</code> ได้เลย</p>
-<h2 id="sec-18">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</h2>
+<h2 id="sec-20">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</h2>
 <pre><code class="lang-powershell">Import-Module C:\_Project\LEVEL51-TUNE\src\Level51Tune.psm1 -Force
 
 $hw = Get-L51Hardware
@@ -242,12 +266,13 @@ $rows = Invoke-L51Audit -Profile &#39;gaming&#39;
 $result = Invoke-L51Apply -Profile &#39;performance&#39; -DryRun
 $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <p>ฟังก์ชันที่ export: <code>Get-L51Hardware</code>, <code>Get-L51GpuState</code>, <code>Get-L51Catalog</code>, <code>Get-L51Profiles</code>, <code>Get-L51ProfileTweaks</code>, <code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Backup</code>, <code>Get-L51Status</code>, <code>New-L51Report</code>, <code>Invoke-L51Bench</code>, <code>Compare-L51Bench</code>, <code>Measure-L51Latency</code>, <code>Build-L51Docs</code>, <code>Get-L51DashboardHtml</code>, <code>Get-L51LogPath</code>, <code>Get-L51PowerValue</code>, <code>Set-L51PowerValue</code>, <code>Test-L51TweakApplied</code></p>
-<h2 id="sec-19">Web GUI</h2>
+<h2 id="sec-21">Web GUI</h2>
 <pre><code class="lang-powershell">.\Start-LEVEL51.cmd                     # 1 คลิก: ขอ UAC → เปิด dashboard
 .\Level51Tune.Web.ps1                  # เปิดเอง (ไม่ elevate)
 .\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
 .\Level51Tune.Web.ps1 -Elevate         # ขอ UAC แล้วเปิดตัวใหม่แบบ Administrator</code></pre>
-<p>dashboard มี 3 แท็บ: <strong>ภาพรวม</strong> (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), <strong>ตั้งค่า tweak</strong> (เลือกทีละตัว ค้นหา/กรอง/บันทึก) และ <strong>กราฟสด</strong> (CPU load/clock, GPU temp/power/clock, RAM อัปเดตทุก 2 วินาที)</p>
+<p>dashboard มี 5 แท็บ: <strong>ภาพรวม</strong> (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), <strong>ตั้งค่า tweak</strong> (เลือกทีละตัว ค้นหา/กรอง/บันทึก/ตรวจสถานะที่เลือก), <strong>กราฟสด</strong> (6 กราฟ อัปเดตทุก 2 วินาที), <strong>ประวัติ/ย้อนกลับ</strong> (restore backup ทีละครั้ง) และ <strong>GPU ต่อแอป</strong> (ตั้ง dgpu/igpu/auto ต่อไฟล์ .exe)</p>
+<p>ถ้าต้องการไอคอนใน system tray ใช้ <code>Level51Tune.Tray.ps1</code> (เมนูสลับโปรไฟล์ + ตรวจสถานะ + เปิด Dashboard)</p>
 <p>เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (<code>System.Net.HttpListener</code>) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request</p>
 <div class="table-wrap"><table>
 <thead><tr><th>endpoint</th><th>method</th><th>ทำอะไร</th></tr></thead>
@@ -263,6 +288,9 @@ $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <tr><td><code>/api/settings</code></td><td>GET/POST</td><td>อ่าน/บันทึก tweak ที่เลือกเอง</td></tr>
 <tr><td><code>/api/live</code></td><td>GET</td><td>ค่าสด (CPU/GPU/RAM) สำหรับกราฟ</td></tr>
 <tr><td><code>/api/compare</code></td><td>POST</td><td>วัด benchmark + เทียบกับครั้งก่อน</td></tr>
+<tr><td><code>/api/backups</code></td><td>GET</td><td>รายการ backup (สำหรับหน้า “ประวัติ/ย้อนกลับ”)</td></tr>
+<tr><td><code>/api/gpu-prefs</code></td><td>GET/POST</td><td>อ่าน/ตั้ง/ลบ GPU preference ต่อแอป</td></tr>
+<tr><td><code>/api/processes</code></td><td>GET</td><td>รายชื่อโปรเซส (ตัวช่วยเลือก .exe)</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML</td></tr>
 </tbody>
 </table></div>

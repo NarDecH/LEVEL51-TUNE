@@ -72,11 +72,11 @@ td.neg{color:var(--danger)}
 .searchbar input[type=text],.searchbar select{font-family:inherit;font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);min-width:180px}
 .twlist{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-height:520px;overflow-y:auto}
 .catrow{position:sticky;top:0;background:var(--panel2);padding:7px 14px;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);z-index:1}
-.tw{display:flex;gap:11px;align-items:flex-start;padding:9px 14px;border-bottom:1px solid rgba(36,48,64,.6);cursor:pointer}
+.tw{display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid rgba(36,48,64,.6);cursor:pointer}
 .tw:hover{background:#181f2a}
 .tw input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
 .tw .t{font-size:13.5px}
-.tw .d{font-size:12px;color:var(--muted);font-family:"JetBrains Mono",Consolas,monospace}
+.tw .d{font-size:12px;color:var(--muted);font-family:"JetBrains Mono",Consolas,monospace;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tw .r{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--border);margin-left:6px;color:var(--muted)}
 .tw .r.High{color:var(--danger);border-color:var(--danger)}
 .tw .r.Medium{color:var(--warn);border-color:var(--warn)}
@@ -108,6 +108,8 @@ canvas{width:100%;height:70px;display:block}
     <button class="tab active" data-view="overview" onclick="switchView('overview')">ภาพรวม</button>
     <button class="tab" data-view="settings" onclick="switchView('settings')">ตั้งค่า tweak</button>
     <button class="tab" data-view="live" onclick="switchView('live')">กราฟสด</button>
+    <button class="tab" data-view="backups" onclick="switchView('backups')">ประวัติ/ย้อนกลับ</button>
+    <button class="tab" data-view="gpu" onclick="switchView('gpu')">GPU ต่อแอป</button>
   </div>
 
   <div class="view active" id="view-overview">
@@ -165,6 +167,7 @@ canvas{width:100%;height:70px;display:block}
     <p class="selinfo" id="selinfo">เลือกแล้ว 0 รายการ</p>
     <div class="toolbar" style="margin-top:12px">
       <button onclick="saveSelection()">บันทึกที่เลือก</button>
+      <button onclick="auditSelection()">ตรวจสถานะที่เลือก</button>
       <button onclick="applySelection(true)">Dry run ที่เลือก</button>
       <button class="primary" onclick="applySelection(false)">Apply ที่เลือก</button>
       <button onclick="loadTweaks()">โหลดใหม่</button>
@@ -182,6 +185,28 @@ canvas{width:100%;height:70px;display:block}
       <div class="chart"><div class="top"><span class="name">GPU clock</span><span class="val" id="v-gclock">–</span></div><canvas id="c-gclock"></canvas></div>
     </div>
     <p class="hint" style="margin-top:10px">อัปเดตทุก 2 วินาที · เก็บย้อนหลัง 60 จุด (~2 นาที) · ข้อมูลจาก performance counter และ nvidia-smi</p>
+  </div>
+
+  <div class="view" id="view-backups">
+    <p class="hint">ทุกครั้งที่ apply ระบบจะเขียน snapshot ไว้ใน <code>backups/</code> — เลือกไฟล์เพื่อย้อนกลับเฉพาะครั้งนั้น (เฉพาะไฟล์ <code>*_apply-*.json</code> ที่ย้อนกลับได้)</p>
+    <div class="twlist" style="max-height:440px" id="backlist"></div>
+    <div class="toolbar"><button onclick="loadBackups()">↻ โหลดใหม่</button></div>
+  </div>
+
+  <div class="view" id="view-gpu">
+    <div class="searchbar">
+      <input type="text" id="gpu-path" list="proclist" placeholder="C:\Program Files\Game\game.exe" style="min-width:340px">
+      <datalist id="proclist"></datalist>
+      <select id="gpu-mode">
+        <option value="dgpu">ใช้ GTX 1060 (dgpu)</option>
+        <option value="igpu">ใช้ UHD 630 (igpu)</option>
+        <option value="auto">ให้ Windows เลือก (auto)</option>
+      </select>
+      <button class="primary" onclick="addGpuPref()">ตั้งค่า</button>
+      <button onclick="loadProcesses()">รายการโปรเซส</button>
+    </div>
+    <div class="twlist" style="max-height:440px" id="gpulist"></div>
+    <p class="hint">เขียนที่ <code>HKCU\Software\Microsoft\DirectX\UserGpuPreferences</code> (ผู้ใช้ปัจจุบัน ไม่ต้อง admin) · มีผลหลังปิด-เปิดแอปนั้น</p>
   </div>
 </div>
 
@@ -221,6 +246,8 @@ function switchView(name){
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
   if (name === 'live') loadLive();
   if (name === 'settings' && TW.length === 0) loadTweaks();
+  if (name === 'backups') loadBackups();
+  if (name === 'gpu') loadGpuPrefs();
 }
 
 async function loadStatus(){
@@ -470,6 +497,122 @@ async function applySelection(dry){
     loadStatus(); loadLog();
   } catch(e){ toast(e.message, true); }
   finally { busy(false); }
+}
+
+async function auditSelection(){
+  const ids = Array.from(SEL);
+  if (ids.length === 0) { toast('ยังไม่ได้เลือก tweak', true); return; }
+  busy(true, 'กำลังตรวจสถานะ ' + ids.length + ' tweaks…');
+  try {
+    const d = await api('/api/audit', { tweakIds: ids });
+    const rows = d.rows.map(r =>
+      '<tr><td>' + esc(r.id) + '</td><td>' + esc(r.category) + '</td><td>' + esc(r.risk) + '</td>' +
+      '<td class="' + (r.applied === 'YES' ? 'yes' : r.applied === '?' ? 'na' : 'no') + '">' + r.applied + '</td>' +
+      '<td class="hint">' + esc(r.title) + '</td></tr>'
+    ).join('');
+    switchView('overview');
+    showResult('สถานะ tweaks ที่เลือก — ปรับแล้ว ' + d.done + ' / ' + d.total,
+      '<table><thead><tr><th>Tweak</th><th>หมวด</th><th>Risk</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead><tbody>' + rows + '</tbody></table>');
+  } catch(e){ toast(e.message, true); }
+  finally { busy(false); }
+}
+
+/* ---------------- backups / rollback ---------------- */
+
+let BACKUPS = [];
+
+async function loadBackups(){
+  const box = document.getElementById('backlist');
+  try {
+    const d = await api('/api/backups');
+    BACKUPS = d.rows || [];
+    if (BACKUPS.length === 0){
+      box.innerHTML = '<div style="padding:14px" class="hint">ยังไม่มี backup — จะถูกสร้างอัตโนมัติเมื่อ apply ครั้งแรก</div>';
+      return;
+    }
+    box.innerHTML = BACKUPS.map((b, i) =>
+      '<div class="tw" style="cursor:default">' +
+        '<span class="t">' + esc(b.profile || 'snapshot') +
+        (b.restorable ? '' : '<span class="r">อ่านอย่างเดียว</span>') + '</span>' +
+        '<span class="d" style="margin-left:auto">' + new Date(b.created).toLocaleString('th-TH') +
+          ' · ' + b.tweaks + ' tweaks · ' + b.sizeKB + ' KB</span>' +
+        (b.restorable ? '<button style="margin-left:12px" onclick="restoreBackup(' + i + ')">ย้อนกลับ</button>' : '') +
+      '</div>'
+    ).join('');
+  } catch(e){ toast(e.message, true); }
+}
+
+async function restoreBackup(i){
+  const b = BACKUPS[i];
+  if (!b) return;
+  const info = b.profile + ' · ' + new Date(b.created).toLocaleString('th-TH') + ' · ' + b.file;
+  if (!confirm('ย้อนกลับจาก backup นี้? ' + info)) return;
+  busy(true, 'กำลัง restore…');
+  try {
+    const d = await api('/api/restore', { backupPath: b.path });
+    const rows = d.results.map(r => '<tr><td>' + esc(r.id) + '</td><td class="' + esc(r.status) + '">' + esc(r.status) + '</td><td class="hint">' + esc(r.detail) + '</td></tr>').join('');
+    switchView('overview');
+    showResult('Restore · ' + esc(b.file), '<table><thead><tr><th>Tweak</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead><tbody>' + rows + '</tbody></table>');
+    toast('restore เสร็จ');
+    loadStatus(); loadLog();
+  } catch(e){ toast(e.message, true); }
+  finally { busy(false); }
+}
+
+/* ---------------- per-app GPU preference ---------------- */
+
+let GPUP = [];
+
+async function loadGpuPrefs(){
+  const box = document.getElementById('gpulist');
+  try {
+    const d = await api('/api/gpu-prefs');
+    GPUP = d.rows || [];
+    if (GPUP.length === 0){
+      box.innerHTML = '<div style="padding:14px" class="hint">ยังไม่มีรายการ — ใส่ path ของ .exe ด้านบนหรือกด “รายการโปรเซส”</div>';
+      return;
+    }
+    box.innerHTML = GPUP.map((r, i) => {
+      const name = r.path.split('\\').pop();
+      return '<div class="tw" style="cursor:default">' +
+        '<span class="t">' + esc(name) + '<span class="r ' + (r.mode === 'dgpu' ? 'Medium' : '') + '">' + r.mode + '</span></span>' +
+        '<span class="d" style="margin-left:auto">' + esc(r.path) + '</span>' +
+        '<button style="margin-left:12px" onclick="removeGpuPref(' + i + ')">ลบ</button>' +
+      '</div>';
+    }).join('');
+  } catch(e){ toast(e.message, true); }
+}
+
+async function addGpuPref(){
+  const p = document.getElementById('gpu-path').value.trim();
+  const m = document.getElementById('gpu-mode').value;
+  if (!p) { toast('ใส่ path ของไฟล์ .exe ก่อน', true); return; }
+  try {
+    const d = await api('/api/gpu-prefs', { action: 'set', path: p, mode: m });
+    toast('ตั้งค่าแล้ว: ' + d.path.split('\\').pop() + ' → ' + d.mode);
+    document.getElementById('gpu-path').value = '';
+    loadGpuPrefs();
+  } catch(e){ toast(e.message, true); }
+}
+
+async function removeGpuPref(i){
+  const r = GPUP[i];
+  if (!r) return;
+  if (!confirm('ลบการตั้งค่า GPU ของ ' + r.path + ' ?')) return;
+  try {
+    await api('/api/gpu-prefs', { action: 'remove', path: r.path });
+    toast('ลบแล้ว');
+    loadGpuPrefs();
+  } catch(e){ toast(e.message, true); }
+}
+
+async function loadProcesses(){
+  try {
+    const d = await api('/api/processes');
+    document.getElementById('proclist').innerHTML = (d.rows || []).map(p =>
+      '<option value="' + esc(p.path) + '">' + esc(p.name) + '</option>').join('');
+    toast('โหลด ' + (d.rows || []).length + ' โปรเซส — พิมพ์ในช่องเพื่อเลือก');
+  } catch(e){ toast(e.message, true); }
 }
 
 /* ---------------- live charts ---------------- */

@@ -19,6 +19,8 @@
 | `src/Bench.ps1` | micro-benchmark, history, compare, `Measure-L51Latency` | แก้วิธีวัด |
 | `Level51Tune.Web.ps1` | Web GUI server: HttpListener, token, routing, เสิร์ฟ `/docs/*` | เพิ่ม/แก้ endpoint GUI |
 | `Start-LEVEL51.cmd` | ตัวเรียก GUI 1 คลิก (UAC → `Level51Tune.Web.ps1 -Elevate`) | แทบไม่ต้องแตะ |
+| `Level51Tune.Tray.ps1` | tray icon (WinForms): สลับโปรไฟล์/สถานะ/เปิด Dashboard | เพิ่มเมนู tray |
+| `tools/Build-Package.ps1` | สร้าง `dist/LEVEL51-TUNE-<version>.zip` | แก้รายการไฟล์ที่แจกจ่าย |
 | `src/WebUI.ps1` | HTML dashboard แบบ single-page 3 แท็บ (placeholder `__TOKEN__`) | แก้หน้าตา/JS ของ GUI |
 | `tools/Build-Docs.ps1` | wrapper สำหรับสร้าง docs | แทบไม่ต้องแตะ |
 | `tools/AB-Bench.ps1` | A/B throughput ระหว่าง 2 power scheme (A-B-B-A) | แก้วิธีทดลอง |
@@ -113,6 +115,8 @@ $t = Get-Content $p -Raw -Encoding UTF8
 8. **GUI ต้องเป็น thin adapter** — `Level51Tune.Web.ps1` และ `src/WebUI.ps1` ห้ามมี logic ปรับแต่งระบบเอง ต้องเรียกฟังก์ชันใน `Level51Tune.psm1` เท่านั้น
 9. **GUI ต้องฟังเฉพาะ loopback และบังคับ token** — ห้าม bind `0.0.0.0`, ห้ามเพิ่ม CORS, ห้ามให้ endpoint ที่ mutate ทำงานได้โดยไม่ผ่าน `Assert-L51Admin`
 10. **token ห้ามลงดิสก์/ไฟล์** — สร้างใหม่ทุกครั้งที่เริ่มโปรเซส และส่งให้ผู้ใช้ทาง console เท่านั้น
+11. **tray ต้องไม่รันแบบ elevated ค้างไว้** — ทุก action ที่แก้ระบบต้อง `Start-Process -Verb RunAs` แล้วจบ
+12. **GPU preference เขียนเฉพาะ `HKCU`** — ห้ามเขียน `HKLM`/ค่าทั้งระบบแทนผู้ใช้โดยไม่ได้รับการร้องขอ
 
 ## 7. กติกาเอกสาร
 

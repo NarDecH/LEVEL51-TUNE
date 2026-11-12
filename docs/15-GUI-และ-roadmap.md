@@ -77,12 +77,12 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 | # | งาน | ผลลัพธ์ | แรงโดยประมาณ |
 |---|---|---|---|
 | 1 | ~~ตัวเรียก 1 คลิก~~ **เสร็จแล้ว**: `Start-LEVEL51.cmd` ขอ UAC เองแล้วเปิด GUI | ผู้ใช้ไม่ต้องพิมพ์ PowerShell | เสร็จ |
-| 2 | tray icon + เมนูสลับโปรไฟล์ (WPF ห่อรอบ engine) | สลับ performance/gaming ได้จาก tray | 1-2 วัน |
+| 2 | ~~tray icon~~ **เสร็จแล้ว**: `Level51Tune.Tray.ps1` (WinForms NotifyIcon, เมนูสลับโปรไฟล์ + balloon สถานะ) | สลับ performance/gaming ได้จาก tray | เสร็จ |
 | 3 | ~~หน้าตั้งค่าละเอียด~~ **เสร็จแล้ว**: tab “ตั้งค่า tweak” (ค้นหา/กรอง/เลือกตามโปรไฟล์/บันทึก) | ไม่ต้องจำโปรไฟล์ | เสร็จ |
 | 4 | ~~กราฟ realtime~~ **เสร็จแล้ว**: tab “กราฟสด” 6 กราฟ + ปุ่ม “วัด + เทียบกับครั้งก่อน” | เห็นผลทันที ไม่ต้องเปิด HWiNFO | เสร็จ |
-| 5 | ตาราง per-app GPU preference (อ่าน/เขียน `UserGpuPreferences`) | แก้ปัญหา Optimus ได้ในคลิกเดียว | 1 วัน |
-| 6 | ประวัติการเปลี่ยนแปลง + ปุ่ม rollback ทีละครั้ง | ปลอดภัยขึ้นมาก | 1 วัน |
-| 7 | แพ็กเป็น .exe (ps2exe) หรือ MSIX พร้อม code signing | แจกจ่ายง่าย | 1 วัน + ค่า certificate |
+| 5 | ~~per-app GPU preference~~ **เสร็จแล้ว**: แท็บ “GPU ต่อแอป” + CLI `gpuprefs` | แก้ปัญหา Optimus ได้ในคลิกเดียว | เสร็จ |
+| 6 | ~~ประวัติ + rollback~~ **เสร็จแล้ว**: แท็บ “ประวัติ/ย้อนกลับ” + CLI `history` | ปลอดภัยขึ้นมาก | เสร็จ |
+| 7 | ~~แพ็กเกจ~~ **เสร็จบางส่วน**: `tools/Build-Package.ps1` สร้าง zip แจกจ่าย (ยังไม่ sign/MSIX) | แจกจ่ายง่าย | เหลือ certificate |
 
 ## Roadmap ที่แนะนำ
 
@@ -101,15 +101,20 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 
 ### ระยะ 3
 
-5. Tray app (WPF) ห่อ GUI + สลับโปรไฟล์ + เตือนเมื่ออุณหภูมิสูงเกินไป
-6. per-app GPU editor
-7. ประวัติ + rollback ทีละครั้ง
-8. แสดงผล audit แบบราย tweak ในหน้า Settings (ตอนนี้ต้องกด audit แยก)
+### ระยะ 3 (เสร็จแล้ว)
+
+5. Tray app — `Level51Tune.Tray.ps1` (WinForms NotifyIcon): เปิด Dashboard, สลับโปรไฟล์, ตรวจสถานะเป็น balloon, เปิด log/docs, ออก
+6. per-app GPU editor — แท็บ “GPU ต่อแอป” + CLI `gpuprefs` (เขียน `HKCU\...\UserGpuPreferences`)
+7. ประวัติ + rollback ทีละครั้ง — แท็บ “ประวัติ/ย้อนกลับ” อ่าน `backups/` และ restore ไฟล์ที่เลือก + CLI `history`
+8. audit ราย tweak ในหน้า Settings — ปุ่ม “ตรวจสถานะที่เลือก” ใช้ `Invoke-L51Audit -TweakIds`
 
 ### ระยะ 4
 
-8. แพ็กเป็น executable เดียว, code signing, หน้าอัปเดตเวอร์ชัน
-9. (ถ้าต้องการ) รองรับเครื่องอื่นที่ไม่ใช่ LEVEL51 ด้วย profile detection
+### ระยะ 4 (บางส่วน)
+
+9. `tools/Build-Package.ps1` — สร้าง `dist/LEVEL51-TUNE-<version>.zip` พร้อมใช้ (เสร็จแล้ว)
+10. ยังเหลือ: code signing (ต้องมี certificate), MSIX, หน้าตรวจอัปเดตเวอร์ชัน
+11. (ถ้าต้องการ) รองรับเครื่องอื่นที่ไม่ใช่ LEVEL51 ด้วย profile detection
 
 ## ข้อควรระวังในการทำ GUI ต่อ
 

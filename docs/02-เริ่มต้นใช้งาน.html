@@ -176,8 +176,12 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
 <tr><td><strong>ภาพรวม</strong></td><td>การ์ดฮาร์ดแวร์, การ์ดโปรไฟล์ทั้ง 5 (Dry run / Apply), แถบเครื่องมือ (audit / bench / วัด+เทียบ / latency / restore) และ log สด</td></tr>
 <tr><td><strong>ตั้งค่า tweak</strong></td><td>รายการ tweak ทั้ง 60 ค้นหา/กรองตามหมวด, เลือกตามโปรไฟล์เป็นจุดเริ่มต้น, ติ๊กทีละตัว, บันทึกเป็น <code>state/custom.json</code> แล้ว apply ได้</td></tr>
 <tr><td><strong>กราฟสด</strong></td><td>6 กราฟ: CPU load, CPU clock, GPU temp, GPU power, RAM used, GPU clock (อัปเดตทุก 2 วินาที)</td></tr>
+<tr><td><strong>ประวัติ/ย้อนกลับ</strong></td><td>ไฟล์ backup ทั้งหมด — เลือกย้อนกลับเฉพาะครั้งได้</td></tr>
+<tr><td><strong>GPU ต่อแอป</strong></td><td>ตั้ง dgpu / igpu / auto ต่อไฟล์ .exe (Optimus)</td></tr>
 </tbody>
 </table></div>
+<p>ถ้าอยากได้ไอคอนค้างใน system tray (สลับโปรไฟล์ได้ทันที ไม่ต้องเปิดเบราว์เซอร์):</p>
+<pre><code class="lang-powershell">.\Level51Tune.Tray.ps1</code></pre>
 <p>ข้อควรรู้:</p>
 <ul>
 <li>เปิดได้โดยไม่ต้อง admin แต่ปุ่ม Apply/Restore จะถูกปฏิเสธ (403) — ให้เปิด PowerShell แบบ Administrator แล้วรัน <code>Level51Tune.Web.ps1</code> อีกครั้ง</li>

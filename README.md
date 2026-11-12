@@ -53,9 +53,18 @@ cd LEVEL51-TUNE
 .\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
 ```
 
-dashboard มี 3 แท็บ: **ภาพรวม** (ฮาร์ดแวร์, 5 โปรไฟล์, audit/bench/latency/restore, log), **ตั้งค่า tweak** (เลือกทีละตัว/ตามโปรไฟล์ บันทึกแล้ว `apply -Custom` ได้) และ **กราฟสด** (CPU/GPU/RAM อัปเดตทุก 2 วินาที) — ไม่ต้องติดตั้งอะไรเพิ่ม ไม่มี node_modules ฟังเฉพาะ loopback และบังคับ token ทุก request
+dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแวร์, 5 โปรไฟล์, audit/bench/latency/restore, log), **ตั้งค่า tweak** (เลือกทีละตัว/ตามโปรไฟล์, ตรวจสถานะที่เลือก, บันทึกแล้ว `apply -Custom` ได้), **กราฟสด** (CPU/GPU/RAM อัปเดตทุก 2 วินาที), **ประวัติ/ย้อนกลับ** (restore backup ทีละครั้ง) และ **GPU ต่อแอป** (dgpu/igpu/auto ต่อ .exe) — ไม่ต้องติดตั้งอะไรเพิ่ม ไม่มี node_modules ฟังเฉพาะ loopback และบังคับ token ทุก request
 
 ปุ่ม Apply/Restore ต้องเปิดโปรแกรมแบบ Administrator (ไม่งั้นได้ 403 พร้อมคำอธิบาย) — ดูการวิเคราะห์/roadmap ที่ [docs/15](docs/15-GUI-และ-roadmap.md)
+
+## Tray และการแจกจ่าย
+
+```powershell
+.\Level51Tune.Tray.ps1            # ไอคอนใน system tray: สลับโปรไฟล์ / ตรวจสถานะ / เปิด Dashboard
+.\tools\Build-Package.ps1        # สร้าง dist/LEVEL51-TUNE-<version>.zip สำหรับแจกจ่าย
+```
+
+ใน tray: คลิกขวาเพื่อสลับโปรไฟล์ (ขอ UAC เองทุกครั้ง), ตรวจสถานะเป็น balloon, เปิดโฟลเดอร์ log/เอกสาร — ไม่รันค้างแบบ Administrator
 
 ## โปรไฟล์
 
@@ -106,6 +115,7 @@ dashboard มี 3 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 Level51Tune.ps1              CLI entry point
 Level51Tune.Web.ps1          Web GUI server (HttpListener + token, loopback only)
 Start-LEVEL51.cmd            ตัวเรียก 1 คลิก (ขอ UAC แล้วเปิด GUI)
+Level51Tune.Tray.ps1         tray icon (สลับโปรไฟล์/ตรวจสถานะ/เปิด Dashboard)
 src/Level51Tune.psm1         engine (detect, backup, apply, restore, audit, status, docs)
 src/Catalog.ps1              นิยาม tweaks 60 รายการ (declarative)
 src/Markdown.ps1             markdown → HTML renderer
@@ -115,6 +125,7 @@ docs/                        เอกสาร .md (ต้นฉบับ) แ�
 tools/Build-Docs.ps1         สร้าง docs/*.html
 tools/AB-Bench.ps1           วัด A/B throughput ระหว่างสอง power scheme (A-B-B-A)
 tools/AB-Latency.ps1         วัด A/B DPC/interrupt (ต้อง admin)
+tools/Build-Package.ps1      สร้าง zip แจกจ่าย (dist/)
 tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง admin, ไม่แก้ระบบ)
 ```
 

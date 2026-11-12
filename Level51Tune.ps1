@@ -30,7 +30,10 @@ param(
     [switch]$Elevate,
     [switch]$IncludeHigh,
     [switch]$Open,
-    [switch]$Custom
+    [switch]$Custom,
+    [string]$AppPath,
+    [string]$Mode = 'dgpu',
+    [switch]$Remove
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,6 +70,8 @@ function Show-L51Help {
         @('bench [-Label before]', 'วัด CPU/RAM/Disk เพื่อเทียบก่อน-หลัง'),
         @('compare', 'เทียบผล benchmark 2 ครั้งล่าสุด'),
         @('latency [-Seconds 20]', 'วัด DPC / interrupt / context switch (ตัวชี้วัด jitter จริง)'),
+        @('history', 'รายการ backup ทั้งหมด (ระบุไฟล์เพื่อ restore ทีละครั้ง)'),
+        @('gpuprefs [-AppPath FILE -Mode dgpu|igpu|auto] [-Remove]', 'ตั้ง GPU ต่อแอป (Optimus)'),
         @('gpu', 'สรุปสถานะ GPU จาก nvidia-smi'),
         @('docs [-Open]', 'สร้าง docs/*.html จาก docs/*.md'),
         @('version', 'แสดงเวอร์ชัน')
@@ -79,6 +84,7 @@ function Show-L51Help {
         @('-Include high', 'อนุญาตให้รวม tweaks ความเสี่ยงสูง (IDLEDISABLE, bcdedit, P-State)'),
         @('-IncludeHigh', 'เหมือน -Include high'),
         @('-Custom', 'ใช้รายการ tweak ที่บันทึกไว้ (หน้า Settings ของ GUI เป็นตัวเลือก)'),
+        @('-AppPath / -Mode / -Remove', 'ใช้กับ gpuprefs: ไฟล์ .exe, โหมด GPU, ลบรายการ'),
         @('-Category', 'กรองตามหมวด (ใช้กับ list/audit)'),
         @('-Seconds', 'ระยะเวลา benchmark ต่อรอบ (วินาที, ค่าเริ่มต้น 3)')
     ) | ForEach-Object { Write-Host ("   {0,-34} {1}" -f $_[0], $_[1]) }
@@ -193,6 +199,34 @@ try {
             if ($gpus.Count -eq 0) { Write-Host '  ไม่พบ GPU' -ForegroundColor Yellow; break }
             $gpus | Format-List | Out-String -Width 200 | Write-Host
             Write-Host '  คำสั่งที่มีประโยชน์: nvidia-smi -q -d CLOCK,POWER,TEMPERATURE' -ForegroundColor DarkGray
+            break
+        }
+
+        'history' {
+            $rows = @(Get-L51BackupHistory -Limit 20)
+            if ($rows.Count -eq 0) { Write-Host '  ยังไม่มี backup ใน backups/' -ForegroundColor Yellow; break }
+            $rows | Select-Object @{n = 'เวลา'; e = { ([datetime]$_.Created).ToString('yyyy-MM-dd HH:mm:ss') } },
+            Profile, Tweaks, @{n = 'ย้อนกลับได้'; e = { if ($_.Restorable) { 'yes' } else { '-' } } }, File |
+                Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+            Write-Host '  ย้อนกลับเฉพาะไฟล์: .\Level51Tune.ps1 restore -BackupPath <ไฟล์>' -ForegroundColor DarkGray
+            break
+        }
+
+        'gpuprefs' {
+            if ($AppPath) {
+                if ($Remove) {
+                    $ok = Remove-L51GpuPreference -AppPath $AppPath
+                    Write-Host ("  ลบรายการ: {0}" -f $(if ($ok) { 'สำเร็จ' } else { 'ไม่พบรายการ' })) -ForegroundColor $(if ($ok) { 'Green' } else { 'Yellow' })
+                } else {
+                    $r = Set-L51GpuPreference -AppPath $AppPath -Mode $Mode
+                    Write-Host ("  ตั้งค่า: {0} -> {1} ({2})" -f $r.Path, $r.Mode, $r.Value) -ForegroundColor Green
+                }
+                break
+            }
+            $rows = @(Get-L51GpuPreferences)
+            if ($rows.Count -eq 0) { Write-Host '  ยังไม่มี per-app GPU preference' -ForegroundColor Yellow }
+            else { $rows | Format-Table -AutoSize | Out-String -Width 200 | Write-Host }
+            Write-Host '  เพิ่ม/แก้: .\Level51Tune.ps1 gpuprefs -AppPath "C:\path\game.exe" -Mode dgpu' -ForegroundColor DarkGray
             break
         }
 

@@ -24,6 +24,8 @@
 | `report` | ไม่ | ไม่ | 3-6 วินาที | รายงาน markdown |
 | `bench` | ไม่ | ไม่ | 15-25 วินาที | วัดประสิทธิภาพ |
 | `latency` | ไม่ | ไม่ | 15-25 วินาที | วัด DPC / interrupt / context switch |
+| `history` | ไม่ | ไม่ | ทันที | รายการ backup ทั้งหมด (เลือก restore ทีละครั้ง) |
+| `gpuprefs` | ไม่ | ใช่ (HKCU เท่านั้น) | ทันที | ตั้ง GPU ต่อแอป (Optimus) |
 | `compare` | ไม่ | ไม่ | ทันที | เทียบผลวัด |
 | `gpu` | ไม่ | ไม่ | 1 วินาที | สถานะ GPU |
 | `docs` | ไม่ | ไม่ | 1 วินาที | สร้าง HTML |
@@ -38,6 +40,9 @@
 | `-Elevate` | switch | apply, restore | เปิด PowerShell ใหม่แบบ admin (UAC) |
 | `-Include high` | string[] | apply | อนุญาต tweaks ความเสี่ยงสูง |
 | `-Custom` | switch | apply | ใช้รายการ tweak ที่บันทึกไว้ใน `state/custom.json` (จากหน้า Settings ของ GUI) |
+| `-AppPath <exe>` | string | gpuprefs | ไฟล์ .exe ที่ต้องการตั้งค่า GPU |
+| `-Mode <mode>` | string | gpuprefs | `dgpu` (GTX 1060), `igpu` (UHD 630), `auto` |
+| `-Remove` | switch | gpuprefs | ลบรายการของแอปนั้น |
 | `-IncludeHigh` | switch | audit | แสดง/ตรวจ tweaks High ด้วย |
 | `-BackupPath <file>` | string | restore | ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด) |
 | `-Path <file>` | string | report | ที่เก็บรายงาน |
@@ -213,6 +218,31 @@
 .\tools\AB-Latency.ps1 -Seconds 12
 ```
 
+## history
+
+```powershell
+.\Level51Tune.ps1 history
+.\Level51Tune.ps1 restore -BackupPath .\backups\20261112-120049_apply-performance.json
+```
+
+แสดงไฟล์ backup ทั้งหมดใน `backups/` เรียงใหม่สุดก่อน พร้อมโปรไฟล์ จำนวน tweak และบอกว่าไฟล์ไหนย้อนกลับได้ (เฉพาะ `*_apply-*.json`) — ใช้เมื่อต้องการย้อนกลับไปจุดใดจุดหนึ่ง ไม่ใช่แค่จุดล่าสุด
+
+## gpuprefs
+
+```powershell
+.\Level51Tune.ps1 gpuprefs
+.\Level51Tune.ps1 gpuprefs -AppPath "C:\Games\Game\game.exe" -Mode dgpu
+.\Level51Tune.ps1 gpuprefs -AppPath "C:\Games\Game\game.exe" -Remove
+```
+
+จัดการ per-app GPU preference ใน `HKCU\Software\Microsoft\DirectX\UserGpuPreferences` (ไม่ต้อง admin, ไม่แตะเครื่องของผู้ใช้อื่น) — มีผลหลังปิด-เปิดแอปนั้น
+
+| โหมด | ค่าที่เขียน | หมายเหตุ |
+|---|---|---|
+| `dgpu` | `GpuPreference=2;` | บังคับใช้ GTX 1060 (แก้ปัญหาเกมไปวิ่งบน UHD 630) |
+| `igpu` | `GpuPreference=1;` | บังคับใช้ UHD 630 (ประหยัดแบต) |
+| `auto` | `GpuPreference=0;` | ให้ Windows ตัดสินใจ |
+
 ## gpu
 
 ```powershell
@@ -282,7 +312,9 @@ $result.Results | Where-Object Status -ne 'OK'
 .\Level51Tune.Web.ps1 -Elevate         # ขอ UAC แล้วเปิดตัวใหม่แบบ Administrator
 ```
 
-dashboard มี 3 แท็บ: **ภาพรวม** (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), **ตั้งค่า tweak** (เลือกทีละตัว ค้นหา/กรอง/บันทึก) และ **กราฟสด** (CPU load/clock, GPU temp/power/clock, RAM อัปเดตทุก 2 วินาที)
+dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแวร์/โปรไฟล์/audit/bench/latency), **ตั้งค่า tweak** (เลือกทีละตัว ค้นหา/กรอง/บันทึก/ตรวจสถานะที่เลือก), **กราฟสด** (6 กราฟ อัปเดตทุก 2 วินาที), **ประวัติ/ย้อนกลับ** (restore backup ทีละครั้ง) และ **GPU ต่อแอป** (ตั้ง dgpu/igpu/auto ต่อไฟล์ .exe)
+
+ถ้าต้องการไอคอนใน system tray ใช้ `Level51Tune.Tray.ps1` (เมนูสลับโปรไฟล์ + ตรวจสถานะ + เปิด Dashboard)
 
 เป็น thin adapter อีกตัวที่เรียก engine เดียวกับ CLI ผ่าน HTTP (`System.Net.HttpListener`) — ไม่มี dependency ภายนอก ฟังเฉพาะ loopback และบังคับ token ทุก request
 
@@ -299,6 +331,9 @@ dashboard มี 3 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 | `/api/settings` | GET/POST | อ่าน/บันทึก tweak ที่เลือกเอง |
 | `/api/live` | GET | ค่าสด (CPU/GPU/RAM) สำหรับกราฟ |
 | `/api/compare` | POST | วัด benchmark + เทียบกับครั้งก่อน |
+| `/api/backups` | GET | รายการ backup (สำหรับหน้า “ประวัติ/ย้อนกลับ”) |
+| `/api/gpu-prefs` | GET/POST | อ่าน/ตั้ง/ลบ GPU preference ต่อแอป |
+| `/api/processes` | GET | รายชื่อโปรเซส (ตัวช่วยเลือก .exe) |
 | `/docs/*` | GET | เอกสาร HTML |
 
 header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)

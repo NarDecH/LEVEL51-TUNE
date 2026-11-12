@@ -205,10 +205,28 @@ Test-Case 'audit: คืนผลครบทุก tweak ของโปรไ�
 Test-Case 'web: dashboard HTML มี token placeholder และ element หลัก' {
     $html = Get-L51DashboardHtml
     if ($html -notmatch '__TOKEN__') { throw 'ไม่พบ placeholder __TOKEN__' }
-    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log', '/api/tweaks', '/api/settings', '/api/live', '/api/compare')) {
+    foreach ($needle in @('/api/status', '/api/apply', '/api/audit', '/api/latency', '/api/log', '/api/tweaks', '/api/settings', '/api/live', '/api/compare', '/api/backups', '/api/gpu-prefs', '/api/processes')) {
         if ($html -notmatch [regex]::Escape($needle)) { throw "ไม่พบ $needle ใน dashboard" }
     }
     ($html -match '<!DOCTYPE html>') -and ($html.Length -gt 5000)
+}
+
+Test-Case 'web: JS ใน dashboard ไม่มี string ที่ขาด quotation' {
+    $html = Get-L51DashboardHtml
+    $start = $html.IndexOf('<script>')
+    $end = $html.LastIndexOf('</script>')
+    if ($start -lt 0 -or $end -le $start) { throw 'ไม่พบ block <script>' }
+    $script = $html.Substring($start, $end - $start)
+    $bad = @()
+    $n = 0
+    foreach ($line in ($script -split "`n")) {
+        $n++
+        $clean = $line.Replace('\', '')
+        $count = ([regex]::Matches($clean, "'")).Count
+        if ($count % 2 -ne 0) { $bad += ("บรรทัด {0}: {1}" -f $n, $line.Trim()) }
+    }
+    if ($bad.Count -gt 0) { throw ($bad -join ' | ') }
+    $true
 }
 
 Test-Case 'web: log path อยู่ใน logs/ และสร้าง log ได้' {
@@ -242,6 +260,58 @@ Test-Case 'apply -TweakIds: dry-run เฉพาะที่เลือกท�
     if (-not $r) { throw 'ไม่ได้ผลลัพธ์' }
     if (@($r.Results).Count -ne 3) { throw "ได้ $(@($r.Results).Count) ผล ลคาด 3" }
     $r.Profile -eq 'custom'
+}
+
+Test-Case 'audit -TweakIds: ตรวจสถานะเฉพาะรายการที่เลือกได้' {
+    $ids = @('gpu.hags', 'power.cpu.min100')
+    $rows = @(Invoke-L51Audit -TweakIds $ids)
+    if ($rows.Count -ne 2) { throw "ได้ $($rows.Count) แถว" }
+    foreach ($r in $rows) {
+        if ($r.Applied -notin @('YES', 'no', '?')) { throw "สถานะไม่ถูกต้อง: $($r.Applied)" }
+    }
+    $true
+}
+
+Test-Case 'history: อ่านรายการ backup ได้ (ถ้ามี)' {
+    $rows = @(Get-L51BackupHistory -Limit 5)
+    if ($rows.Count -gt 0) {
+        foreach ($r in $rows) {
+            if (-not $r.File) { throw 'แถวที่ไม่มีชื่อไฟล์' }
+            if ($r.Tweaks -lt 0) { throw 'จำนวน tweaks ติดลบ' }
+        }
+    }
+    $true
+}
+
+Test-Case 'gpuprefs: เพิ่ม/อ่าน/ลบ preference ได้ (HKCU, ไฟล์ชั่วคราว)' {
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('l51-test-' + [guid]::NewGuid().ToString('N') + '.exe')
+    Set-Content -Path $tmp -Value 'stub' -Encoding ASCII
+    try {
+        $set = Set-L51GpuPreference -AppPath $tmp -Mode 'dgpu'
+        if ($set.Mode -ne 'dgpu') { throw 'ตั้งค่าไม่สำเร็จ' }
+        $found = @(Get-L51GpuPreferences | Where-Object { $_.Path -eq $set.Path })
+        if ($found.Count -ne 1) { throw "อ่านกลับไม่พบ ($($found.Count))" }
+        if ($found[0].Mode -ne 'dgpu') { throw "โหมดที่อ่านได้: $($found[0].Mode)" }
+        $removed = Remove-L51GpuPreference -AppPath $set.Path
+        if (-not $removed) { throw 'ลบไม่สำเร็จ' }
+        $after = @(Get-L51GpuPreferences | Where-Object { $_.Path -eq $set.Path })
+        if ($after.Count -ne 0) { throw 'ยังพบรายการหลังลบ' }
+    } finally {
+        if (Test-Path $tmp) { Remove-Item $tmp -Force }
+        try { Remove-L51GpuPreference -AppPath $tmp | Out-Null } catch { }
+    }
+    $true
+}
+
+Test-Case 'scripts: tray / package parse ได้' {
+    foreach ($rel in @('Level51Tune.Tray.ps1', 'tools\Build-Package.ps1')) {
+        $p = Join-Path $root $rel
+        if (-not (Test-Path $p)) { throw "ไม่พบ $rel" }
+        $errors = $null
+        $null = [System.Management.Automation.Language.Parser]::ParseFile($p, [ref]$null, [ref]$errors)
+        if ($errors -and $errors.Count -gt 0) { throw "${rel}: $($errors[0].Message)" }
+    }
+    $true
 }
 
 Test-Case 'live: อ่านค่าสด (CPU load / clock / RAM) ได้' {

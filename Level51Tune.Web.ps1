@@ -188,7 +188,9 @@ try {
             if ($path -eq '/api/audit') {
                 $body = Get-L51JsonBody $ctx
                 $profile = $body.profile
-                $rows = @(Invoke-L51Audit -Profile $profile | ForEach-Object {
+                $auditIds = @()
+                if ($body.tweakIds) { $auditIds = @($body.tweakIds | ForEach-Object { [string]$_ }) }
+                $rows = @(Invoke-L51Audit -Profile $profile -TweakIds $auditIds | ForEach-Object {
                         [pscustomobject]@{ id = $_.Id; category = $_.Category; risk = $_.Risk; applied = $_.Applied; title = $_.Title }
                     })
                 Send-L51Response $ctx ([pscustomobject]@{
@@ -227,7 +229,10 @@ try {
 
             if ($path -eq '/api/restore') {
                 if (-not (Test-L51Admin)) { Send-L51Response $ctx '{"error":"ต้องรัน Web GUI แบบ Administrator เพื่อ restore"}' 'application/json' 403; continue }
-                $rows = @(Invoke-L51Restore | ForEach-Object { [pscustomobject]@{ id = $_.Id; status = $_.Status; detail = $_.Detail } })
+                $body = Get-L51JsonBody $ctx
+                $bp = $null
+                if ($body.backupPath) { $bp = [string]$body.backupPath }
+                $rows = @(Invoke-L51Restore -BackupPath $bp | ForEach-Object { [pscustomobject]@{ id = $_.Id; status = $_.Status; detail = $_.Detail } })
                 Send-L51Response $ctx ([pscustomobject]@{ results = $rows } | ConvertTo-Json -Depth 5)
                 continue
             }
@@ -330,6 +335,46 @@ try {
                         pairs  = $pairs
                         rounds = @($pairs | Select-Object -ExpandProperty from -Unique).Count
                     } | ConvertTo-Json -Depth 5)
+                continue
+            }
+
+            if ($path -eq '/api/backups') {
+                $rows = @(Get-L51BackupHistory -Limit 25 | ForEach-Object {
+                        [pscustomobject]@{
+                            file = $_.File; path = $_.Path; profile = $_.Profile; created = $_.Created
+                            tweaks = $_.Tweaks; sizeKB = $_.SizeKB; restorable = $_.Restorable
+                        }
+                    })
+                Send-L51Response $ctx ([pscustomobject]@{ rows = $rows } | ConvertTo-Json -Depth 4)
+                continue
+            }
+
+            if ($path -eq '/api/gpu-prefs') {
+                if ($req.HttpMethod -eq 'POST') {
+                    $body = Get-L51JsonBody $ctx
+                    $action = 'set'
+                    if ($body.action) { $action = [string]$body.action }
+                    $appPath = [string]$body.path
+                    if (-not $appPath) { Send-L51Response $ctx '{"error":"ต้องระบุ path ของไฟล์ .exe"}' 'application/json' 400; continue }
+                    if ($action -eq 'remove') {
+                        $ok = Remove-L51GpuPreference -AppPath $appPath
+                        Send-L51Response $ctx ([pscustomobject]@{ removed = $ok } | ConvertTo-Json)
+                    } else {
+                        $mode = 'dgpu'
+                        if ($body.mode) { $mode = [string]$body.mode }
+                        $r = Set-L51GpuPreference -AppPath $appPath -Mode $mode
+                        Send-L51Response $ctx ([pscustomobject]@{ path = $r.Path; mode = $r.Mode; value = $r.Value } | ConvertTo-Json)
+                    }
+                } else {
+                    $rows = @(Get-L51GpuPreferences | ForEach-Object { [pscustomobject]@{ path = $_.Path; mode = $_.Mode } })
+                    Send-L51Response $ctx ([pscustomobject]@{ rows = $rows } | ConvertTo-Json -Depth 4)
+                }
+                continue
+            }
+
+            if ($path -eq '/api/processes') {
+                $rows = @(Get-L51ProcessList | ForEach-Object { [pscustomobject]@{ name = $_.Name; path = $_.Path } })
+                Send-L51Response $ctx ([pscustomobject]@{ rows = $rows } | ConvertTo-Json -Depth 3)
                 continue
             }
 

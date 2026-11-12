@@ -4,6 +4,7 @@ logs/
 reports/
 benchmarks/
 state/
+dist/
 *.log
 *.tmp
 

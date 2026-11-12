@@ -776,11 +776,15 @@ function Test-L51TweakApplied {
 }
 
 function Invoke-L51Audit {
-    param([string]$Profile, [string]$Category, [switch]$IncludeHigh)
+    param([string]$Profile, [string]$Category, [switch]$IncludeHigh, [string[]]$TweakIds = @())
+
+    $custom = (@($TweakIds).Count -gt 0)
     $tweaks = @()
-    if ($Profile) { $tweaks = Get-L51ProfileTweaks -Profile $Profile }
+    if ($custom) { $tweaks = @(Get-L51Catalog | Where-Object { $TweakIds -contains $_.Id }) }
+    elseif ($Profile) { $tweaks = Get-L51ProfileTweaks -Profile $Profile }
     else { $tweaks = Get-L51Catalog -Category $Category }
-    if (-not $IncludeHigh) { $tweaks = @($tweaks | Where-Object { $_.Risk -ne 'High' }) }
+    # tweak ที่ผู้ใช้เลือกเองให้ตรวจเสมอ (รวม High) เพราะเป็นการเลือกโดยเจตนา
+    if (-not $IncludeHigh -and -not $custom) { $tweaks = @($tweaks | Where-Object { $_.Risk -ne 'High' }) }
 
     $rows = @()
     foreach ($t in $tweaks) {
@@ -1044,6 +1048,111 @@ function Save-L51CustomSelection {
 }
 
 # ===========================================================================
+# Backup history (ใช้โดยหน้า "ประวัติ" ของ Web GUI และ CLI history)
+# ===========================================================================
+
+function Get-L51BackupHistory {
+    param([int]$Limit = 25)
+
+    $paths = Get-L51Paths
+    $files = @(Get-ChildItem -Path $paths.Backups -Filter '*.json' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First $Limit)
+
+    $out = @()
+    foreach ($f in $files) {
+        $row = [ordered]@{
+            File     = $f.Name
+            Path     = $f.FullName
+            SizeKB   = [math]::Round($f.Length / 1KB, 1)
+            Modified = $f.LastWriteTime.ToString('o')
+            Profile  = ''
+            Created  = $f.LastWriteTime.ToString('o')
+            Tweaks   = 0
+            Restorable = ($f.Name -like '*_apply-*')
+        }
+        try {
+            $j = Get-Content $f.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($j.Profile) { $row.Profile = [string]$j.Profile }
+            if ($j.Created) { $row.Created = [string]$j.Created }
+            $row.Tweaks = @($j.Tweaks).Count
+        } catch {
+            Write-L51Log "อ่าน backup $($f.Name) ไม่ได้: $($_.Exception.Message)" 'WARN'
+        }
+        $out += [pscustomobject]$row
+    }
+    return $out
+}
+
+# ===========================================================================
+# Per-app GPU preference (HKCU\Software\Microsoft\DirectX\UserGpuPreferences)
+# ===========================================================================
+
+function Get-L51GpuPreferences {
+    $key = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
+    $rows = @()
+    if (-not (Test-Path $key)) { return $rows }
+    $item = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+    if (-not $item) { return $rows }
+    foreach ($p in $item.PSObject.Properties) {
+        if ($p.Name -like 'PS*') { continue }
+        $raw = [string]$p.Value
+        $mode = 'auto'
+        if ($raw -match 'GpuPreference=2') { $mode = 'dgpu' }
+        elseif ($raw -match 'GpuPreference=1') { $mode = 'igpu' }
+        $rows += [pscustomobject]@{ Path = $p.Name; Mode = $mode; Raw = $raw }
+    }
+    return $rows
+}
+
+function Set-L51GpuPreference {
+    param(
+        [Parameter(Mandatory)][string]$AppPath,
+        [ValidateSet('dgpu', 'igpu', 'auto')][string]$Mode = 'dgpu'
+    )
+
+    if (-not (Test-Path $AppPath)) { throw "ไม่พบไฟล์: $AppPath" }
+    $full = (Resolve-Path $AppPath).Path
+    $key = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
+    if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+
+    $val = 'GpuPreference=2;'
+    if ($Mode -eq 'igpu') { $val = 'GpuPreference=1;' }
+    if ($Mode -eq 'auto') { $val = 'GpuPreference=0;' }
+
+    New-ItemProperty -Path $key -Name $full -Value $val -PropertyType String -Force | Out-Null
+    Write-L51Log ("ตั้ง GPU preference: {0} -> {1}" -f $full, $Mode) 'OK'
+    return [pscustomobject]@{ Path = $full; Mode = $Mode; Value = $val }
+}
+
+function Remove-L51GpuPreference {
+    param([Parameter(Mandatory)][string]$AppPath)
+
+    $key = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
+    if (-not (Test-Path $key)) { return $false }
+    $item = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+    if (-not $item) { return $false }
+    $match = @($item.PSObject.Properties | Where-Object { $_.Name -ne 'PSPath' -and $_.Name -ne 'PSParentPath' -and $_.Name -ne 'PSChildName' -and $_.Name -ne 'PSDrive' -and $_.Name -ne 'PSProvider' -and ($_.Name -eq $AppPath -or $_.Name -like ('*' + $AppPath)) })
+    if ($match.Count -eq 0) { return $false }
+    foreach ($m in $match) {
+        Remove-ItemProperty -Path $key -Name $m.Name -Force -ErrorAction SilentlyContinue
+        Write-L51Log ("ลบ GPU preference: {0}" -f $m.Name) 'OK'
+    }
+    return $true
+}
+
+function Get-L51ProcessList {
+    $rows = @()
+    try {
+        $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path } |
+            Select-Object -Property Name, Path -Unique | Sort-Object Name
+        foreach ($p in $procs) {
+            $rows += [pscustomobject]@{ Name = $p.Name; Path = $p.Path }
+        }
+    } catch { }
+    return $rows
+}
+
+# ===========================================================================
 # Exports
 # ===========================================================================
 
@@ -1059,5 +1168,6 @@ Export-ModuleMember -Function @(
     'Test-L51TweakApplied', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',
+    'Get-L51BackupHistory', 'Get-L51GpuPreferences', 'Set-L51GpuPreference', 'Remove-L51GpuPreference', 'Get-L51ProcessList',
     'Convert-L51Markdown'
 )

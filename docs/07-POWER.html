@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>พลังงาน แบตเตอรี่ และความร้อน · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item active" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">พลังงาน แบตเตอรี่ และความร้อน</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">Windows จัดการพลังงานอย่างไร</a></li>
+<li><a href="#sec-4">ค่าที่โปรแกรมปรับ และความหมายจริง</a></li>
+<li><a href="#sec-6">คำสั่ง <code>powercfg</code> ที่มีประโยชน์</a></li>
+<li><a href="#sec-7">แบตเตอรี่บนเครื่องนี้</a></li>
+<li><a href="#sec-10">ความร้อน — ปัญหาหลักของเครื่องนี้</a></li>
+<li><a href="#sec-15">Sleep / Hibernate / Fast Startup</a></li>
+<li><a href="#sec-16">AC vs DC — ต่างกันอย่างไรในทางปฏิบัติ</a></li>
+<li><a href="#sec-17">ตรวจสอบว่าการตั้งค่ามีผลจริง</a></li>
+<li><a href="#sec-18">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">Windows จัดการพลังงานอย่างไร</h2>
+<p>Windows เก็บการตั้งค่าพลังงานไว้ใน <strong>power scheme</strong> (power plan) แต่ละ scheme คือชุดค่า index ของ &quot;power setting&quot; หลายร้อยตัว ซึ่งถูกจัดกลุ่มเป็น <strong>subgroup</strong> และอ้างด้วย GUID</p>
+<pre><code>Power Scheme (GUID)
+└── Subgroup: Processor power management (54533251-82be-4824-96c1-47b60b740d00)
+    ├── Minimum processor state (893dee8e-2bef-41e0-89c6-b55d0929964c)
+    ├── Maximum processor state (bc5038f7-23e0-4960-96da-33abaf5935ec)
+    ├── Processor performance boost mode (be337238-0d82-4146-a960-4f3749d470c7)
+    └── ...</code></pre>
+<p>ทุกค่าเก็บ <strong>สองชุด</strong>: AC (ต่อไฟ) และ DC (ใช้แบต) นี่คือเหตุผลที่โปรไฟล์ <code>battery</code> แตะเฉพาะ DC</p>
+<h3 id="sec-3">ทำไมโปรแกรมนี้สร้าง scheme ใหม่</h3>
+<p><code>apply</code> เรียก <code>powercfg -duplicate</code> จาก scheme ที่ใช้อยู่ แล้วตั้งชื่อ <code>LEVEL51-TUNE &lt;โปรไฟล์&gt;</code></p>
+<p>ข้อดี:</p>
+<ul>
+<li>แผนเดิม (Balanced / GameTurbo / LEVEL51 Ultimate Performance ของคุณ) ไม่ถูกแตะเลย</li>
+<li>เปรียบเทียบได้ด้วยการสลับ scheme ใน Control Panel</li>
+<li><code>restore</code> ลบ scheme ที่สร้างและสลับกลับได้สะอาด</li>
+</ul>
+<p>ข้อควรรู้: scheme ที่ duplicate มาจะมีค่าเหมือนต้นฉบับทุกอย่าง <strong>รวมถึงค่าที่ซ่อนอยู่</strong> ซึ่งเป็นสิ่งที่ต้องการ</p>
+<h2 id="sec-4">ค่าที่โปรแกรมปรับ และความหมายจริง</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting (alias)</th><th>GUID</th><th>ค่า</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>PROCTHROTTLEMIN</code></td><td>893dee8e…</td><td>0-100</td><td>เพดานล่างของ state (%)</td></tr>
+<tr><td><code>PROCTHROTTLEMAX</code></td><td>bc5038f7…</td><td>0-100</td><td>เพดานบน (%) — ค่า 99 มักปิด Turbo โดยไม่ตั้งใจ</td></tr>
+<tr><td><code>PERFBOOSTMODE</code></td><td>be337238…</td><td>0-6</td><td>0=ปิด, 1=เปิด, 2=Aggressive, 3=Efficient Enabled, 4=Efficient Aggressive</td></tr>
+<tr><td><code>PERFEPP</code></td><td>36687f9e…</td><td>0-100</td><td>Energy Performance Preference (0=แรง, 100=ประหยัด)</td></tr>
+<tr><td><code>CPMINCORES</code></td><td>0cc5b647…</td><td>0-100</td><td>จำนวนคอร์ขั้นต่ำที่ไม่ถูก park (%)</td></tr>
+<tr><td><code>SYSCOOLPOL</code></td><td>94d3a615…</td><td>0/1</td><td>0=Passive (ลด clock ก่อน), 1=Active (เร่งพัดลมก่อน)</td></tr>
+<tr><td><code>IDLEDISABLE</code></td><td>5d76a2ca…</td><td>0/1</td><td>1=ปิด C-state</td></tr>
+<tr><td><code>PERFINCTHRESHOLD</code></td><td>06cadf0e…</td><td>0-100</td><td>เกณฑ์การเพิ่มความถี่</td></tr>
+<tr><td><code>ASPM</code> (SUB_PCIEXPRESS)</td><td>ee12f906…</td><td>0/1/2</td><td>0=Off, 1=Moderate, 2=Maximum savings</td></tr>
+<tr><td><code>DISKIDLE</code> (SUB_DISK)</td><td>6738e2c4…</td><td>วินาที</td><td>0=ไม่ปิดดิสก์</td></tr>
+<tr><td><code>USBSELECTIVESUSPEND</code></td><td>48e6b7a6…</td><td>0/1</td><td>ปิด/เปิด selective suspend</td></tr>
+<tr><td><code>VIDEOIDLE</code> (SUB_VIDEO)</td><td>3c0bc021…</td><td>วินาที</td><td>ปิดจอหลัง</td></tr>
+<tr><td><code>STANDBYIDLE</code> (SUB_SLEEP)</td><td>29f6c1db…</td><td>วินาที</td><td>sleep หลัง</td></tr>
+<tr><td><code>LIDACTION</code> (SUB_BUTTONS)</td><td>5ca83367…</td><td>0-3</td><td>0=ไม่ทำอะไร, 1=sleep, 2=hibernate, 3=shutdown</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-5">ค่าที่ถูกซ่อน</h3>
+<p>Windows ซ่อนค่าหลายตัวจาก UI (เช่น PERFBOOSTMODE, CPMINCORES, PERFEPP) การ <code>-setacvalueindex</code> ยังทำได้ แต่บางไดรเวอร์/บิลด์จะปฏิเสธถ้าไม่ปลดซ่อน — tweak <code>win.unhide-power-settings</code> จึงมีอยู่:</p>
+<pre><code class="lang-powershell">powercfg -attributes SUB_PROCESSOR PERFBOOSTMODE -ATTRIB_HIDE</code></pre>
+<p><code>-ATTRIB_HIDE</code> = <strong>ปลด</strong>การซ่อน (ชื่ออ่านกลับกันได้ง่ายจนสับสน) ส่วน <code>+ATTRIB_HIDE</code> = ซ่อนกลับ</p>
+<h2 id="sec-6">คำสั่ง <code>powercfg</code> ที่มีประโยชน์</h2>
+<pre><code class="lang-powershell"># ดู scheme ทั้งหมด และอันที่ใช้อยู่
+powercfg /list
+powercfg /getactivescheme
+
+# ดูค่าของ subgroup หนึ่งทั้งหมด
+powercfg /query SCHEME_CURRENT SUB_PROCESSOR
+
+# ดูค่ารายตัว
+powercfg /query SCHEME_CURRENT SUB_PROCESSOR PERFBOOSTMODE
+
+# ตั้งค่าเอง (AC)
+powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 90
+powercfg /setactive SCHEME_CURRENT
+
+# ตั้งค่าเอง (DC)
+powercfg /setdcvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 70
+
+# รายงานการใช้พลังงาน 60 วินาที (ต้อง admin) — หาตัวที่ทำให้กินไฟ
+powercfg /energy /duration 60 /output $env:TEMP\energy.html
+
+# รายงานแบตเตอรี่ละเอียด
+powercfg /batteryreport /output $env:TEMP\battery.html
+
+# วิเคราะห์ sleep/Modern Standby
+powercfg /sleepstudy /output $env:TEMP\sleep.html
+
+# ดูว่าอะไรกันไม่ให้เครื่อง sleep
+powercfg /requests</code></pre>
+<p><code>powercfg /energy</code> เป็นเครื่องมือที่ดีที่สุดในการหาสาเหตุที่เครื่องไม่ sleep หรือใช้ไฟสูง: มันจะบอกชื่อ device/driver/program ที่มีปัญหาเป็นรายชื่อพร้อม count</p>
+<h2 id="sec-7">แบตเตอรี่บนเครื่องนี้</h2>
+<p>จาก <code>status</code>:</p>
+<pre><code>แบตเตอรี่ : BAT &#183; 100% &#183; design voltage 12.529 V</code></pre>
+<p>เครื่อง N95TP6 ใช้แบต 6-cell (ราว 62 Wh ตามสเปกเครื่อง Clevo รุ่นนี้) — ตรวจค่าจริงได้:</p>
+<pre><code class="lang-powershell">Get-CimInstance -Namespace root\wmi -ClassName BatteryFullChargedCapacity |
+  Select-Object InstanceName, FullChargedCapacity
+Get-CimInstance -Namespace root\wmi -ClassName BatteryStatus |
+  Select-Object RemainingCapacity, Voltage, ChargeRate, DischargeRate</code></pre>
+<p><code>FullChargedCapacity</code> ที่ต่ำกว่าค่า design มาก (&gt;20%) = แบตเริ่มเสื่อม</p>
+<h3 id="sec-8">การดูแลแบต</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>เคล็ดลับ</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>ตั้ง charge limit 80% ถ้าซอฟต์แวร์เครื่องรองรับ</td><td>แบต Li-ion เสื่อมช้าลงเมื่อไม่ค้างที่ 100%</td></tr>
+<tr><td>อย่าทิ้งไว้ที่ 0% เป็นเวลานาน</td><td>แรงดันต่ำทำให้ cell เสียหายถาวร</td></tr>
+<tr><td>ใช้โปรไฟล์ <code>battery</code> เมื่อไม่ได้ต่อไฟ</td><td>ลดทั้งความร้อนและการกินไฟ</td></tr>
+<tr><td>อย่าใช้ <code>power.cpu.min100</code> บนแบต</td><td>กินไฟสูงสุดตลอดเวลา — ขัดกับวัตถุประสงค์</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-9">อายุการใช้งานจริงที่คาดหวัง</h3>
+<p>i9-9900K กินไฟ 15-45 W ในงานเบา การใช้งานออฟฟิศ (เขียนเอกสาร, เว็บ) จะได้ราว 2.5-4 ชั่วโมงจากแบต 62 Wh ถ้าเล่นเกม &lt;= 45-60 นาที นี่คือข้อจำกัดทางฟิสิกส์ ไม่ใช่การตั้งค่า</p>
+<h2 id="sec-10">ความร้อน — ปัญหาหลักของเครื่องนี้</h2>
+<h3 id="sec-11">ทำไมร้อน</h3>
+<ul>
+<li>ซีพียูเดสก์ท็อป 95W TDP (burst ถึง 210W) ในตัวเครื่องที่ออกแบบมาสำหรับชิ้นส่วนมือถือ</li>
+<li>GTX 1060 ปล่อยความร้อนเพิ่ม 88 W ในห้องเดียวกัน</li>
+<li>ฮีตไปป์และพัดลมมีพื้นที่จำกัด</li>
+</ul>
+<p>ความร้อนรวมตอนเล่นเกมอาจถึง 150-190 W ซึ่งต้องระบายออกจากเครื่องขนาด ~2.5-3.5 ซม.</p>
+<h3 id="sec-12">มาตรวัดอุณหภูมิที่ควรรู้</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ปกติ</th><th>ควรกังวล</th></tr></thead>
+<tbody>
+<tr><td>CPU package (idle)</td><td>38-50 &#176;C</td><td>&gt; 60 &#176;C ตอน idle</td></tr>
+<tr><td>CPU package (โหลด)</td><td>70-90 &#176;C</td><td>&gt; 95 &#176;C ค้าง + throttle</td></tr>
+<tr><td>GPU (idle)</td><td>40-52 &#176;C</td><td>&gt; 60 &#176;C</td></tr>
+<tr><td>GPU (โหลด)</td><td>70-82 &#176;C</td><td>&gt; 86 &#176;C (จะ throttle ที่ ~87)</td></tr>
+<tr><td>SSD NVMe</td><td>35-55 &#176;C</td><td>&gt; 70 &#176;C (จะ throttle)</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-13">วิธีลดความร้อนที่ได้ผลจริง (เรียงตามความคุ้มค่า)</h3>
+<ol>
+<li><strong>ทำความสะอาดพัดลมและซี่ฮีตซิงก์</strong> — ฝุ่นสะสม 1-2 ปีทำให้อุณหภูมิขึ้น 8-15 &#176;C</li>
+<li><strong>เปลี่ยน thermal paste</strong> (ของเดิมจากโรงงานมักแห้งแล้วถ้าเครื่องอายุ 3+ ปี) — ลดได้ 5-12 &#176;C</li>
+<li><strong>Undervolt CPU</strong> (-100 mV) — ลด 5-10 &#176;C ที่ performance เท่าเดิม</li>
+<li><strong>Undervolt GPU</strong> — ลด 5-8 &#176;C</li>
+<li><strong>ยกเครื่องให้สูงขึ้น 2-3 ซม.</strong> หรือใช้ cooling pad แบบblower — ลด 3-6 &#176;C</li>
+<li><strong>ตั้ง fan curve ให้ aggressive ขึ้น</strong> (BIOS หรือ Control Center)</li>
+<li><strong>จำกัด max frame rate</strong> ในเกมเป็น 60/72 fps — ลด GPU load มาก</li>
+<li><strong>ลด PL1 ใน BIOS</strong> (ถ้าปรับได้) เป็น 65-75 W — เสีย performance 5-10% แต่เย็นลงชัด</li>
+</ol>
+<h3 id="sec-14">Thermal throttling ทำงานอย่างไร</h3>
+<p>เมื่ออุณหภูมิถึง Tjmax (100 &#176;C สำหรับ 9900K) ซีพียูจะลด clock ทีละขั้น (Intel Dynamic Tuning) จนกว่าอุณหภูมิจะลง — ผลคือ fps ตกเป็นขั้นบันได ไม่ใช่ค่อย ๆ ลด</p>
+<p>สังเกตได้จาก HWiNFO: <code>Thermal Throttling = Yes</code>, <code>Core Effective Clocks</code> ตกลง, <code>PROCHOT</code> ขึ้น</p>
+<p>ถ้าเกิดถี่ ให้หยุดใช้โปรไฟล์ <code>max</code> และแก้ที่ระบบระบายความร้อนก่อน</p>
+<h2 id="sec-15">Sleep / Hibernate / Fast Startup</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>กลไก</th><th>ทำงานอย่างไร</th><th>ข้อดี</th><th>ข้อเสีย</th></tr></thead>
+<tbody>
+<tr><td>Sleep (S3)</td><td>RAM ยังมีไฟ, สถานะอยู่ใน RAM</td><td>ตื่นเร็ว &lt; 2 วินาที</td><td>กินไฟเล็กน้อย, แบตหมด = ข้อมูลหาย</td></tr>
+<tr><td>Modern Standby (S0ix)</td><td>เครื่อง &quot;ตื่นบางส่วน&quot; ตลอด</td><td>แจ้งเตือนได้ขณะพัก</td><td>กินไฟมากกว่า S3 มาก, มักมีปัญหาเครื่องร้อนในกระเป๋า</td></tr>
+<tr><td>Hibernate (S4)</td><td>เขียน RAM ลงดิสก์แล้วปิดเครื่อง</td><td>ไม่กินไฟเลย</td><td>ใช้พื้นที่ = ขนาด RAM (~32 GB), boot ช้า</td></tr>
+<tr><td>Fast Startup</td><td>ผสม hibernate เฉพาะ kernel session</td><td>boot เร็วขึ้น</td><td>ไดรเวอร์/สถานะไมตรีเซ็ตจริง — ต้นเหตุบั๊กแปลก ๆ</td></tr>
+</tbody>
+</table></div>
+<p>tweak <code>power.hibernate-off</code> ในโปรไฟล์ <code>max</code> ปิด Hibernate + Fast Startup และคืนพื้นที่ ~32 GB บน C:</p>
+<pre><code class="lang-powershell">powercfg -h off     # ปิด
+powercfg -h on      # เปิดกลับ</code></pre>
+<p>ตรวจว่าเครื่องนี้ใช้ Modern Standby หรือ S3:</p>
+<pre><code class="lang-powershell">powercfg /a</code></pre>
+<p>ถ้าขึ้น &quot;Standby (S0 Low Power Idle)&quot; = Modern Standby ถ้าเป็น S3 จะขึ้น &quot;Standby (S3)&quot;</p>
+<blockquote>
+<p>บน Modern Standby เครื่องที่ใส่ SSD NVMe มักร้อนในกระเป๋าเพราะระบบตื่นมาทำงานเบื้องหลังตลอด ถ้าเจอปัญหานี้ ให้ปิด network ใน sleep หรือใช้ Hibernate แทน</p>
+</blockquote>
+<h2 id="sec-16">AC vs DC — ต่างกันอย่างไรในทางปฏิบัติ</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>สถานการณ์</th><th>โปรไฟล์</th><th>ค่าที่ต่าง</th></tr></thead>
+<tbody>
+<tr><td>ต่อไฟ เล่นเกม</td><td>gaming</td><td>min 50%, ASPM off, ไม่ sleep</td></tr>
+<tr><td>ใช้แบต ทำงานเอกสาร</td><td>battery</td><td>min 5%, max 70%, ASPM max savings, จอดับ 5 นาที</td></tr>
+<tr><td>ต่อไฟ เรนเดอร์</td><td>performance</td><td>min 50%, ไม่ sleep, จอดับ 20 นาที</td></tr>
+<tr><td>benchmark</td><td>max</td><td>min 100%, boost aggressive</td></tr>
+</tbody>
+</table></div>
+<p>Windows สลับ AC/DC อัตโนมัติเมื่อถอด/เสียบสาย <strong>โดยไม่ต้อง apply ใหม่</strong> ถ้าใช้โปรไฟล์ <code>battery</code> (ซึ่งตั้งเฉพาะ DC) — แต่ถ้าใช้ <code>gaming</code> (ตั้งเฉพาะ AC บางตัว + DC บางตัว) จะมีผลทั้งสองโหมด</p>
+<h2 id="sec-17">ตรวจสอบว่าการตั้งค่ามีผลจริง</h2>
+<pre><code class="lang-powershell"># ค่าที่ใช้อยู่จริง (ไม่ใช่ค่าที่บันทึกใน scheme)
+powercfg /getactivescheme
+powercfg /query SCHEME_CURRENT SUB_PROCESSOR
+
+# ตรวจว่า scheme ที่โปรแกรมสร้างยังอยู่
+.\Level51Tune.ps1 status</code></pre>
+<p>ถ้า apply แล้ว <code>audit</code> ยังขึ้น <code>no</code> ให้ตรวจ:</p>
+<ol>
+<li>มีโปรแกรม OEM (Control Center / Armoury Crate / ThrottleStop) เขียนทับค่าหรือไม่</li>
+<li>Windows Update / ไดรเวอร์ chipset รีเซ็ต scheme หรือไม่</li>
+<li>ค่านั้นถูกซ่อนและถูกปฏิเสธ (ดู <code>WARN</code> ตอน apply)</li>
+</ol>
+<h2 id="sec-18">สรุป</h2>
+<ol>
+<li>โปรแกรมนี้ไม่แตะ scheme เดิมของคุณ — สร้างใหม่และสลับให้</li>
+<li>AC/DC แยกกัน โปรไฟล์ <code>battery</code> จึงมีผลเฉพาะตอนใช้แบต</li>
+<li>ความร้อนคือคอขวดจริงของเครื่องนี้ — ซอฟต์แวร์ช่วยได้ถึงจุดหนึ่ง</li>
+<li><code>powercfg /energy</code> และ <code>/batteryreport</code> คือเครื่องมือวินิจฉัยที่ดีที่สุดและฟรี</li>
+<li>หลีกเลี่ยง Modern Standby ที่ทำให้เครื่องร้อนในกระเป๋า ถ้าเจอปัญหา</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="06-GPU.html">&larr; จูน GPU (GTX 1060 + UHD 630)</a><a class="pager-next" href="08-RAM-STORAGE.html">RAM และ Storage &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

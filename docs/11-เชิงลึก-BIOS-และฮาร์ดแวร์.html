@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item active" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">สิ่งที่รู้เกี่ยวกับเครื่องนี้</a></li>
+<li><a href="#sec-3">BIOS: สิ่งที่ควรและไม่ควรทำ</a></li>
+<li><a href="#sec-7">การระบายความร้อน: งานที่ได้ผลที่สุด</a></li>
+<li><a href="#sec-11">การวัดผลอย่างมีความหมาย</a></li>
+<li><a href="#sec-16">อาการฮาร์ดแวร์ที่ควรระวัง</a></li>
+<li><a href="#sec-17">การ backup ระดับระบบ</a></li>
+<li><a href="#sec-18">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">สิ่งที่รู้เกี่ยวกับเครื่องนี้</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ค่าที่ตรวจได้</th></tr></thead>
+<tbody>
+<tr><td>รุ่น</td><td>Notebook N95TP6 (Clevo barebone, ขายผ่านผู้ประกอบในไทย)</td></tr>
+<tr><td>BIOS</td><td>American Megatrends 1.07.11, 2019-08-08</td></tr>
+<tr><td>CPU</td><td>Intel Core i9-9900K (LGA1151 v2, 95W)</td></tr>
+<tr><td>GPU</td><td>NVIDIA GTX 1060 6 GB (GP106) + Intel UHD 630 (Optimus, ไม่มี MUX)</td></tr>
+<tr><td>RAM</td><td>32 GB DDR4 (ตรวจ <code>ConfiguredClockSpeed</code> เพื่อดูว่าวิ่งที่ความเร็วเท่าไร)</td></tr>
+<tr><td>Storage</td><td>Samsung 990 EVO Plus 1 TB NVMe (PCIe 3.0 x4 จากชิปเซ็ต)</td></tr>
+<tr><td>Wi-Fi</td><td>Intel Wireless-AC 9260</td></tr>
+<tr><td>OS</td><td>Windows 11 Pro build 26200</td></tr>
+<tr><td>Power limit GPU</td><td>88 W (อ่านจาก <code>nvidia-smi</code>)</td></tr>
+</tbody>
+</table></div>
+<p>เครื่องยุค 2019 ที่ใส่ซีพียูเดสก์ท็อป: จุดแข็งคือยังแรงได้ในปี 2026 จุดอ่อนคือระบบระบายความร้อนและการจ่ายไฟออกแบบมาสำหรับภาระงานที่เบากว่าซีพียู 95W เต็มรูปแบบ</p>
+<h2 id="sec-3">BIOS: สิ่งที่ควรและไม่ควรทำ</h2>
+<h3 id="sec-4">เข้า BIOS</h3>
+<p><code>Del</code> หรือ <code>F2</code> ทันทีหลังกดเปิดเครื่อง (AMI) — ถ้าเข้าไม่ได้ อาจต้องปิด Fast Startup ก่อน (<code>powercfg -h off</code>)</p>
+<h3 id="sec-5">ค่าที่ควรตรวจ (ตามลำดับความสำคัญ)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ลำดับ</th><th>รายการ</th><th>ค่าที่แนะนำ</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Fan control / Thermal profile</td><td>Performance</td><td>ถ้ามีเมนูนี้ นี่คือการตั้งค่าที่สำคัญที่สุด</td></tr>
+<tr><td>2</td><td>Intel SpeedStep (EIST)</td><td>Enabled</td><td>ให้ OS คุม P-state</td></tr>
+<tr><td>3</td><td>Turbo Mode</td><td>Enabled</td><td>จำเป็นสำหรับ 5.0 GHz</td></tr>
+<tr><td>4</td><td>C-States (C1E, C3, C6, C7)</td><td>Enabled</td><td>ให้ Windows คุมผ่าน power plan</td></tr>
+<tr><td>5</td><td>Hyper-Threading</td><td>Enabled</td><td>16 threads</td></tr>
+<tr><td>6</td><td>XMP / DRAM profile</td><td>Profile 1</td><td>ถ้าแรมรองรับ และทดสอบเสถียรภาพ</td></tr>
+<tr><td>7</td><td>VT-x / VT-d</td><td>ตามการใช้งาน</td><td>เปิดถ้าใช้ WSL2/VM</td></tr>
+<tr><td>8</td><td>Secure Boot</td><td>Enabled</td><td>เปิดไว้ ปลอดภัยกว่า</td></tr>
+<tr><td>9</td><td>Power limit PL1/PL2</td><td>ลดถ้าปรับได้ (PL1 ~65-75 W)</td><td>แลก performance กับความเย็น</td></tr>
+<tr><td>10</td><td>Boot order / Fast Boot</td><td>ตามต้องการ</td><td>—</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-6">สิ่งที่ไม่ควรทำ</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>การกระทำ</th><th>ความเสี่ยง</th></tr></thead>
+<tbody>
+<tr><td>แฟลช BIOS ดัดแปลง (modded)</td><td>เครื่อง brick, EC เพี้ยน, ประกันหลุด</td></tr>
+<tr><td>เพิ่มไฟ CPU (overvoltage)</td><td>ซีพียูเสื่อมเร็ว, เครื่องดับ</td></tr>
+<tr><td>Overclock ผ่าน BIOS</td><td>ระบบจ่ายไฟของโน้ตบุ๊กไม่รองรับ</td></tr>
+<tr><td>ปิด fan / ตั้ง fan curve ต่ำสุด</td><td>ความร้อนสะสมถาวร</td></tr>
+<tr><td>อัปเดต BIOS โดยไม่ต่อไฟ</td><td>ไฟดับกลางทาง = brick</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>ถ้า BIOS ไม่มีเมนู fan control ให้ใช้ซอฟต์แวร์ของผู้ผลิต (Control Center) หรือปล่อยให้ EC จัดการ — อย่าพยายามแฟลช BIOS ดัดแปลงเพื่อให้ได้เมนูนั้น</p>
+</blockquote>
+<h2 id="sec-7">การระบายความร้อน: งานที่ได้ผลที่สุด</h2>
+<h3 id="sec-8">ลำดับความคุ้มค่า</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>งาน</th><th>ลดอุณหภูมิได้</th><th>ความยาก</th><th>ความเสี่ยง</th></tr></thead>
+<tbody>
+<tr><td>เป่าฝุ่นออกจากพัดลม/ฮีตซิงก์</td><td>5-15 &#176;C</td><td>ง่าย (เปิดฝาล่าง)</td><td>ต่ำ</td></tr>
+<tr><td>เปลี่ยน thermal paste (CPU+GPU)</td><td>5-12 &#176;C</td><td>ปานกลาง</td><td>ปานกลาง (ต้องถอดฮีตซิงก์)</td></tr>
+<tr><td>Undervolt CPU</td><td>5-10 &#176;C</td><td>ง่าย (ซอฟต์แวร์)</td><td>ต่ำ (ถ้าทดสอบดี)</td></tr>
+<tr><td>Undervolt GPU</td><td>5-8 &#176;C</td><td>ง่าย</td><td>ต่ำ</td></tr>
+<tr><td>Cooling pad / ยกเครื่องสูงขึ้น</td><td>3-6 &#176;C</td><td>ง่ายมาก</td><td>ไม่มี</td></tr>
+<tr><td>จำกัด fps</td><td>5-15 &#176;C (GPU)</td><td>ง่าย</td><td>ไม่มี</td></tr>
+<tr><td>ลด PL1 ใน BIOS</td><td>5-10 &#176;C</td><td>ปานกลาง</td><td>ต่ำ</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-9">Thermal paste</h3>
+<ul>
+<li>ชนิดที่แนะนำ: non-conductive, ความหนืดปานกลาง (เช่น Arctic MX-6, Thermal Grizzly Kryonaut)</li>
+<li><strong>ห้ามใช้ liquid metal</strong> บนโน้ตบุ๊กที่ฮีตซิงก์เป็นอะลูมิเนียม — จะกัดกร่อน</li>
+<li>ปริมาณ: เม็ดถั่วเขียวตรงกลาง แล้วกดฮีตซิงก์ลง (วิธี spread ก็ได้ ถ้าฮีตซิงก์มีพื้นที่แบน)</li>
+<li>ระวัง: สาย ribbon, ขั้วต่อพัดลม, และสกรูที่มีลำดับการขัน</li>
+</ul>
+<h3 id="sec-10">Undervolt CPU ด้วย ThrottleStop (ละเอียด)</h3>
+<ol>
+<li>ดาวน์โหลด ThrottleStop (techpowerup) — ไม่ต้องติดตั้ง</li>
+<li>เปิด → กด <code>FIVR</code></li>
+<li>เลือก <code>CPU Core</code> และ <code>CPU Cache</code> → ตั้ง <code>Offset Voltage</code> เป็น <strong>-50 mV</strong> ก่อน</li>
+<li>Apply → ทดสอบด้วย Cinebench R23 3 รอบ</li>
+<li>ถ้าผ่าน เพิ่มเป็น -75, -100, -125 mV ทีละขั้น</li>
+<li>ทดสอบหนักด้วย Prime95 Small FFT 15 นาที หรือ OCCT 10 นาที</li>
+<li>ค่าที่เสถียร: ตั้ง <code>Task Scheduler</code> ให้ ThrottleStop เริ่มตอน login (Options → Start Minimized, Add to Task Scheduler)</li>
+</ol>
+<p><strong>สัญญาณว่า undervolt มากเกินไป</strong>: จอฟ้า, โปรแกรม crash แบบไม่มีเหตุผล, WHEA-Logger error ใน Event Viewer, ผลคำนวณผิด (เช่น ไฟล์บีบอัดเสีย)</p>
+<blockquote>
+<p><code>CPU Core</code> และ <code>CPU Cache</code> ควรตั้งค่าใกล้กัน (cache มักทนได้น้อยกว่า) ถ้าตั้ง core -125 แต่ cache -50 ระบบมักไม่เสถียร</p>
+</blockquote>
+<h2 id="sec-11">การวัดผลอย่างมีความหมาย</h2>
+<h3 id="sec-12">ปัญหาของการวัดแบบnaive</h3>
+<ul>
+<li>วัดทันทีหลัง apply ขณะเครื่องยังร้อน → ตัวเลขแย่ลงทั้งที่ค่าดีขึ้น</li>
+<li>วัดครั้งเดียว → noise</li>
+<li>วัดด้วย benchmark ที่ไม่เกี่ยวกับงานจริง → ไม่มีความหมาย</li>
+<li>ไม่ได้ปิดโปรแกรมพื้นหลัง → ผลแกว่ง</li>
+</ul>
+<h3 id="sec-13">ระเบียบวิธีที่แนะนำ</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ขั้น</th><th>ทำอะไร</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>ปิดโปรแกรมทั้งหมดที่ไม่จำเป็น (เบราว์เซอร์, Discord, OBS)</td></tr>
+<tr><td>2</td><td>ต่อไฟ AC และตั้งโปรไฟล์ที่ต้องการวัด</td></tr>
+<tr><td>3</td><td>พักเครื่อง 2 นาที (หรือ reboot แล้วรอ 2 นาที)</td></tr>
+<tr><td>4</td><td>รัน <code>bench -Label X -Seconds 5</code></td></tr>
+<tr><td>5</td><td>ทำซ้ำ 3 ครั้ง ใช้ค่ากลาง (median)</td></tr>
+<tr><td>6</td><td>เปรียบเทียบด้วย <code>compare</code></td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-14">เครื่องมือวัดที่ควรมี</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>เครื่องมือ</th><th>วัด</th><th>ฟรี</th></tr></thead>
+<tbody>
+<tr><td>HWiNFO64</td><td>อุณหภูมิ, clock, power, throttle reason ทุกเซนเซอร์</td><td>ใช่</td></tr>
+<tr><td>Cinebench R23</td><td>CPU score มาตรฐาน</td><td>ใช่</td></tr>
+<tr><td>3DMark (Time Spy)</td><td>GPU/CPU combined</td><td>มีเวอร์ชันฟรี</td></tr>
+<tr><td>LatencyMon</td><td>DPC/ISR latency</td><td>ใช่</td></tr>
+<tr><td>PresentMon / CapFrameX</td><td>frametime, 1% low</td><td>ใช่</td></tr>
+<tr><td>CrystalDiskMark</td><td>disk throughput</td><td>ใช่</td></tr>
+<tr><td><code>.\Level51Tune.ps1 bench</code></td><td>ภาพรวมเร็ว ๆ ในเครื่อง</td><td>ใช่</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-15">อ่านค่า frametime ให้เป็น</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td>avg fps</td><td>ค่าเฉลี่ย — หลอกได้ง่าย</td></tr>
+<tr><td>1% low</td><td>fps ที่แย่ที่สุด 1% ของเฟรม — สำคัญกว่าค่าเฉลี่ย</td></tr>
+<tr><td>0.1% low</td><td>เฟรมกระตุกหนัก</td></tr>
+<tr><td>frametime graph</td><td>ดูว่าเป็นเส้นเรียบหรือมี spike</td></tr>
+</tbody>
+</table></div>
+<p>เกมที่ 1% low ต่ำแต่ avg สูง = มี stutter ซึ่งมักมาจาก CPU/RAM/IO ไม่ใช่ GPU</p>
+<h2 id="sec-16">อาการฮาร์ดแวร์ที่ควรระวัง</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>ความหมาย</th><th>ควรทำ</th></tr></thead>
+<tbody>
+<tr><td>เครื่องดับเองตอนโหลดหนัก + Event ID 41</td><td>ไฟไม่พอ / ร้อนเกิน</td><td>หยุดใช้ max, ตรวจฝุ่น/พัดลม, พิจารณาอะแดปเตอร์</td></tr>
+<tr><td>จอภาพมีเส้น/จุดสีตอนร้อน</td><td>GPU artifact (อาจ undervolt เกิน)</td><td>คืนค่า GPU, ทดสอบ stock</td></tr>
+<tr><td>เสียงพัดลมดังผิดปกติ (เสียดสี)</td><td>ลูกปืนพัดลมเสื่อม</td><td>เปลี่ยนพัดลม</td></tr>
+<tr><td>อุณหภูมิ idle สูงขึ้นเรื่อย ๆ ใน 1 ปี</td><td>ฝุ่น/paste เสื่อม</td><td>ทำความสะอาด/เปลี่ยน paste</td></tr>
+<tr><td>SSD temperature &gt; 70 &#176;C</td><td>NVMe throttle</td><td>ใส่ thermal pad, ตรวจ airflow</td></tr>
+<tr><td>แบตบวม</td><td>อันตราย</td><td>หยุดใช้ เปลี่ยนแบตทันที</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-17">การ backup ระดับระบบ</h2>
+<p>ก่อนแก้อะไรเชิงลึก ควรมี:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ระดับ</th><th>วิธี</th></tr></thead>
+<tbody>
+<tr><td>ไฟล์ส่วนตัว</td><td>OneDrive/ดิสก์ภายนอก</td></tr>
+<tr><td>ทั้งระบบ</td><td>System Image (Control Panel → Backup and Restore → Create a system image)</td></tr>
+<tr><td>จุดคืนค่า</td><td><code>Checkpoint-Computer -Description &#39;before tuning&#39;</code> (ต้องเปิด System Protection)</td></tr>
+<tr><td>ค่า registry/power</td><td><code>.\Level51Tune.ps1 backup</code></td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-18">สรุป</h2>
+<ol>
+<li>บนเครื่องนี้ ฮาร์ดแวร์และความร้อนคือคอขวด ไม่ใช่การตั้งค่า Windows</li>
+<li>สิ่งที่ได้ผลที่สุดเรียงตามลำดับ: ทำความสะอาด → เปลี่ยน paste → undervolt → จำกัด fps → fan curve</li>
+<li>BIOS: ตั้งแค่ค่าพื้นฐาน อย่าแฟลชมอด</li>
+<li>วัดผลแบบมีระเบียบวิธี ไม่งั้นตัวเลขหลอกคุณ</li>
+<li>1% low และ frametime สำคัญกว่า avg fps</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="10-WINDOWS-และ-SERVICES.html">&larr; Windows, services และ debloat</a><a class="pager-next" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

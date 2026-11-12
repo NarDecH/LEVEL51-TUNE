@@ -1,0 +1,191 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จูน CPU เชิงลึก (Core i9-9900K) · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item active" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">จูน CPU เชิงลึก (Core i9-9900K)</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ซีพียูในเครื่องนี้คืออะไร</a></li>
+<li><a href="#sec-3">โมเดลการจัดการพลังงานที่ต้องเข้าใจก่อน</a></li>
+<li><a href="#sec-8">ตาราง tweaks ของโปรเจกต์ที่เกี่ยวกับ CPU</a></li>
+<li><a href="#sec-10">ค่าที่ควรตั้งใน BIOS (ไม่ใช่ใน Windows)</a></li>
+<li><a href="#sec-11">Undervolt — ทางที่ได้ผลที่สุดแต่โปรแกรมนี้ไม่ทำ</a></li>
+<li><a href="#sec-12">VBS / Memory Integrity — tradeoff ที่ต้องเลือก</a></li>
+<li><a href="#sec-13">วิธีวัดผล CPU อย่างมีความหมาย</a></li>
+<li><a href="#sec-14">อาการที่บอกว่า CPU กำลัง throttling</a></li>
+<li><a href="#sec-15">สรุปสำหรับเครื่องนี้</a></li>
+</ol></nav>
+<h2 id="sec-2">ซีพียูในเครื่องนี้คืออะไร</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>คุณสมบัติ</th><th>ค่า</th></tr></thead>
+<tbody>
+<tr><td>รุ่น</td><td>Intel Core i9-9900K (Coffee Lake Refresh)</td></tr>
+<tr><td>Cores / Threads</td><td>8 / 16 (Hyper-Threading เปิด)</td></tr>
+<tr><td>Base clock</td><td>3.6 GHz</td></tr>
+<tr><td>Max Turbo</td><td>5.0 GHz (single core, TVB)</td></tr>
+<tr><td>All-core Turbo</td><td>~4.7 GHz (ขึ้นกับ power/thermal budget)</td></tr>
+<tr><td>L3 cache</td><td>16 MB</td></tr>
+<tr><td>TDP</td><td>95 W (PL1), PL2 สูงถึง ~210 W ที่ค่าสต็อก</td></tr>
+<tr><td>Tjmax</td><td>100 &#176;C</td></tr>
+<tr><td>Socket</td><td>LGA1151 v2 — เป็นซีพียู <strong>เดสก์ท็อป</strong> ที่ใส่ในบอดี้โน้ตบุ๊ก</td></tr>
+<tr><td>หน่วยความจำ</td><td>DDR4-2666 (บัสที่รองรับอย่างเป็นทางการ)</td></tr>
+</tbody>
+</table></div>
+<p>การที่เครื่อง N95TP6 ใส่ซีพียูเดสก์ท็อป 95W ในบอดี้โน้ตบุ๊กคือหัวใจของทุกอย่างในเอกสารนี้: <strong>ศักยภาพสูง แต่ขีดจำกัดความร้อนต่ำ</strong> ซอฟต์แวร์จึงไม่ใช่คอขวดหลัก — ระบบระบายความร้อนและการจ่ายไฟคือคอขวด</p>
+<h2 id="sec-3">โมเดลการจัดการพลังงานที่ต้องเข้าใจก่อน</h2>
+<p>Windows และซีพียูคุยกันผ่านกลไกหลายชั้น ถ้าไม่เข้าใจชั้นเหล่านี้ การตั้งค่าจะขัดกันเอง</p>
+<h3 id="sec-4">P-State (Performance State)</h3>
+<p>สถานะความถี่/ไฟของคอร์ ตั้งแต่ P0 (เร็วสุด) ลงไปถึง Pn (ช้าสุด) Windows ไม่ได้สั่ง P-state ตรง ๆ อีกต่อไป แต่บอก &quot;ความต้องการ&quot; ผ่าน:</p>
+<ul>
+<li><strong>PROCTHROTTLEMIN / PROCTHROTTLEMAX</strong> — เพดานล่าง/บนของ state เป็นเปอร์เซ็นต์ ตัวควบคุมจะแปลงเป็นความถี่</li>
+<li><strong>PERFEPP (Energy Performance Preference)</strong> — ค่า 0-100 ที่ใช้กับ Intel Speed Shift (HWP) 0 = เน้นประสิทธิภาพ, 100 = เน้นประหยัด</li>
+<li><strong>PERFBOOSTMODE</strong> — อนุญาตให้เกิน base clock (Turbo) หรือไม่ และ aggressive แค่ไหน</li>
+</ul>
+<h3 id="sec-5">C-State (Core/package idle state)</h3>
+<p>C0 = ทำงาน, C1 = halt, C3/C6 = deeper sleep, C7+ = package deep sleep ยิ่งลึกยิ่งประหยัดแต่ <strong>wake latency สูงขึ้น</strong> (C6 ~ 100 &#181;s, C7 ~ 200-400 &#181;s)</p>
+<p><code>power.cpu.idle-disable</code> (IDLEDISABLE=1) ปิดการเข้า C-state นอก C0/C1 → latency ต่ำสุด แต่ idle power พุ่ง 20-40 W บนซีพียูนี้ (เทียบเท่าเปิดหลอดไฟ 24 ชั่วโมง)</p>
+<h3 id="sec-6">Core Parking</h3>
+<p>Windows อาจ &quot;จอด&quot; คอร์ที่ไม่ได้ใช้ (unpark latency หลักมิลลิวินาที) <code>CPMINCORES=100</code> บังคับให้ทุกคอร์ตื่นตลอด</p>
+<p>บน i9-9900K ที่มี 8 คอร์ การปิด parking ให้ผลชัดกับเกมที่ scale ได้ถึง 8 thread แต่เพิ่มความร้อนเพราะทุกคอร์มีไฟเลี้ยง</p>
+<h3 id="sec-7">Timer resolution และ coalescing</h3>
+<p>Windows รวม timer interrupt เพื่อประหยัดไฟ (timer coalescing) ทำให้ความละเอียดของ timer ลดจาก 1 ms เหลือ 15.6 ms ในบางสถานการณ์ <code>bcdedit /set disabledynamictick yes</code> ปิด dynamic tick ที่ทำให้เกิดการรวมนี้ — เป็น tweak ระดับ High ที่มีทั้งประโยชน์ (จูน audio/real-time) และโทษ (กินไฟ, ไดรเวอร์บางตัวเพี้ยน)</p>
+<h2 id="sec-8">ตาราง tweaks ของโปรเจกต์ที่เกี่ยวกับ CPU</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>กลไก</th><th>โปรไฟล์</th><th>ผลที่วัดได้โดยประมาณ</th></tr></thead>
+<tbody>
+<tr><td><code>power.cpu.min50</code></td><td>PROCTHROTTLEMIN AC=50</td><td>performance, gaming</td><td>ลด P-state switching, jitter นิ่งขึ้น</td></tr>
+<tr><td><code>power.cpu.min100</code></td><td>PROCTHROTTLEMIN AC=100</td><td>max</td><td>ไม่มี downclock, latency ต่ำสุด, +15-30 W idle</td></tr>
+<tr><td><code>power.cpu.max100</code></td><td>PROCTHROTTLEMAX AC/DC=100</td><td>performance, gaming, max</td><td>ปลดล็อกเพดานบน (สำคัญตอนใช้แบต)</td></tr>
+<tr><td><code>power.cpu.boost-enabled</code></td><td>PERFBOOSTMODE=1</td><td>performance, gaming</td><td>Turbo ทำงานปกติ</td></tr>
+<tr><td><code>power.cpu.boost-aggressive</code></td><td>PERFBOOSTMODE=2</td><td>max</td><td>ขึ้น boost ทันที, กินไฟพุ่ง</td></tr>
+<tr><td><code>power.cpu.epp-performance</code></td><td>PERFEPP=25</td><td>performance, gaming</td><td>CPU เลือกความถี่สูงไวขึ้น</td></tr>
+<tr><td><code>power.cpu.epp-max</code></td><td>PERFEPP=0</td><td>max</td><td>ความถี่สูงสุดตลอด</td></tr>
+<tr><td><code>power.cpu.cooling-active</code></td><td>SYSCOOLPOL=1</td><td>performance, gaming, max</td><td>พัดลมนำ, clock ไม่ถูกตัดก่อนเวลา</td></tr>
+<tr><td><code>power.cpu.coreparking-off</code></td><td>CPMINCORES=100</td><td>gaming, max</td><td>ตัด wake latency ของคอร์</td></tr>
+<tr><td><code>power.cpu.thresholds</code></td><td>PERFINCTHRESHOLD=30</td><td>performance, gaming, max</td><td>ตอบสนองงาน burst ไวขึ้น</td></tr>
+<tr><td><code>power.cpu.idle-disable</code> (High)</td><td>IDLEDISABLE=1</td><td>max</td><td>latency ต่ำสุด, ร้อน/กินไฟมาก</td></tr>
+<tr><td><code>mem.priority-separation</code></td><td>Win32PrioritySeparation=38</td><td>performance, gaming, max</td><td>foreground ได้ timeslice มากกว่า</td></tr>
+<tr><td><code>win.bcd-dynamictick</code> (High)</td><td>disabledynamictick</td><td>max</td><td>timer jitter ต่ำลง</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-9">อธิบาย Win32PrioritySeparation=38</h3>
+<p>ค่านี้ไม่ใช่ &quot;ตัวเลขวิเศษ&quot; แต่เป็น bit field:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Bit</th><th>ความหมาย</th><th>ค่า 38 (0x26)</th></tr></thead>
+<tbody>
+<tr><td>5:4</td><td>Quantum type</td><td><code>10</code> = variable (สั้น/ยาวสลับตาม foreground)</td></tr>
+<tr><td>3:2</td><td>Quantum length</td><td><code>01</code> = สั้น (เหมาะกับ interactive)</td></tr>
+<tr><td>1:0</td><td>Foreground boost</td><td><code>10</code> = 3:1 (foreground ได้เวลา CPU 3 เท่า)</td></tr>
+</tbody>
+</table></div>
+<p>ค่าเริ่มต้นของ Windows คือ <code>2</code> (0x02) ซึ่ง boost แค่ 2:1 และ quantum ปกติ ถ้าเครื่องนี้ใช้ทำงาน batch/เรนเดอร์เป็นหลัก ให้ลอง <code>26</code> (0x1A) ซึ่งเป็น quantum แบบ fixed-long</p>
+<h2 id="sec-10">ค่าที่ควรตั้งใน BIOS (ไม่ใช่ใน Windows)</h2>
+<p>เข้าหน้า BIOS ด้วย <code>Del</code> หรือ <code>F2</code> ตอนบูต (AMI 1.07.11 บนเครื่องนี้) รายการที่ควรตรวจ:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ค่าที่แนะนำ</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>Intel SpeedStep (EIST)</td><td>Enabled</td><td>ปล่อยให้ OS คุม P-state</td></tr>
+<tr><td>Turbo Mode</td><td>Enabled</td><td>จำเป็นสำหรับ 5.0 GHz</td></tr>
+<tr><td>C-States (C1E/C3/C6/C7)</td><td>Enabled</td><td>ให้ OS คุมผ่าน power plan แทนการปิดใน BIOS</td></tr>
+<tr><td>Hyper-Threading</td><td>Enabled</td><td>16 thread มีประโยชน์กับงาน multi-thread</td></tr>
+<tr><td>XMP / DRAM Profile</td><td>Profile 1 (ถ้าแรมรองรับ)</td><td>DDR4-2666+ ให้ bandwidth มากขึ้น</td></tr>
+<tr><td>VT-d / VT-x</td><td>ตามการใช้งาน</td><td>เปิดถ้าใช้ VM/WSL2 (แต่ VBS มีผลต่อประสิทธิภาพ)</td></tr>
+<tr><td>Fan control</td><td>Performance mode</td><td>สำคัญที่สุดสำหรับเครื่องนี้</td></tr>
+<tr><td>Power limit (PL1/PL2)</td><td>ตามค่า EC ของเครื่อง</td><td>ถ้าปรับได้ ให้ PL1 ~65-75 W จะเย็นกว่าโดยเสีย performance ไม่มาก</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>เครื่อง Clevo มักซ่อนตัวเลือก fan curve และ power limit ไว้ในเมนูซ่อน หรือให้ปรับผ่านซอฟต์แวร์ของผู้ผลิต (Control Center) ถ้าหาไม่เจอ ไม่ต้องพยายามแฟลช BIOS ดัดแปลง — ความเสี่ยงสูงเกินกว่าประโยชน์</p>
+</blockquote>
+<h2 id="sec-11">Undervolt — ทางที่ได้ผลที่สุดแต่โปรแกรมนี้ไม่ทำ</h2>
+<p>i9-9900K ที่ -100 mV โดยทั่วไปจะเย็นลง 5-10 &#176;C และได้ all-core clock สูงขึ้น เพราะ PL/thermal budget เหลือมากกว่าเดิม นี่คือ tweak ที่คุ้มที่สุดสำหรับเครื่องนี้ แต่ต้องทำด้วยมือ:</p>
+<ol>
+<li>ติดตั้ง <strong>Intel XTU</strong> (ง่าย, มี GUI) หรือ <strong>ThrottleStop</strong> (ละเอียดกว่า, ไม่ต้องติดตั้ง)</li>
+<li>ลด <strong>Core Voltage Offset</strong> ทีละ -25 mV: -25 → -50 → -75 → -100 → -125</li>
+<li>ทดสอบเสถียรภาพทุกขั้นด้วย Prime95 Small FFT 15 นาที + Cinebench R23 loop 3 รอบ</li>
+<li>ถ้าเจอ WHEA error, จอฟ้า, หรือโปรแกรม crash → ถอยกลับ 25 mV</li>
+<li>บันทึกค่าที่เสถียรและตั้งให้โหลดตอนบูต (ThrottleStop: Task Scheduler)</li>
+</ol>
+<p><strong>ข้อควรระวัง</strong>: undervolt มากเกินไปทำให้เกิด &quot;silent corruption&quot; — เครื่องไม่ crash แต่ผลลัพธ์คำนวณผิด ถ้าใช้งานสำคัญ ให้ทดสอบด้วย OCCT หรือ y-cruncher นานขึ้น</p>
+<h2 id="sec-12">VBS / Memory Integrity — tradeoff ที่ต้องเลือก</h2>
+<p>Core Isolation (HVCI) และ Virtualization-Based Security เปิดโดย default บน Windows 11 และกินประสิทธิภาพ 5-15% ในเกมบางตัว (โดยเฉพาะที่เรียก syscall ถี่) การปิดเป็นทางเลือกส่วนตัว:</p>
+<pre><code>Windows Security → Device security → Core isolation → Memory integrity = Off</code></pre>
+<p>หลังจากปิด ต้อง reboot และ <strong>ลดความปลอดภัยลงจริง</strong> — โปรแกรมนี้ไม่ปิดให้ เพราะเป็นการตัดสินใจเชิงนโยบาย ไม่ใช่การจูน</p>
+<h2 id="sec-13">วิธีวัดผล CPU อย่างมีความหมาย</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>เครื่องมือ</th><th>วัดอะไร</th><th>วิธีอ่าน</th></tr></thead>
+<tbody>
+<tr><td><code>.\Level51Tune.ps1 bench</code></td><td>SHA-256 throughput 1 thread / ทุก thread</td><td><code>efficiency</code> ต่ำกว่า ~65% ของ physical cores = ถูกจำกัดพลังงานหรือความร้อน</td></tr>
+<tr><td>Cinebench R23</td><td>คะแนนมาตรฐานเทียบกับคนอื่นได้</td><td>9900K สต็อกในเคสปกติ ~12,000-12,500 multi / ~1,250 single; ในโน้ตบุ๊กจะต่ำกว่า</td></tr>
+<tr><td>HWiNFO64</td><td>clock จริง, package power, อุณหภูมิ, throttle reason</td><td>ดู <code>Core Effective Clocks</code>, <code>CPU Package Power</code>, <code>Thermal Throttling</code></td></tr>
+<tr><td>LatencyMon</td><td>DPC/ISR latency</td><td>ค่า &lt; 500 &#181;s ถือว่าดี, &gt; 1000 &#181;s ทำให้เสียง/เฟรมสะดุด</td></tr>
+<tr><td>Task Manager → Performance</td><td>ภาพรวมเร็ว ๆ</td><td>ดู &quot;Speed&quot; ว่าแตะ 4.7 GHz ได้จริงไหม</td></tr>
+</tbody>
+</table></div>
+<p>ลำดับการทดสอบที่แนะนำ:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label before -Seconds 5
+# ... apply profile ...
+# reboot ถ้ามี tweak ที่ต้อง reboot
+Start-Sleep -Seconds 120      # ให้เครื่องเย็นลงก่อนวัด (สำคัญมาก)
+.\Level51Tune.ps1 bench -Label after -Seconds 5
+.\Level51Tune.ps1 compare</code></pre>
+<p><code>bench</code> ใช้ SHA-256 hash บัฟเฟอร์ 4 MB ซ้ำ ๆ เป็นภาระงาน ตัวเลขที่ได้จึงเป็น MB/s ของซีพียูจริง (448 MB/s = 1 thread, ~2,700 MB/s = 8 thread บนเครื่องนี้) ถ้าใช้ลูปคำนวณใน PowerShell เอง ผลจะสะท้อนความเร็วของ interpreter มากกว่าซีพียู</p>
+<blockquote>
+<p><strong>ทำไมต้องรอให้เย็น</strong>: ถ้าวัด &quot;after&quot; ทันทีหลัง apply ขณะเครื่องยังร้อนจากงานก่อนหน้า ตัวเลขจะต่ำกว่า &quot;before&quot; ทั้งที่การตั้งค่าดีกว่า — thermal state มีผลมากกว่าการตั้งค่าซอฟต์แวร์เกือบทั้งหมดบนเครื่องนี้</p>
+</blockquote>
+<h2 id="sec-14">อาการที่บอกว่า CPU กำลัง throttling</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>ตรวจด้วย</th><th>แก้</th></tr></thead>
+<tbody>
+<tr><td>clock ตกจาก 4.7 เหลือ 2.4 GHz หลังจากเล่นเกม 5 นาที</td><td>HWiNFO <code>Thermal Throttling = Yes</code></td><td>ทำความสะอาดพัดลม, เปลี่ยน thermal paste, ลด PL ใน BIOS</td></tr>
+<tr><td>multi-thread scaling ต่ำกว่า 60%</td><td><code>bench</code></td><td>เช็คความร้อนก่อน อย่างอื่นทีหลัง</td></tr>
+<tr><td>เครื่องดับเองตอนโหลดหนัก</td><td>Event Viewer → Kernel-Power 41</td><td>ระบบจ่ายไฟ/ระบายความร้อนไม่พอ — หยุดใช้โปรไฟล์ max</td></tr>
+<tr><td>เสียงพัดลมดังตลอดเวลา</td><td><code>status</code> ดูอุณหภูมิ</td><td>เปลี่ยน cooling policy เป็น passive หรือใช้โปรไฟล์ balanced</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-15">สรุปสำหรับเครื่องนี้</h2>
+<ol>
+<li>เริ่มจาก <code>performance</code> — ได้ประโยชน์จริงโดยไม่ทำให้ร้อนเกิน</li>
+<li>ถ้าเล่นเกมและอุณหภูมิยังต่ำกว่า 90 &#176;C ให้ใช้ <code>gaming</code></li>
+<li>อย่าใช้ <code>max</code> ค้างไว้ — ใช้เฉพาะ benchmark สั้น</li>
+<li>สิ่งที่ได้ผลที่สุดคือ <strong>undervolt + ทำความสะอาดระบบระบายความร้อน</strong> ซึ่งอยู่นอกขอบเขตโปรแกรมนี้</li>
+<li>วัดผลทุกครั้งหลังเครื่องเย็น และอย่าเชื่อตัวเลขที่ต่างกันไม่ถึง 3-5%</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="04-โปรไฟล์.html">&larr; โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a><a class="pager-next" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630) &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

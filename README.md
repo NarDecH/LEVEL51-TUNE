@@ -1,0 +1,125 @@
+# LEVEL51-TUNE
+
+ชุดเครื่องมือบรรทัดคำสั่ง (PowerShell) สำหรับ**ปรับแต่งประสิทธิภาพเชิงลึก**ของเครื่อง LEVEL51 — โน้ตบุ๊ก Clevo N95TP6 ที่ใส่ Intel Core i9-9900K, NVIDIA GTX 1060 6 GB, แรม 32 GB และ SSD NVMe 1 TB ภายใต้ Windows 11 Pro
+
+ออกแบบบนหลักการ: **วัดก่อน–วัดหลัง, สำรองก่อนทุกครั้ง, ย้อนกลับได้ด้วยคำสั่งเดียว, ไม่แตะ power plan เดิมของคุณ**
+
+## ทำอะไรได้บ้าง
+
+| หมวด | สิ่งที่ปรับ |
+|---|---|
+| **CPU / Power** | processor min/max state, Turbo boost mode, EPP (Speed Shift), core parking, cooling policy, C-state, PCIe ASPM, disk/USB/display timeouts |
+| **GPU** | Hardware-Accelerated GPU Scheduling, GameDVR, fullscreen optimization, per-app GPU preference (Optimus), NVIDIA telemetry, dynamic P-State |
+| **RAM** | Win32PrioritySeparation, LargeSystemCache, NTFS memory usage, SysMain, Prefetcher |
+| **Storage** | NTFS last-access, TRIM/8.3, defrag schedule, Windows Search indexing |
+| **Network** | NetworkThrottlingIndex, MMCSS Games priority, Nagle/delayed-ACK, TCP global tuning |
+| **Windows** | Game Mode, mouse acceleration, keyboard delay, visual effects, background apps, telemetry services, boot configuration |
+
+รวม **60 tweaks** ใน 5 โปรไฟล์ (`balanced`, `performance`, `gaming`, `max`, `battery`) พร้อมระบบสำรอง/ย้อนกลับอัตโนมัติ
+
+## เริ่มใช้งาน 60 วินาที
+
+```powershell
+git clone https://github.com/NarDecH/LEVEL51-TUNE.git
+cd LEVEL51-TUNE
+
+# 1) ดูสถานะ (ไม่ต้อง admin)
+.\Level51Tune.ps1 status
+
+# 2) วัดผลก่อน
+.\Level51Tune.ps1 bench -Label before
+
+# 3) ทดลองก่อน ไม่แก้อะไร
+.\Level51Tune.ps1 apply -Profile gaming -DryRun
+
+# 4) apply จริง
+.\Level51Tune.ps1 apply -Profile gaming -Elevate
+
+# 5) วัดผลหลัง + เทียบ
+.\Level51Tune.ps1 bench -Label after
+.\Level51Tune.ps1 compare
+
+# ถ้าไม่ชอบอะไร
+.\Level51Tune.ps1 restore
+```
+
+## โปรไฟล์
+
+| โปรไฟล์ | เหมาะกับ | แลกกับ |
+|---|---|---|
+| `balanced` | ใช้งานทั่วไป | แทบไม่มี |
+| `performance` | งานประจำวัน, เรนเดอร์สั้น | กินไฟขึ้นเล็กน้อย |
+| `gaming` | เกม, latency ต่ำ | ความร้อน, ปิดฟีเจอร์ Windows บางอย่าง |
+| `max` | benchmark, burst สั้น ๆ | ร้อนมาก — ไม่ควรใช้ค้าง |
+| `battery` | ใช้แบต | ประสิทธิภาพลดลง |
+
+## ความปลอดภัย
+
+- ทุก `apply` สร้าง backup JSON ที่บรรจุค่าก่อนหน้าทุกตัว ไว้ใน `backups/`
+- `restore` คืนค่า power/registry/services ได้ 100% และลบ power scheme ที่สร้าง
+- โปรไฟล์ `max` มี tweaks ความเสี่ยงสูง 4 รายการที่ต้องเปิดด้วย `-Include high` เอง
+- ไม่แตะ BIOS, ไม่ติดตั้งไดรเวอร์, ไม่ปิด Windows Update/Defender, ไม่ดาวน์โหลดอะไรจากอินเทอร์เน็ต
+
+## เอกสาร
+
+เอกสารภาษาไทยฉบับเต็ม 13 บท อยู่ใน [`docs/`](docs/index.html) — เปิดด้วย
+
+```powershell
+.\Level51Tune.ps1 docs -Open
+```
+
+| บท | เนื้อหา |
+|---|---|
+| [01](docs/01-ภาพรวม.md) | ภาพรวมและปรัชญาการจูน |
+| [02](docs/02-เริ่มต้นใช้งาน.md) | ติดตั้งและเริ่มต้นใช้งาน |
+| [03](docs/03-คำสั่ง-CLI.md) | คู่มือคำสั่ง CLI |
+| [04](docs/04-โปรไฟล์.md) | โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน |
+| [05](docs/05-CPU.md) | จูน CPU เชิงลึก |
+| [06](docs/06-GPU.md) | จูน GPU (Optimus) |
+| [07](docs/07-POWER.md) | พลังงาน แบต และความร้อน |
+| [08](docs/08-RAM-STORAGE.md) | RAM และ Storage |
+| [09](docs/09-NETWORK.md) | เครือข่ายและ latency |
+| [10](docs/10-WINDOWS-และ-SERVICES.md) | Windows, services, debloat |
+| [11](docs/11-เชิงลึก-BIOS-และฮาร์ดแวร์.md) | BIOS, ฮาร์ดแวร์, การวัดผล |
+| [12](docs/12-ความปลอดภัย-ย้อนกลับ.md) | ความปลอดภัยและการย้อนกลับ |
+| [13](docs/13-ผลตรวจเครื่องนี้.md) | ผลตรวจเครื่อง LEVEL51 (ค่าจริง) |
+| [14](docs/14-แก้ปัญหา-FAQ.md) | แก้ปัญหาและ FAQ |
+
+## โครงสร้างโปรเจกต์
+
+```
+Level51Tune.ps1              CLI entry point
+src/Level51Tune.psm1         engine (detect, backup, apply, restore, audit, status, docs)
+src/Catalog.ps1              นิยาม tweaks 60 รายการ (declarative)
+src/Markdown.ps1             markdown → HTML renderer
+src/Bench.ps1                micro-benchmark + history + compare
+docs/                        เอกสาร .md (ต้นฉบับ) และ .html (สร้างอัตโนมัติ)
+tools/Build-Docs.ps1         สร้าง docs/*.html
+tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง admin, ไม่แก้ระบบ)
+```
+
+## ทดสอบ
+
+```powershell
+.\tests\Test-Level51Tune.ps1
+```
+
+ตรวจ schema ของแค็ตตาล็อก, markdown renderer, docs build และ dry-run apply ทุกโปรไฟล์ (ไม่ต้องใช้สิทธิ์ admin และไม่เปลี่ยนแปลงระบบ)
+
+## ความต้องการของระบบ
+
+- Windows 10 21H2+ หรือ Windows 11
+- PowerShell 5.1 (built-in) หรือ PowerShell 7+
+- Administrator สำหรับ `apply` / `restore` / `backup`
+- ไม่ต้องติดตั้งโมดูลเพิ่มเติม
+
+## ข้อจำกัดที่ควรรู้
+
+- เครื่องมือนี้ปรับ **ซอฟต์แวร์** เท่านั้น — ไม่ undervolt/overclock และไม่แฟลช BIOS
+- บน N95TP6 ความร้อนเป็นคอขวดจริง การตั้งค่าที่ดีที่สุดคือ `performance`/`gaming` ไม่ใช่ `max`
+- micro-benchmark มี noise ±3-5% — ตัวเลขที่ต่างน้อยกว่านั้นไม่มีความหมาย
+- tweaks ประเภท Script (fsutil/netsh/bcdedit) ต้องคืนค่าด้วยมือ (มีคำสั่งใน docs/12)
+
+## License
+
+MIT © 2026 NarDecH

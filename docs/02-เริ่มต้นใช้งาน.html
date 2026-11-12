@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ติดตั้งและเริ่มต้นใช้งาน · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item active" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">ติดตั้งและเริ่มต้นใช้งาน</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">สิ่งที่ต้องมี</a></li>
+<li><a href="#sec-3">ขั้นตอนที่ 1: ได้ไฟล์โปรเจกต์</a></li>
+<li><a href="#sec-4">ขั้นตอนที่ 2: ปลดล็อกสคริปต์ (ถ้าจำเป็น)</a></li>
+<li><a href="#sec-5">ขั้นตอนที่ 3: ตรวจสถานะก่อนแตะอะไร</a></li>
+<li><a href="#sec-6">ขั้นตอนที่ 4: วัดผลก่อน (สำคัญที่สุด)</a></li>
+<li><a href="#sec-7">ขั้นตอนที่ 5: ทดลองก่อนด้วย DryRun</a></li>
+<li><a href="#sec-8">ขั้นตอนที่ 6: Apply จริง</a></li>
+<li><a href="#sec-9">ขั้นตอนที่ 7: วัดผลหลัง และเปรียบเทียบ</a></li>
+<li><a href="#sec-10">โครงสร้างไฟล์ที่โปรแกรมสร้าง</a></li>
+<li><a href="#sec-11">คำสั่งที่ใช้บ่อย</a></li>
+<li><a href="#sec-12">ถ้าติดปัญหา</a></li>
+</ol></nav>
+<h2 id="sec-2">สิ่งที่ต้องมี</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ข้อกำหนด</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td>ระบบปฏิบัติการ</td><td>Windows 10 21H2+ หรือ Windows 11</td><td>ตรวจด้วย <code>winver</code></td></tr>
+<tr><td>PowerShell</td><td>5.1 (มีมาในเครื่อง) หรือ 7.x</td><td>ทั้งสองเวอร์ชันรองรับ</td></tr>
+<tr><td>สิทธิ์</td><td>Administrator สำหรับ <code>apply</code> / <code>restore</code> / <code>backup</code></td><td><code>status</code>, <code>audit</code>, <code>bench</code>, <code>docs</code> ไม่ต้องใช้</td></tr>
+<tr><td>ดิสก์ว่าง</td><td>~500 MB</td><td>สำหรับ benchmark ชั่วคราว 256 MB + backups</td></tr>
+<tr><td>โมดูลภายนอก</td><td>ไม่ต้องมี</td><td>ไม่ต้องติดตั้ง Pester/PSFramework ใด ๆ</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">ขั้นตอนที่ 1: ได้ไฟล์โปรเจกต์</h2>
+<p>ถ้าโคลนจาก GitHub:</p>
+<pre><code class="lang-powershell">cd C:\_Project
+git clone https://github.com/NarDecH/LEVEL51-TUNE.git
+cd LEVEL51-TUNE</code></pre>
+<p>ถ้ามีโฟลเดอร์อยู่แล้วให้เข้าไปที่รากของโปรเจกต์ (ที่มีไฟล์ <code>Level51Tune.ps1</code>)</p>
+<h2 id="sec-4">ขั้นตอนที่ 2: ปลดล็อกสคริปต์ (ถ้าจำเป็น)</h2>
+<p>Windows อาจบล็อกสคริปต์ที่ดาวน์โหลดมา ถ้ารันแล้วขึ้น &quot;cannot be loaded because running scripts is disabled&quot; ให้เลือกวิธีใดวิธีหนึ่ง:</p>
+<pre><code class="lang-powershell"># วิธีที่ปลอดภัยที่สุด: ปลดล็อกเฉพาะไฟล์ที่ดาวน์โหลดมา
+Get-ChildItem -Recurse -Include *.ps1,*.psm1 | Unblock-File
+
+# หรืออนุญาตเฉพาะ PowerShell ที่เปิดอยู่ในขณะนี้ (ไม่เปลี่ยนค่าระบบถาวร)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
+<p>ไม่แนะนำ <code>Set-ExecutionPolicy Unrestricted -Scope LocalMachine</code> — เปลี่ยนนโยบายทั้งเครื่องโดยไม่จำเป็น</p>
+<h2 id="sec-5">ขั้นตอนที่ 3: ตรวจสถานะก่อนแตะอะไร</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 status</code></pre>
+<p>ผลลัพธ์จริงจากเครื่อง LEVEL51 (ตัดมาบางส่วน):</p>
+<pre><code>  LEVEL51-TUNE :: สถานะระบบ
+  ------------------------------------------------------------------------
+  เครื่อง      : LEVEL51  (Notebook N95TP6)
+  ระบบปฏิบัติการ: Microsoft Windows 11 Pro build 26200  [64-bit]
+  CPU          : Intel(R) Core(TM) i9-9900K CPU @ 3.60GHz
+                 8 cores / 16 threads &#183; L3 16 MB &#183; base 3600 MHz
+  RAM          : 32.6 GB (ว่าง 30.1 GB)
+  GPU          : NVIDIA GeForce GTX 1060  driver 582.78
+                 164 MHz core / 4006 MHz mem &#183; 49&#176;C &#183; 1% &#183; 23.91 W &#183; VRAM 0/6144 MB
+  GPU          : Intel(R) UHD Graphics 630  driver 31.0.101.2145
+  Disk         : Samsung SSD 990 EVO Plus 1TB &#183; 932 GB &#183; NVMe &#183; Healthy
+  แบตเตอรี่    : 100%
+  Admin        : False   &#183;  uptime 9.7 ชั่วโมง</code></pre>
+<p>จุดที่ต้องสังเกต: <code>Admin: False</code> หมายความว่ายัง apply ไม่ได้ (จะขึ้น error บอกให้รันแบบ administrator)</p>
+<h2 id="sec-6">ขั้นตอนที่ 4: วัดผลก่อน (สำคัญที่สุด)</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label before</code></pre>
+<p>ใช้เวลาราว 15-25 วินาที (CPU 2 รอบ &#215; 3 วินาที, RAM copy, ดิสก์เขียน/อ่าน 256 MB) ผลจะถูกเพิ่มใน <code>benchmarks/history.jsonl</code></p>
+<pre><code>  CPU 1 thread   :        447 MB/s
+  CPU 16 threads :      2,964 MB/s  (efficiency 83% ของ 8 physical cores)
+  Memory copy    :      4,949 MB/s
+  Disk write     :      1,213 MB/s
+  Disk read      :      4,208 MB/s  (อาจได้จาก cache)</code></pre>
+<p><code>CPU ... MB/s</code> คือ throughput ของ SHA-256 บนบัฟเฟอร์ 4 MB — เลือกงานนี้เพราะงานหนักอยู่ใน native code ผลจึงสะท้อนความเร็วซีพียูจริง ไม่ใช่ความเร็วของ PowerShell เอง</p>
+<p><code>efficiency %</code> คือ (throughput ทุก thread &#247; throughput 1 thread &#247; จำนวน <strong>physical</strong> cores) &#215; 100 — ใช้ physical cores เพราะ Hyper-Threading ไม่เพิ่ม throughput เต็ม 100% ค่า 100% = สเกลได้สมบูรณ์ เครื่องนี้ได้ ~83% ซึ่งปกติ; ถ้าต่ำกว่า ~65% มักหมายถึงเครื่องถูกจำกัดพลังงานหรือความร้อน</p>
+<p>ตัวเลขเหล่านี้ไม่ใช่คะแนนมาตรฐานสากล (ไม่เทียบกับ Cinebench ได้) แต่มีประโยชน์มากในการเทียบ <strong>เครื่องเดียวกัน ก่อนกับหลัง</strong></p>
+<h2 id="sec-7">ขั้นตอนที่ 5: ทดลองก่อนด้วย DryRun</h2>
+<p>DryRun จะเดินทุกขั้นตอนเหมือนจริง แต่ไม่สั่งอะไรที่เปลี่ยนแปลงระบบ — ปลอดภัยแม้ไม่มีสิทธิ์ admin</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -DryRun</code></pre>
+<p>จะเห็นรายการทั้งหมดพร้อมคำสั่งที่จะรัน เช่น</p>
+<pre><code>  [*] โปรไฟล์: เกมมิ่ง (latency ต่ำ) (gaming)
+  1/24 power.cpu.min50                                  OK
+      powercfg setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 50 + ...
+  2/24 gpu.hags                                         OK
+      set HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\HwSchMode = 2 (DWord)</code></pre>
+<h2 id="sec-8">ขั้นตอนที่ 6: Apply จริง</h2>
+<pre><code class="lang-powershell"># เปิด PowerShell แบบ Administrator ก่อน แล้วรัน:
+.\Level51Tune.ps1 apply -Profile gaming</code></pre>
+<p>หรือให้โปรแกรมขอ UAC เอง:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -Elevate</code></pre>
+<p>ลำดับที่โปรแกรมทำ:</p>
+<ol>
+<li>ตรวจสิทธิ์ admin</li>
+<li>อ่านฮาร์ดแวร์ + power scheme ปัจจุบัน</li>
+<li><code>powercfg -duplicate</code> scheme ปัจจุบัน → scheme ใหม่ <code>LEVEL51-TUNE gaming</code></li>
+<li>บันทึก snapshot ลง <code>backups/</code></li>
+<li>apply ทีละ tweak พร้อมรายงาน OK / WARN / SKIP / FAIL</li>
+<li><code>powercfg -setactive</code> scheme ใหม่</li>
+<li>เขียน <code>state/last.json</code> (จำว่าใช้อะไรอยู่ เพื่อไม่สร้าง scheme ซ้ำซ้อน)</li>
+</ol>
+<p>ตัวอย่างท้ายการทำงาน:</p>
+<pre><code>  [+] เสร็จสิ้น: 23 สำเร็จ, 0 มีปัญหา, 1 ข้าม
+  [!] ข้าม tweaks เสี่ยงสูง 1 รายการ (ใช้ -Include high เพื่อเปิด): power.cpu.idle-disable
+  [i] ย้อนกลับด้วย: .\Level51Tune.ps1 restore -BackupPath &#39;C:\_Project\LEVEL51-TUNE\backups\20261112-153012_apply-gaming.json&#39;
+  [!] มี tweaks ที่ต้อง restart จึงจะมีผลเต็มที่</code></pre>
+<h2 id="sec-9">ขั้นตอนที่ 7: วัดผลหลัง และเปรียบเทียบ</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label after
+.\Level51Tune.ps1 compare</code></pre>
+<pre><code>  before  -&gt;  after
+   CPU 1 thread (MB/s)         448.0 -&gt;    462.0      3.1%
+   CPU all threads (MB/s)     2666.0 -&gt;   2790.0      4.7%
+   Memory (MB/s)              4949.0 -&gt;   5010.0      1.2%
+   Disk write (MB/s)          1213.0 -&gt;   1240.0      2.2%
+   Disk read (MB/s)           4208.0 -&gt;   4290.0      1.9%</code></pre>
+<p><strong>อ่านตัวเลขให้ถูก</strong>: micro-benchmark มี noise &#177;3-5% การต่างต่ำกว่านั้นคือ &quot;ไม่ต่าง&quot; โปรไฟล์ tuning ส่วนใหญ่ไม่ได้เพิ่ม throughput ดิบ แต่ลด <strong>latency และ jitter</strong> ซึ่ง <code>bench</code> วัดไม่ได้ตรง ๆ (ต้องใช้ LatencyMon หรือ frametime graph ของเกม)</p>
+<h2 id="sec-10">โครงสร้างไฟล์ที่โปรแกรมสร้าง</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>โฟลเดอร์</th><th>เนื้อหา</th><th>อยู่ใน git ไหม</th></tr></thead>
+<tbody>
+<tr><td><code>backups/</code></td><td>snapshot JSON ก่อน apply ทุกครั้ง</td><td>ไม่ (gitignore)</td></tr>
+<tr><td><code>logs/</code></td><td>log รายวัน <code>l51-YYYYMMDD.log</code></td><td>ไม่</td></tr>
+<tr><td><code>benchmarks/</code></td><td><code>history.jsonl</code> ผลวัดทุกครั้ง</td><td>ไม่</td></tr>
+<tr><td><code>state/</code></td><td><code>last.json</code> สถานะ apply ล่าสุด</td><td>ไม่</td></tr>
+<tr><td><code>reports/</code></td><td>รายงาน markdown จาก <code>report</code></td><td>ไม่</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-11">คำสั่งที่ใช้บ่อย</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 status                  # ดูสถานะ
+.\Level51Tune.ps1 profiles                # ดูโปรไฟล์ทั้งหมด
+.\Level51Tune.ps1 audit -Profile gaming   # อะไรถูกปรับแล้วบ้าง
+.\Level51Tune.ps1 list -Category GPU      # ดู tweaks หมวด GPU
+.\Level51Tune.ps1 apply -Profile performance
+.\Level51Tune.ps1 restore                 # ย้อนกลับจาก backup ล่าสุด
+.\Level51Tune.ps1 docs -Open              # เปิดเอกสาร HTML</code></pre>
+<h2 id="sec-12">ถ้าติดปัญหา</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td><code>ไม่รู้จักคำสั่ง</code></td><td>ใช้ <code>.\Level51Tune.ps1 help</code></td></tr>
+<tr><td><code>ต้องใช้สิทธิ์ Administrator</code></td><td>เปิด PowerShell แบบ Run as administrator หรือเพิ่ม <code>-Elevate</code></td></tr>
+<tr><td>สคริปต์ถูกบล็อก</td><td><code>Unblock-File</code> ตามขั้นตอนที่ 2</td></tr>
+<tr><td>ตัวอักษรไทยใน console เพี้ยน</td><td>ใช้ Windows Terminal หรือรัน <code>chcp 65001</code> ก่อน (เฉพาะ PowerShell 5.1)</td></tr>
+<tr><td><code>powercfg</code> ปฏิเสธค่า (WARN)</td><td>ค่านั้นถูกซ่อนอยู่ — apply โปรไฟล์ที่มี <code>win.unhide-power-settings</code> ก่อน</td></tr>
+</tbody>
+</table></div>
+<p>ดูเพิ่มเติมที่ <a href="14-แก้ปัญหา-FAQ.md">แก้ปัญหาและคำถามที่พบบ่อย</a></p>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="01-ภาพรวม.html">&larr; ภาพรวมโปรเจกต์และปรัชญาการจูน</a><a class="pager-next" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

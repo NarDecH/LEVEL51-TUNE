@@ -1,0 +1,226 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAM และ Storage · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item active" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">RAM และ Storage</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">หน่วยความจำในเครื่องนี้</a></li>
+<li><a href="#sec-7">tweaks ของโปรเจกต์ที่เกี่ยวกับ RAM</a></li>
+<li><a href="#sec-9">Storage: Samsung 990 EVO Plus 1 TB NVMe</a></li>
+<li><a href="#sec-14">ดิสก์ USB ภายนอก</a></li>
+<li><a href="#sec-15">Indexing (Windows Search)</a></li>
+<li><a href="#sec-16">พื้นที่ดิสก์</a></li>
+<li><a href="#sec-17">tweaks ประเภท Script ที่เกี่ยวกับ Storage</a></li>
+<li><a href="#sec-18">ตรวจสอบผลด้วย bench</a></li>
+<li><a href="#sec-19">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">หน่วยความจำในเครื่องนี้</h2>
+<pre><code>RAM : 32.6 GB (ว่าง 30.1 GB)</code></pre>
+<p>ตรวจรายละเอียดระดับโมดูล:</p>
+<pre><code class="lang-powershell">Get-CimInstance Win32_PhysicalMemory |
+  Select-Object DeviceLocator, Capacity, Speed, ConfiguredClockSpeed, Manufacturer, PartNumber</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>Speed</code></td><td>ความเร็วที่โมดูลรองรับ (SPD/XMP)</td></tr>
+<tr><td><code>ConfiguredClockSpeed</code></td><td>ความเร็วที่ <strong>ใช้งานจริง</strong> — ถ้าต่ำกว่า Speed มาก แสดงว่า XMP ปิดอยู่</td></tr>
+<tr><td><code>DeviceLocator</code></td><td>ช่อง DIMM (DIMM0/DIMM1)</td></tr>
+<tr><td><code>PartNumber</code></td><td>รุ่นโมดูล ใช้ค้นหาสเปก</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-3">Dual channel</h3>
+<p>i9-9900K มี memory controller แบบ dual-channel ถ้าใส่แรม 2 แท่งในช่องที่ถูกต้อง (มักเป็น DIMM0 + DIMM1 หรือ A2 + B2) จะได้ bandwidth สองเท่า <strong>ตรวจให้แน่ใจว่าทำงาน dual channel</strong>:</p>
+<pre><code class="lang-powershell">Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum |
+  Select-Object Count, Sum</code></pre>
+<p>ถ้าเห็น 2 แท่งแต่ bandwidth ต่ำผิดปกติ ให้ตรวจว่าใส่ถูกช่อง (ดูคู่มือ mainboard ของ barebone) — การใส่แรมผิดช่องเป็นสาเหตุที่พบบ่อยและแก้ฟรี</p>
+<h3 id="sec-4">XMP</h3>
+<p>i9-9900K รองรับ DDR4-2666 อย่างเป็นทางการ แรมที่เร็วและมี XMP ต้องเปิด profile ใน BIOS จึงจะทำงานที่ความเร็วนั้น ถ้าเปิด XMP แล้วไม่เสถียร (จอฟ้า/timeout) ให้ลดลงหนึ่งสเต็ป หรือเพิ่มไฟ DRAM เล็กน้อย — <strong>ระวัง</strong>: เครื่อง Clevo หลายรุ่นจำกัดการเข้าถึงค่าไฟแรม</p>
+<h3 id="sec-5">Pagefile (virtual memory)</h3>
+<p>ค่าเริ่มต้น &quot;system managed&quot; เหมาะกับเกือบทุกกรณี การตั้ง manual เป็นค่านิยมที่มักให้ผลตรงข้าม:</p>
+<ul>
+<li>ถ้าตั้งเล็กเกินไป → Photoshop/VM/เกมหนักจะ crash ด้วย &quot;out of memory&quot;</li>
+<li>ถ้าปิด pagefile ทั้งหมด → crash dump ไม่ทำงาน และบางโปรแกรมปฏิเสธที่จะรัน</li>
+<li>RAM 32 GB ไม่ได้หมายความว่าไม่ต้องมี pagefile — Windows ใช้มันเป็น commit charge เสมอ</li>
+</ul>
+<p>ตรวจค่าปัจจุบัน:</p>
+<pre><code class="lang-powershell">Get-CimInstance Win32_PageFileUsage | Select-Object Name, AllocatedBaseSize, CurrentUsage, PeakUsage</code></pre>
+<p><strong>คำแนะนำ</strong>: ปล่อยเป็น system managed บน SSD NVMe ไม่ต้องย้ายไปดิสก์อื่น</p>
+<h3 id="sec-6">Memory Compression</h3>
+<p>Windows 10/11 บีบอัดหน้า memory ที่ไม่ค่อยได้ใช้แทนการเขียนลง pagefile ช่วยให้เครื่อง 32 GB รับงานได้มากกว่าที่คาด ถ้าอยากดูว่าทำงานอยู่:</p>
+<pre><code class="lang-powershell">Get-Process -Name &#39;Memory Compression&#39; -ErrorAction SilentlyContinue |
+  Select-Object Name, WorkingSet64</code></pre>
+<p>อย่าปิด Memory Compression — มีคนแนะนำให้ปิดเพราะ &quot;กิน CPU&quot; แต่ผลสุทธิคือแย่ลงในงานส่วนใหญ่</p>
+<h2 id="sec-7">tweaks ของโปรเจกต์ที่เกี่ยวกับ RAM</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ค่า</th><th>โปรไฟล์</th><th>ผล / ข้อควรระวัง</th></tr></thead>
+<tbody>
+<tr><td><code>mem.priority-separation</code></td><td><code>Win32PrioritySeparation=38</code></td><td>performance, gaming, max</td><td>foreground ได้ CPU 3:1 — ต้อง reboot</td></tr>
+<tr><td><code>mem.large-system-cache</code></td><td><code>LargeSystemCache=1</code></td><td>max</td><td>file cache มากขึ้น; ถ้าเปิด VM หลายตัวอาจแย่ลง</td></tr>
+<tr><td><code>mem.ntfs-memory-usage</code></td><td><code>NtfsMemoryUsage=2</code></td><td>max</td><td>metadata cache มากขึ้น เหมาะกับงานไฟล์จำนวนมาก</td></tr>
+<tr><td><code>mem.sysmain-off</code></td><td>Service <code>SysMain=Disabled</code></td><td>max</td><td>ลด IO พื้นหลัง; โปรแกรมเปิดช้าลงเล็กน้อย</td></tr>
+<tr><td><code>mem.prefetch-off</code></td><td><code>EnablePrefetcher=0</code></td><td>max</td><td>ลด IO; ถกเถียงกันมากบน SSD</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-8">ควรปิด SysMain จริงไหม</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ฝ่าย</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>ควรปิด</td><td>บน NVMe การ prefetch ให้ประโยชน์น้อย, service กิน RAM/CPU พื้นหลัง, บางเครื่องมีอาการ disk 100%</td></tr>
+<tr><td>ไม่ควรปิด</td><td>Windows ออกแบบมาให้ทำงานร่วมกัน; การเปิดโปรแกรมเดิมซ้ำเร็วขึ้น measurable; ปิดแล้วบายพาสกลไกที่ Microsoft ปรับมาแล้ว</td></tr>
+</tbody>
+</table></div>
+<p><strong>คำตอบที่ซื่อสัตย์</strong>: ผลขึ้นกับเครื่อง วัดด้วย <code>bench</code> และความรู้สึกจริง (เวลาเปิด Photoshop/เกม) ถ้าไม่ต่าง ให้เปิดกลับ (default) เพราะได้ประโยชน์จาก prefetch ในระยะยาว</p>
+<h2 id="sec-9">Storage: Samsung 990 EVO Plus 1 TB NVMe</h2>
+<pre><code>Samsung SSD 990 EVO Plus 1TB &#183; 932 GB &#183; NVMe &#183; Healthy</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>คุณสมบัติ</th><th>ค่า</th></tr></thead>
+<tbody>
+<tr><td>Interface</td><td>PCIe 4.0 x4 (ทำงานได้ทั้ง 4.0/5.0 ตามสล็อต)</td></tr>
+<tr><td>Sequential read</td><td>~7,250 MB/s (สเปกผู้ผลิต)</td></tr>
+<tr><td>Sequential write</td><td>~6,300 MB/s</td></tr>
+<tr><td>NAND</td><td>TLC V-NAND</td></tr>
+<tr><td>DRAM cache</td><td>มี</td></tr>
+<tr><td>Endurance</td><td>~600 TBW</td></tr>
+</tbody>
+</table></div>
+<p>หมายเหตุ: เครื่อง N95TP6 เป็นแพลตฟอร์ม Z390/CM246 ยุค 2019 ซึ่งรองรับ <strong>PCIe 3.0</strong> เท่านั้น ดังนั้น SSD นี้จะทำงานที่ ~3,500 MB/s ไม่ใช่ 7,250 — ไม่ใช่ปัญหา ไม่ใช่ของเสีย แค่เป็นเพดานของชิปเซ็ต</p>
+<h3 id="sec-10">ตรวจสุขภาพ SSD</h3>
+<pre><code class="lang-powershell">Get-PhysicalDisk | Select-Object FriendlyName, MediaType, HealthStatus, OperationalStatus
+Get-Disk | Select-Object Number, FriendlyName, HealthStatus, BusType
+Get-StorageReliabilityCounter -PhysicalDisk (Get-PhysicalDisk -FriendlyName &#39;Samsung SSD 990 EVO Plus 1TB&#39;) |
+  Select-Object Temperature, Wear, ReadErrorsTotal, WriteErrorsTotal, PowerOnHours</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>Wear</code></td><td>เปอร์เซ็นต์การสึก (0 = ใหม่, 100 = หมดอายุ)</td></tr>
+<tr><td><code>Temperature</code></td><td>อุณหภูมิ NVMe — เกิน 70 &#176;C จะ throttle</td></tr>
+<tr><td><code>PowerOnHours</code></td><td>ชั่วโมงใช้งานจริง</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-11">TRIM</h3>
+<p>TRIM บอก SSD ว่า block ไหนไม่มีข้อมูลแล้ว จำเป็นมากสำหรับประสิทธิภาพและอายุ SSD</p>
+<pre><code class="lang-powershell">fsutil behavior query DisableDeleteNotify
+# DisableDeleteNotify = 0  → TRIM เปิด (ถูกต้อง)
+# DisableDeleteNotify = 1  → TRIM ปิด (ต้องแก้)</code></pre>
+<p>ถ้าปิด: <code>fsutil behavior set DisableDeleteNotify 0</code> (ต้อง admin)</p>
+<h3 id="sec-12">Defrag vs Optimize</h3>
+<p>บน SSD Windows จะรัน &quot;Retrim&quot; ไม่ใช่ defrag จริง tweak <code>disk.defrag-task-off</code> ปิดงานตามกำหนดการ ซึ่งลด IO พื้นหลังได้ แต่ก็หยุด retrim เป็นระยะด้วย</p>
+<p><strong>คำแนะนำที่สมดุล</strong>: ปิดตามกำหนดการแล้วรัน <code>Optimize-Volume -DriveLetter C -ReTrim -Verbose</code> ด้วยมือเดือนละครั้ง หรือใช้โปรไฟล์ <code>performance</code> ซึ่งปิด task แต่ยัง trims เมื่อมีคำสั่ง</p>
+<h3 id="sec-13">ค่าที่ควรตรวจเกี่ยวกับ NTFS</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>คำสั่ง</th><th>ค่าปกติ</th><th>คำอธิบาย</th></tr></thead>
+<tbody>
+<tr><td><code>fsutil behavior query disablelastaccess</code></td><td>1</td><td>ปิด last access (Win11 default)</td></tr>
+<tr><td><code>fsutil behavior query disable8dot3</code></td><td>2 (per-volume)</td><td>สร้างชื่อ 8.3</td></tr>
+<tr><td><code>fsutil behavior query memoryusage</code></td><td>1</td><td>NTFS paged pool</td></tr>
+<tr><td><code>fsutil behavior query disabledeletenotify</code></td><td>0</td><td>TRIM เปิด</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-14">ดิสก์ USB ภายนอก</h2>
+<p>จาก <code>status</code>:</p>
+<pre><code>Seagate One Touch w/PW &#183; 4.5 TB &#183; USB &#183; Healthy</code></pre>
+<p>ข้อควรรู้:</p>
+<ul>
+<li>ดิสก์ USB จะถูกตั้งเป็น &quot;quick removal&quot; (write caching off) โดย default — ปลอดภัยกว่าแต่ช้ากว่า</li>
+<li>การเปิด write caching บนดิสก์ USB เพิ่มความเสี่ยงข้อมูลหายถ้าถอดสายผิดวิธี</li>
+<li>ถ้าใช้เป็น backup target ให้ตั้ง exclusion ใน Windows Defender เพื่อลด IO ที่ไม่จำเป็น (เฉพาะโฟลเดอร์ backup)</li>
+</ul>
+<h2 id="sec-15">Indexing (Windows Search)</h2>
+<p>tweak <code>disk.indexing-off</code> ปิด <code>WSearch</code> ซึ่งเป็นบริการที่สร้าง index สำหรับค้นหาใน Start/Explorer/Outlook</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ผล</th><th>รายละเอียด</th></tr></thead>
+<tbody>
+<tr><td>ดีขึ้น</td><td>ลด IO/CPU พื้นหลังได้ชัดโดยเฉพาะหลัง boot</td></tr>
+<tr><td>แย่ลง</td><td>ค้นหาไฟล์/เนื้อหาในไฟล์ช้าลงมาก, Outlook search ไม่ทำงาน, Start menu ค้นหาแอปยังใช้ได้แต่ช้ากว่า</td></tr>
+</tbody>
+</table></div>
+<p><strong>ทางเลือกที่สมดุลกว่า</strong>: ปิดเฉพาะโฟลเดอร์ที่ไม่ต้องการ (เช่น โฟลเดอร์ build, node_modules, Steam library) ผ่าน Indexing Options แทนการปิดทั้งบริการ</p>
+<h2 id="sec-16">พื้นที่ดิสก์</h2>
+<p>การมีพื้นที่ว่างน้อยทำให้ SSD ช้าลง (garbage collection ทำงานได้ไม่เต็มที่) และ Windows Update/pagefile มีปัญหา</p>
+<div class="table-wrap"><table>
+<thead><tr><th>พื้นที่ว่าง</th><th>สถานะ</th></tr></thead>
+<tbody>
+<tr><td>&gt; 20%</td><td>ดี</td></tr>
+<tr><td>10-20%</td><td>พอใช้</td></tr>
+<tr><td>&lt; 10%</td><td>ควรจัดเก็บ — SSD จะช้าลงและ wear leveling แย่ลง</td></tr>
+</tbody>
+</table></div>
+<p>หาไฟล์ใหญ่:</p>
+<pre><code class="lang-powershell">Get-ChildItem C:\ -Recurse -File -ErrorAction SilentlyContinue |
+  Sort-Object Length -Descending | Select-Object -First 20 FullName,
+  @{n=&#39;GB&#39;;e={[math]::Round($_.Length/1GB,2)}}</code></pre>
+<h2 id="sec-17">tweaks ประเภท Script ที่เกี่ยวกับ Storage</h2>
+<p>tweaks เหล่านี้ใช้ <code>fsutil</code> / <code>ScheduledTasks</code> และ <strong>restore จะไม่คืนค่าให้อัตโนมัติ</strong> (รายงานเป็น <code>SKIP</code>):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>คำสั่งที่รัน</th><th>วิธีคืนค่าเอง</th></tr></thead>
+<tbody>
+<tr><td><code>disk.last-access-off</code></td><td><code>fsutil behavior set disablelastaccess 1</code></td><td><code>fsutil behavior set disablelastaccess 2</code></td></tr>
+<tr><td><code>disk.8dot3-off</code></td><td><code>fsutil behavior set disable8dot3 1</code></td><td><code>fsutil behavior set disable8dot3 2</code></td></tr>
+<tr><td><code>disk.defrag-task-off</code></td><td><code>Disable-ScheduledTask ScheduledDefrag</code></td><td><code>Enable-ScheduledTask -TaskName ScheduledDefrag</code></td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-18">ตรวจสอบผลด้วย bench</h2>
+<p><code>bench</code> วัด disk write/read 256 MB แบบ sequential — ตัวเลขที่ควรได้บนเครื่องนี้ (PCIe 3.0):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ช่วงที่คาดหวัง</th></tr></thead>
+<tbody>
+<tr><td>Disk write</td><td>1,200-2,500 MB/s</td></tr>
+<tr><td>Disk read</td><td>1,500-4,000 MB/s (อาจได้จาก cache)</td></tr>
+<tr><td>Memory copy</td><td>4,000-6,000 MB/s (single channel) / 8,000-14,000 MB/s (dual channel)</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>เครื่องนี้ตรวจพบแรม <strong>1 แท่ง 32 GB</strong> (ChannelA-DIMM0 @ 3200 MT/s) ซึ่งหมายถึง <strong>single channel</strong> — memory bandwidth จึงเหลือประมาณครึ่งเดียวของสิ่งที่ i9-9900K ทำได้ การเพิ่มแรมอีกแท่งที่ความเร็วเท่ากันคือการอัปเกรดที่คุ้มที่สุดสำหรับเครื่องนี้ (ดู <a href="13-ผลตรวจเครื่องนี้.md">ผลตรวจเครื่องนี้</a>)</p>
+</blockquote>
+<p>ถ้าได้ต่ำกว่ามาก:</p>
+<ul>
+<li>disk &lt; 600 MB/s → ตรวจว่า SSD ต่อที่ PCIe 3.0 x4 จริง (ไม่ใช่ x2/SATA), ตรวจอุณหภูมิ, ตรวจว่าไดรเวอร์ NVMe ถูกต้อง</li>
+<li>memory &lt; 8,000 MB/s → อาจเป็น single channel หรือแรมวิ่งที่ 2133 MHz (XMP ปิด)</li>
+</ul>
+<h2 id="sec-19">สรุป</h2>
+<ol>
+<li>RAM 32 GB เพียงพอสำหรับเกมและงานทั่วไป — อย่าปิด pagefile</li>
+<li>ตรวจว่าแรมวิ่ง dual channel และ XMP เปิด (ถ้ามี)</li>
+<li>SSD ทำงานที่ PCIe 3.0 เพราะชิปเซ็ต — ยอมรับเพดานนี้</li>
+<li>ตรวจ TRIM เปิด และเหลือพื้นที่ว่าง &gt; 20%</li>
+<li>SysMain/Prefetcher เป็นการแลกที่ต้องวัดผลเอง ไม่มีคำตอบเดียวที่ถูกสำหรับทุกคน</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="07-POWER.html">&larr; พลังงาน แบตเตอรี่ และความร้อน</a><a class="pager-next" href="09-NETWORK.html">เครือข่ายและ latency &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

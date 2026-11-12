@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผลตรวจเครื่อง LEVEL51 (ค่าจริง) · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item active" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</h1>
+<p>หน้านี้คือผลตรวจเชิงประจักษ์ของเครื่องที่โปรเจกต์นี้ถูกสร้างขึ้นมาเพื่อมัน ข้อมูลได้จาก <code>.\Level51Tune.ps1 status</code>, <code>audit</code>, <code>bench</code> และ <code>powercfg</code> โดยตรง ไม่ใช่การคัดลอกจากสเปกผู้ผลิต</p>
+<p>วันที่ตรวจ: 12 พฤศจิกายน 2026</p>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">1. ภาพรวมฮาร์ดแวร์</a></li>
+<li><a href="#sec-3">2. สถานะพลังงาน</a></li>
+<li><a href="#sec-4">3. ผล audit ก่อนปรับแต่ง</a></li>
+<li><a href="#sec-5">4. ผลวัดประสิทธิภาพ (baseline)</a></li>
+<li><a href="#sec-7">5. ข้อค้นพบและสิ่งที่ควรทำ (เรียงตามความคุ้มค่า)</a></li>
+<li><a href="#sec-14">6. ลำดับงานที่แนะนำสำหรับเครื่องนี้</a></li>
+<li><a href="#sec-15">7. ข้อจำกัดของการวัดชุดนี้</a></li>
+<li><a href="#sec-16">8. การตรวจซ้ำด้วยตัวเอง</a></li>
+</ol></nav>
+<h2 id="sec-2">1. ภาพรวมฮาร์ดแวร์</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ค่าที่ตรวจได้</th></tr></thead>
+<tbody>
+<tr><td>ชื่อเครื่อง</td><td>LEVEL51 &#183; Notebook N95TP6</td></tr>
+<tr><td>BIOS</td><td>American Megatrends 1.07.11 (2019-08-08)</td></tr>
+<tr><td>ระบบปฏิบัติการ</td><td>Microsoft Windows 11 Pro &#183; build 26200 &#183; 64-bit</td></tr>
+<tr><td>ติดตั้งเมื่อ</td><td>2026-11-12</td></tr>
+<tr><td>CPU</td><td>Intel Core i9-9900K @ 3.60 GHz — 8 cores / 16 threads &#183; L3 16 MB</td></tr>
+<tr><td>Virtualization</td><td>VT-x เปิดใน firmware &#183; Hypervisor (Hyper-V/VBS) <strong>ปิด</strong></td></tr>
+<tr><td>RAM</td><td>31.9 GB &#183; <strong>1 แท่ง 32 GB</strong> <code>ChannelA-DIMM0</code> &#183; JM3200HSE-32G @ 3200 MT/s</td></tr>
+<tr><td>GPU 1 (แสดงผล)</td><td>Intel UHD Graphics 630 &#183; driver 31.0.101.2145 &#183; 1920&#215;1080 @ 60 Hz</td></tr>
+<tr><td>GPU 2 (เรนเดอร์)</td><td>NVIDIA GeForce GTX 1060 6 GB &#183; driver 582.78 &#183; power limit 88 W</td></tr>
+<tr><td>Storage</td><td>Samsung SSD 990 EVO Plus 1 TB (932 GB, NVMe, Healthy)</td></tr>
+<tr><td>Storage 2</td><td>Seagate One Touch 4.5 TB (USB, Healthy)</td></tr>
+<tr><td>แบตเตอรี่</td><td>BAT &#183; 100% &#183; design voltage 12.529 V</td></tr>
+<tr><td>Wi-Fi</td><td>Intel Wireless-AC 9260 (160 MHz)</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">2. สถานะพลังงาน</h2>
+<p>Power scheme ที่มีอยู่ในเครื่อง (ก่อน apply อะไร):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Active</th><th>GUID</th><th>ชื่อ</th></tr></thead>
+<tbody>
+<tr><td>*</td><td>381b4222-f694-41f0-9685-ff5bb260df2e</td><td>Balanced</td></tr>
+<tr><td></td><td>10728b17-d7bd-4ca1-990c-b4f7c030f8cd</td><td>Dynamic Boost Performance</td></tr>
+<tr><td></td><td>13e5be67-a6be-4fdd-9c06-2e1f51b946ef</td><td>LEVEL51 Ultimate Performance</td></tr>
+<tr><td></td><td>ce9fa8b3-8e9e-42db-b4e1-e6297f6cdd7e</td><td>GameTurbo</td></tr>
+</tbody>
+</table></div>
+<p>ค่าซีพียูที่อ่านได้จาก scheme ที่ใช้งาน:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>AC</th><th>DC</th></tr></thead>
+<tbody>
+<tr><td>Processor minimum state</td><td>5%</td><td>1%</td></tr>
+<tr><td>Processor maximum state</td><td>100%</td><td>85%</td></tr>
+<tr><td>Processor performance boost mode</td><td>*(อ่านไม่ได้ — ถูกซ่อน)*</td><td>—</td></tr>
+</tbody>
+</table></div>
+<p><strong>ข้อสังเกตสำคัญ</strong>: <code>PERFBOOSTMODE</code>, <code>CPMINCORES</code>, <code>PERFEPP</code> ถูกซ่อนโดย Windows บนเครื่องนี้ (<code>status</code> จึงแสดงได้แค่ min/max) — ต้องใช้ <code>win.unhide-power-settings</code> ก่อนจึงจะอ่าน/ตั้งได้ใน Control Panel</p>
+<p>มี power plan ที่ผู้ใช้สร้างเอง 3 ชุด ซึ่งเป็นเหตุผลที่โปรแกรมนี้ <strong>ไม่แก้ scheme เดิม</strong> แต่ duplicate ใหม่ทุกครั้ง</p>
+<h2 id="sec-4">3. ผล audit ก่อนปรับแต่ง</h2>
+<p><code>.\Level51Tune.ps1 audit -Profile balanced</code> → ปรับแล้ว <strong>0 / 5</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>สถานะ</th><th>ต้อง reboot</th></tr></thead>
+<tbody>
+<tr><td><code>gpu.hags</code> (HAGS)</td><td>no</td><td>ใช่</td></tr>
+<tr><td><code>gpu.gamedvr-off</code></td><td>no</td><td>ไม่</td></tr>
+<tr><td><code>disk.last-access-off</code></td><td>no</td><td>ไม่</td></tr>
+<tr><td><code>net.throttling-off</code></td><td>no</td><td>ใช่</td></tr>
+<tr><td><code>win.gamemode-on</code></td><td>no</td><td>ไม่</td></tr>
+</tbody>
+</table></div>
+<p>แปลว่าเครื่องยังอยู่ในสภาพ default ของ Windows: HAGS ปิด, GameDVR เปิด, Game Mode ปิด, network throttling เปิด (ค่า 10)</p>
+<h2 id="sec-5">4. ผลวัดประสิทธิภาพ (baseline)</h2>
+<p><code>.\Level51Tune.ps1 bench -Label baseline -Seconds 4</code> — วัดบน Balanced, ต่อไฟ AC, เครื่อง idle มาก่อน</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวชี้วัด</th><th>ค่า</th></tr></thead>
+<tbody>
+<tr><td>CPU 1 thread (SHA-256)</td><td>443 MB/s</td></tr>
+<tr><td>CPU 16 threads (SHA-256)</td><td>2,955 MB/s</td></tr>
+<tr><td>CPU efficiency</td><td>83% ของ 8 physical cores</td></tr>
+<tr><td>Memory copy</td><td>4,995 MB/s</td></tr>
+<tr><td>Disk write (256 MB + fsync)</td><td>1,032 MB/s</td></tr>
+<tr><td>Disk read</td><td>3,052 MB/s (อาจได้จาก page cache)</td></tr>
+<tr><td>GPU clock ขณะ idle</td><td>164-316 MHz &#183; 49-50 &#176;C &#183; ~24 W</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-6">วิธีอ่านตัวเลขชุดนี้</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ตีความ</th></tr></thead>
+<tbody>
+<tr><td>443 MB/s single-thread</td><td>ปกติสำหรับ SHA-256 แบบ software บน Coffee Lake (ไม่มี SHA-NI)</td></tr>
+<tr><td>2,955 MB/s / 16 threads</td><td>~6.7 เท่าของ single thread — สอดคล้องกับ 8 physical cores ไม่มี throttling รุนแรง</td></tr>
+<tr><td>4,995 MB/s memory</td><td><strong>ครึ่งหนึ่งของสิ่งที่ควรได้</strong> เพราะแรมเป็น single channel</td></tr>
+<tr><td>1,032 MB/s disk write</td><td>ต่ำกว่าสเปกเพราะวัดผ่าน FileStream + <code>Flush(true)</code> (fsync) — ใช้เทียบก่อน/หลัง ไม่ใช่คะแนน absolute</td></tr>
+<tr><td>24 W GPU ตอน idle</td><td>ค่อนข้างสูง ปกติควร 8-15 W — ควรตรวจว่ามีโปรเซสใช้ GPU อยู่</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-7">5. ข้อค้นพบและสิ่งที่ควรทำ (เรียงตามความคุ้มค่า)</h2>
+<h3 id="sec-8">1) แรมเป็น single channel — โอกาสที่ใหญ่ที่สุด</h3>
+<p>พบแรมเพียง 1 แท่ง (<code>ChannelA-DIMM0</code> 32 GB @ 3200 MT/s) ทำให้ memory bandwidth เหลือครึ่งเดียวของ i9-9900K ที่รองรับ dual channel</p>
+<ul>
+<li>ผลกระทบ: เกมที่กิน bandwidth (open world, simulation), การเรนเดอร์, VM, การบีบอัด/แตกไฟล์</li>
+<li>ทางแก้: เพิ่มแรม 32 GB แท่งที่สองที่สเปกเดียวกัน (JM3200HSE-32G หรือเทียบเท่า)</li>
+<li>คาดว่าจะได้ memory copy ~8,000-10,000 MB/s (วัดด้วย <code>bench</code> เทียบกันได้)</li>
+</ul>
+<p>นี่คือการปรับปรุงที่คุ้มที่สุดและไม่มีค่าปรับด้านความร้อน ซึ่ง tweak ซอฟต์แวร์ทั้งหมดในโปรเจกต์นี้ทำแทนไม่ได้</p>
+<h3 id="sec-9">2) ค่าซีพียูขั้นสูงถูกซ่อน</h3>
+<p><code>PERFBOOSTMODE</code> / <code>CPMINCORES</code> / <code>PERFEPP</code> อ่านไม่ได้ → ต้องปลดซ่อนก่อน ไม่งั้น tweaks ของ CPU บางตัวจะขึ้น <code>WARN</code></p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile performance    # มี win.unhide-power-settings</code></pre>
+<h3 id="sec-10">3) ค่าเริ่มต้นยังเป็นของ Windows ทั้งหมด</h3>
+<p>HAGS ปิด, GameDVR เปิด, Game Mode ปิด — เป็นของฟรีที่ได้ผลทันทีโดยไม่ต้องแลกอะไร</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile balanced</code></pre>
+<h3 id="sec-11">4) GPU กินไฟ 24 W ตอน idle</h3>
+<p>ปกติ GTX 1060 ในโน้ตบุ๊กตอน idle ควรอยู่ที่ 8-15 W ถ้าค้างที่ ~24 W ให้ตรวจ:</p>
+<pre><code class="lang-powershell">nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+nvidia-smi -q -d PERFORMANCE</code></pre>
+<p>สาเหตุที่เป็นไปได้: โปรเซสที่ใช้ GPU ค้าง (เบราว์เซอร์, Wallpaper Engine, OBS), หรือไดรเวอร์ไม่ยอมลง P8 เพราะมีจอภายนอก/USB-C ต่ออยู่</p>
+<h3 id="sec-12">5) มี power plan ที่ผู้ใช้สร้างเอง 3 ชุด</h3>
+<p><code>LEVEL51 Ultimate Performance</code>, <code>GameTurbo</code>, <code>Dynamic Boost Performance</code> — โปรแกรมจะไม่แตะทั้งสามนี้ แต่ต้องระวังว่าถ้าคุณสลับไปใช้เองหลังจาก apply แล้ว <code>audit</code> จะขึ้น <code>no</code> ทั้งหมด (เพราะ scheme เปลี่ยน)</p>
+<h3 id="sec-13">6) Disk write ต่ำกว่าสเปก</h3>
+<p>990 EVO Plus เป็น SSD PCIe 4.0 แต่แพลตฟอร์มนี้ (2019) รองรับ PCIe 3.0 เท่านั้น เพดานจึงอยู่ที่ ~3,500 MB/s ไม่ใช่ 7,250 — และตัวเลขจาก <code>bench</code> ต่ำกว่านั้นอีกเพราะนับ fsync ด้วย ถ้าต้องการเลข absolute ให้ใช้ CrystalDiskMark</p>
+<h2 id="sec-14">6. ลำดับงานที่แนะนำสำหรับเครื่องนี้</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ลำดับ</th><th>งาน</th><th>เวลา</th><th>ผลที่คาด</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>apply -Profile performance</code> (หลัง unhide)</td><td>2 นาที</td><td>latency ดีขึ้น, ดิสก์/PCIe ไม่ถูกจำกัด</td></tr>
+<tr><td>2</td><td>ทำความสะอาดพัดลม + เป่าฝุ่น</td><td>30 นาที</td><td>-5 ถึง -15 &#176;C</td></tr>
+<tr><td>3</td><td>Undervolt CPU -100 mV (ThrottleStop)</td><td>1 ชั่วโมง</td><td>-5 ถึง -10 &#176;C, all-core clock สูงขึ้น</td></tr>
+<tr><td>4</td><td>เพิ่มแรมแท่งที่สอง</td><td>10 นาที</td><td>memory bandwidth &#215;2</td></tr>
+<tr><td>5</td><td><code>apply -Profile gaming</code> ถ้าเน้นเกม</td><td>2 นาที</td><td>input latency ต่ำลง</td></tr>
+<tr><td>6</td><td>เปลี่ยน thermal paste (ถ้าเครื่องอายุ 3+ ปี)</td><td>1-2 ชั่วโมง</td><td>-5 ถึง -12 &#176;C</td></tr>
+<tr><td>7</td><td>ตั้ง fan curve / cooling pad</td><td>10 นาที</td><td>-3 ถึง -6 &#176;C</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><code>max</code> ไม่อยู่ในลำดับนี้โดยเจตนา — บนเครื่องนี้มันจะทำให้ร้อนขึ้นเร็วกว่าที่ระบบระบายความร้อนรับได้ และผลลัพธ์สุทธิอาจแย่ลง</p>
+</blockquote>
+<h2 id="sec-15">7. ข้อจำกัดของการวัดชุดนี้</h2>
+<ul>
+<li>วัดครั้งเดียวต่อค่า (ไม่ใช่ median ของ 3 รอบ) — noise &#177;3-5%</li>
+<li>เครื่องอยู่ในโหมด Balanced ไม่ใช่ performance จึงเป็น <strong>baseline ที่ถูกต้อง</strong> สำหรับการเทียบก่อน/หลัง apply</li>
+<li>ตัวเลขดิสก์ขึ้นกับ page cache และ fsync จึงไม่ใช่คะแนน absolute</li>
+<li>ไม่ได้วัด frametime ในเกม (ต้องใช้ PresentMon/CapFrameX) — <code>bench</code> วัด throughput ไม่ได้วัด latency</li>
+<li>อุณหภูมิห้องและสภาพฝุ่นมีผลมากกว่าการตั้งค่าซอฟต์แวร์เกือบทั้งหมด</li>
+</ul>
+<h2 id="sec-16">8. การตรวจซ้ำด้วยตัวเอง</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 status
+.\Level51Tune.ps1 audit -Profile performance
+.\Level51Tune.ps1 bench -Label baseline -Seconds 4
+.\Level51Tune.ps1 report -Path .\reports\level51-status.md</code></pre>
+<p>ผลจะถูกเก็บใน <code>benchmarks/history.jsonl</code> และ <code>reports/</code> ซึ่งไม่อยู่ใน git (มีข้อมูลเฉพาะเครื่อง)</p>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="12-ความปลอดภัย-ย้อนกลับ.html">&larr; ความปลอดภัย การสำรอง และการย้อนกลับ</a><a class="pager-next" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

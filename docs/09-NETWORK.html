@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เครือข่ายและ latency · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item active" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">เครือข่ายและ latency</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ฮาร์ดแวร์เครือข่ายในเครื่องนี้</a></li>
+<li><a href="#sec-3">stack เครือข่ายของ Windows — จุดที่ปรับได้</a></li>
+<li><a href="#sec-9">Wi-Fi 9260 — จุดที่มักเป็นคอขวดจริง</a></li>
+<li><a href="#sec-10">tweaks ของโปรเจกต์ที่เกี่ยวกับเครือข่าย</a></li>
+<li><a href="#sec-11">การวัด latency อย่างถูกวิธี</a></li>
+<li><a href="#sec-12">DNS — ตัวที่คนมองข้าม</a></li>
+<li><a href="#sec-13">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">ฮาร์ดแวร์เครือข่ายในเครื่องนี้</h2>
+<pre><code>Network Card(s): 3
+ [01] Intel(R) Wireless-AC 9260 160MHz   (Wi-Fi)</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>อุปกรณ์</th><th>สเปก</th></tr></thead>
+<tbody>
+<tr><td>Intel Wireless-AC 9260</td><td>Wi-Fi 5 (802.11ac) 2x2, 160 MHz, Bluetooth 5.0, เพดาน ~1.73 Gbps</td></tr>
+<tr><td>Gigabit Ethernet</td><td>ตามรุ่น barebone (มักเป็น Intel I219-V หรือ Realtek)</td></tr>
+</tbody>
+</table></div>
+<p>ตรวจสถานะจริง:</p>
+<pre><code class="lang-powershell">Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress
+Get-NetAdapterStatistics | Select-Object Name, ReceivedBytes, SentBytes, ReceivedPacketsDiscarded</code></pre>
+<h2 id="sec-3">stack เครือข่ายของ Windows — จุดที่ปรับได้</h2>
+<h3 id="sec-4">1. Receive Window Auto-Tuning</h3>
+<p>Windows ปรับ receive window ขนาดอัตโนมัติตาม latency และ throughput:</p>
+<pre><code class="lang-powershell">netsh int tcp show global</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>แนะนำ</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>Receive Window Auto-Tuning Level</td><td><code>normal</code></td><td><code>disabled</code> ทำให้ throughput ตกบนเน็ตความเร็วสูง; <code>restricted</code> ช่วยเฉพาะเครื่องที่ router เก่า</td></tr>
+<tr><td>Add-On Congestion Control Provider</td><td><code>default</code> (CUBIC บน Win11)</td><td>อย่าเปลี่ยนเป็น <code>ctcp</code> โดยไม่มีเหตุ</td></tr>
+<tr><td>ECN Capability</td><td><code>disabled</code></td><td>router จำนวนมากมีปัญหา ECN — ปิดเพื่อความเสถียร</td></tr>
+<tr><td>RFC 1323 Timestamps</td><td><code>disabled</code></td><td>ลด overhead ต่อแพ็กเก็ต</td></tr>
+<tr><td>Receive-Side Scaling (RSS)</td><td><code>enabled</code></td><td>กระจาย interrupt หลายคอร์</td></tr>
+<tr><td>NetDMA</td><td><code>enabled</code> (ถ้ามี)</td><td>—</td></tr>
+<tr><td>Initial RTO / Min RTO</td><td>ค่า default</td><td>อย่าแตะ</td></tr>
+</tbody>
+</table></div>
+<p>tweak <code>net.tcp-global</code> ตั้ง 4 ค่าแรกให้ตามตารางนี้</p>
+<h3 id="sec-5">2. NetworkThrottlingIndex</h3>
+<p><code>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\NetworkThrottlingIndex</code></p>
+<p>Windows จำกัดแพ็กเก็ตของงาน multimedia ที่ ~10 แพ็กเก็ต/ms (ค่า 10) เพื่อไม่ให้ audio/video ถูกแย่ง bandwidth ค่า <code>0xFFFFFFFF</code> = ปิดการจำกัด</p>
+<p><strong>ผลจริง</strong>: ในเกมที่มี packet rate สูง (&gt;10,000 pps) การปิดช่วยลด ping spike ได้ แต่ในเน็ตบ้านทั่วไปผลน้อยมาก — เป็น tweak ที่ปลอดภัยและต้นทุนต่ำ จึงอยู่ใน <code>balanced</code> ด้วย</p>
+<h3 id="sec-6">3. Nagle Algorithm และ Delayed ACK</h3>
+<p>สองกลไกที่ทำงานคู่กันและเพิ่ม latency:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>กลไก</th><th>ทำอะไร</th><th>ผลข้างเคียง</th></tr></thead>
+<tbody>
+<tr><td>Nagle</td><td>รวมแพ็กเก็ตเล็กที่ยังไม่ได้รับ ACK</td><td>เพิ่มดีเลย์ได้ถึง 200 ms ในงาน interactive</td></tr>
+<tr><td>Delayed ACK</td><td>ชะลอ ACK สูงสุด 200 ms</td><td>ทำงานร่วมกับ Nagle ทำให้แย่ลง</td></tr>
+</tbody>
+</table></div>
+<p>ตั้งค่าปิด (tweak <code>net.nagle-off</code>):</p>
+<pre><code>HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\&lt;GUID&gt;
+  TcpAckFrequency = 1     (DWord)
+  TCPNoDelay      = 1     (DWord)</code></pre>
+<p>ผล: เกมออนไลน์/Remote Desktop/SSH ตอบสนองไวขึ้นชัดเจน (ใน Valorant/CS2 วัดได้ 3-15 ms) แบนด์วิดท์ใช้เพิ่มขึ้นเล็กน้อยเพราะแพ็กเก็ตเล็กถูกส่งแยก</p>
+<p><strong>ต้อง reboot</strong> และต้องตั้งในทุก interface GUID (โปรแกรมวนให้ทุกตัว รวมVPN adapters)</p>
+<h3 id="sec-7">4. MMCSS (Multimedia Class Scheduler Service)</h3>
+<p>MMCSS ให้ priority พิเศษกับ thread ที่ลงทะเบียนเป็น &quot;Games&quot;, &quot;Audio&quot;, &quot;Playback&quot;</p>
+<pre><code>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile
+  SystemResponsiveness = 10        (default 20)
+  NetworkThrottlingIndex = 0xFFFFFFFF
+  Tasks\Games
+    GPU Priority       = 8         (default 8)
+    Priority           = 6         (default 2)
+    Scheduling Category = High     (default Medium)
+    SFIO Priority      = High      (default Normal)</code></pre>
+<p>tweak <code>net.mmcss-games</code> ตั้งค่าทั้งชุดนี้ ค่า <code>Priority=6</code> + <code>Scheduling Category=High</code> ทำให้ thread ของเกมได้ time slice จาก scheduler ก่อนงานทั่วไป</p>
+<h3 id="sec-8">5. QoS และ DSCP tagging</h3>
+<p>ถ้าเกม/โปรแกรมรองรับ DSCP (เช่น VoiceMeeter, SQM tools) Windows จะ tag แพ็กเก็ตด้วยค่า 0 โดย default และ <strong>รีเซ็ตค่า DSCP ที่โปรแกรมตั้ง</strong></p>
+<pre><code class="lang-powershell"># เปิดให้โปรแกรมตั้ง DSCP ได้
+New-ItemProperty -Path &#39;HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters&#39; `
+  -Name &#39;DisableUserTOSSetting&#39; -Value 0 -PropertyType DWord -Force</code></pre>
+<p>หรือใช้ Group Policy: <code>Computer Configuration → Administrative Templates → Network → QoS Packet Scheduler → Limit reservable bandwidth</code> = 0 (ค่าตำนานที่จริง ๆ แล้ว Windows ไม่เคยกัน 20% จริง การตั้งค่านี้จึงแทบไม่มีผล — แต่ไม่ harm)</p>
+<p>router ที่รองรับ SQM/fq_codel มีผลต่อ latency มากกว่าการตั้งค่า Windows ทั้งหมดรวมกัน</p>
+<h2 id="sec-9">Wi-Fi 9260 — จุดที่มักเป็นคอขวดจริง</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ปัญหา</th><th>อาการ</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td>คลื่น 2.4 GHz แออัด</td><td>ping แกว่ง 20-200 ms</td><td>ใช้ 5 GHz ให้ได้</td></tr>
+<tr><td>กำลังส่งลดลงเพราะประหยัดไฟ</td><td>throughput ตกเป็นช่วง</td><td>Device Manager → adapter → Power Management → ปิด &quot;Allow the computer to turn off this device&quot;</td></tr>
+<tr><td>Roaming ระหว่าง AP</td><td>ขาดการเชื่อมต่อชั่วขณะ</td><td>ตั้ง roaming aggressiveness ต่ำลง</td></tr>
+<tr><td>ไดรเวอร์เก่า</td><td>ping spike, หลุด</td><td>อัปเดตไดรเวอร์ Intel PROSet</td></tr>
+<tr><td>160 MHz ไม่เสถียร</td><td>หลุดบ่อย</td><td>ตั้ง channel width เป็น 80 MHz</td></tr>
+</tbody>
+</table></div>
+<p>ตั้งค่า adapter ด้วย PowerShell:</p>
+<pre><code class="lang-powershell">Get-NetAdapterAdvancedProperty -Name &#39;Wi-Fi&#39; |
+  Select-Object DisplayName, DisplayValue, RegistryKeyword</code></pre>
+<p>ปิดการประหยัดไฟของ adapter:</p>
+<pre><code class="lang-powershell">$wifi = Get-NetAdapter -Name &#39;Wi-Fi&#39;
+Disable-NetAdapterPowerManagement -Name $wifi.Name -ErrorAction SilentlyContinue</code></pre>
+<h2 id="sec-10">tweaks ของโปรเจกต์ที่เกี่ยวกับเครือข่าย</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>โปรไฟล์</th><th>ต้อง reboot</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>net.throttling-off</code></td><td>balanced, gaming, max</td><td>ใช่</td><td>ปิดการจำกัดแพ็กเก็ต multimedia</td></tr>
+<tr><td><code>net.mmcss-responsiveness</code></td><td>gaming, max</td><td>ใช่</td><td>สำรอง CPU ให้พื้นหลังน้อยลง</td></tr>
+<tr><td><code>net.mmcss-games</code></td><td>gaming, max</td><td>ใช่</td><td>priority สูงสำหรับ thread เกม</td></tr>
+<tr><td><code>net.nagle-off</code></td><td>gaming, max</td><td>ใช่</td><td>ลดดีเลย์แพ็กเก็ตเล็ก</td></tr>
+<tr><td><code>net.tcp-global</code></td><td>performance, gaming, max</td><td>ใช่</td><td>stack พารามิเตอร์มาตรฐาน</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-11">การวัด latency อย่างถูกวิธี</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>เครื่องมือ</th><th>วัดอะไร</th><th>วิธีใช้</th></tr></thead>
+<tbody>
+<tr><td><code>ping -t 1.1.1.1</code></td><td>RTT ต่อ router/เน็ต</td><td>ดู jitter (ค่าเบี่ยงเบน) ไม่ใช่ค่าเฉลี่ย</td></tr>
+<tr><td><code>pathping 1.1.1.1</code></td><td>packet loss ต่อ hop</td><td>หาว่าต้นเหตุอยู่ที่ router หรือ ISP</td></tr>
+<tr><td>LatencyMon</td><td>DPC/ISR ของไดรเวอร์</td><td>ใช้หา latency ที่ไม่เกี่ยวกับเน็ต</td></tr>
+<tr><td>PingPlotter</td><td>กราฟ RTT ต่อเนื่อง</td><td>ดู packet loss เป็นช่วง ๆ</td></tr>
+<tr><td>เกม in-game netgraph</td><td>ping/jitter จริง</td><td>ตัวชี้วัดที่มีความหมายที่สุด</td></tr>
+</tbody>
+</table></div>
+<p>คำสั่ง PowerShell วัด jitter แบบง่าย:</p>
+<pre><code class="lang-powershell">$r = 1..50 | ForEach-Object {
+  (Test-Connection 1.1.1.1 -Count 1).ResponseTime
+}
+&quot;min={0} max={1} avg={2} jitter={3}&quot; -f ($r | Measure-Object -Minimum).Minimum,
+  ($r | Measure-Object -Maximum).Maximum,
+  [math]::Round(($r | Measure-Object -Average).Average,1),
+  [math]::Round((($r | Measure-Object -Maximum).Maximum - ($r | Measure-Object -Minimum).Minimum),1)</code></pre>
+<p>jitter ที่ดีคือ &lt; 5 ms บน LAN, &lt; 15 ms บนเน็ตบ้าน</p>
+<h2 id="sec-12">DNS — ตัวที่คนมองข้าม</h2>
+<p>DNS ไม่กระทบ ping ในเกม แต่กระทบ &quot;เวลาเปิดเว็บ/เข้าเกมครั้งแรก&quot;</p>
+<pre><code class="lang-powershell">Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, ServerAddresses
+Resolve-DnsName www.google.com | Select-Object Name, IPAddress, QueryType</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวเลือก</th><th>ข้อดี</th><th>ข้อเสีย</th></tr></thead>
+<tbody>
+<tr><td>DNS ผู้ให้บริการ</td><td>เร็วที่สุดในประเทศ มักมี CDN ในเครือข่ายเดียวกัน</td><td>อาจมี tracking</td></tr>
+<tr><td>1.1.1.1 (Cloudflare)</td><td>เร็ว, เป็นส่วนตัว</td><td>บางครั้งช้ากว่า CDN ในประเทศ</td></tr>
+<tr><td>8.8.8.8 (Google)</td><td>เสถียร</td><td>อาจถูก route ไกล</td></tr>
+</tbody>
+</table></div>
+<p><strong>ไม่ได้อยู่ในเครื่องมือนี้</strong> เพราะเป็นการเลือกของผู้ใช้ ไม่ใช่การจูนประสิทธิภาพ — เปลี่ยนเองได้ใน Settings → Network → DNS</p>
+<h2 id="sec-13">สรุป</h2>
+<ol>
+<li>Wi-Fi 5 บน 5 GHz คือทางเลือกที่ดีที่สุดสำหรับเครื่องนี้ — สาย LAN ดีกว่าถ้าเป็นไปได้</li>
+<li>Nagle + Delayed ACK เป็นสาเหตุ latency ที่แก้ได้จริงและวัดผลได้</li>
+<li>NetworkThrottlingIndex และ MMCSS เป็น tweak ปลอดภัย ต้นทุนต่ำ</li>
+<li>autotuning/ECN/timestamps ควรอยู่ที่ค่ามาตรฐาน — อย่าไปยุ่งถ้าไม่มีปัญหา</li>
+<li>router (SQM, bufferbloat) มีผลมากกว่าการตั้งค่า Windows ทั้งหมด</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="08-RAM-STORAGE.html">&larr; RAM และ Storage</a><a class="pager-next" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

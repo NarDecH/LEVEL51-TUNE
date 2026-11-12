@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือคำสั่ง CLI · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item active" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">คู่มือคำสั่ง CLI</h1>
+<p>ไฟล์ entry คือ <code>Level51Tune.ps1</code> รูปแบบทั่วไป:</p>
+<pre><code>.\Level51Tune.ps1 &lt;คำสั่ง&gt; [options]</code></pre>
+<p>ถ้าไม่ระบุคำสั่งจะเท่ากับ <code>help</code></p>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">สรุปคำสั่งทั้งหมด</a></li>
+<li><a href="#sec-3">options ทั้งหมด</a></li>
+<li><a href="#sec-4">status</a></li>
+<li><a href="#sec-5">profiles</a></li>
+<li><a href="#sec-6">list</a></li>
+<li><a href="#sec-7">audit</a></li>
+<li><a href="#sec-8">apply</a></li>
+<li><a href="#sec-9">restore</a></li>
+<li><a href="#sec-10">backup</a></li>
+<li><a href="#sec-11">report</a></li>
+<li><a href="#sec-12">bench / compare</a></li>
+<li><a href="#sec-13">gpu</a></li>
+<li><a href="#sec-14">docs</a></li>
+<li><a href="#sec-15">Exit codes</a></li>
+<li><a href="#sec-16">การใช้จาก PowerShell profile</a></li>
+<li><a href="#sec-17">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</a></li>
+</ol></nav>
+<h2 id="sec-2">สรุปคำสั่งทั้งหมด</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>คำสั่ง</th><th>ต้องใช้ admin</th><th>แก้ระบบ</th><th>ใช้เวลา</th><th>หน้าที่</th></tr></thead>
+<tbody>
+<tr><td><code>help</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>แสดงวิธีใช้</td></tr>
+<tr><td><code>version</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>แสดงเวอร์ชัน</td></tr>
+<tr><td><code>status</code></td><td>ไม่</td><td>ไม่</td><td>1-3 วินาที</td><td>ฮาร์ดแวร์, power scheme, ค่าซีพียูปัจจุบัน</td></tr>
+<tr><td><code>profiles</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>รายละเอียดโปรไฟล์</td></tr>
+<tr><td><code>list</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>tweaks ในแค็ตตาล็อก</td></tr>
+<tr><td><code>audit</code></td><td>ไม่</td><td>ไม่</td><td>2-5 วินาที</td><td>ตรวจว่าอะไรถูกปรับแล้ว</td></tr>
+<tr><td><code>apply</code></td><td>ใช่ (ยกเว้น <code>-DryRun</code>)</td><td>ใช่</td><td>3-10 วินาที</td><td>ปรับตามโปรไฟล์</td></tr>
+<tr><td><code>restore</code></td><td>ใช่</td><td>ใช่</td><td>2-5 วินาที</td><td>ย้อนกลับจาก backup</td></tr>
+<tr><td><code>backup</code></td><td>ใช่</td><td>ไม่ (แค่อ่าน)</td><td>1 วินาที</td><td>snapshot สถานะ</td></tr>
+<tr><td><code>report</code></td><td>ไม่</td><td>ไม่</td><td>3-6 วินาที</td><td>รายงาน markdown</td></tr>
+<tr><td><code>bench</code></td><td>ไม่</td><td>ไม่</td><td>15-25 วินาที</td><td>วัดประสิทธิภาพ</td></tr>
+<tr><td><code>compare</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>เทียบผลวัด</td></tr>
+<tr><td><code>gpu</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สถานะ GPU</td></tr>
+<tr><td><code>docs</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สร้าง HTML</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">options ทั้งหมด</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>option</th><th>ชนิด</th><th>ใช้กับ</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>-Profile &lt;id&gt;</code></td><td>string</td><td>apply, audit</td><td><code>balanced</code>, <code>performance</code>, <code>gaming</code>, <code>max</code>, <code>battery</code></td></tr>
+<tr><td><code>-Category &lt;name&gt;</code></td><td>string</td><td>list, audit</td><td><code>CPU</code>, <code>GPU</code>, <code>Power</code>, <code>Memory</code>, <code>Storage</code>, <code>Network</code>, <code>Windows</code></td></tr>
+<tr><td><code>-DryRun</code></td><td>switch</td><td>apply</td><td>เดินทุกอย่างแต่ไม่เปลี่ยนแปลงระบบ</td></tr>
+<tr><td><code>-Elevate</code></td><td>switch</td><td>apply, restore</td><td>เปิด PowerShell ใหม่แบบ admin (UAC)</td></tr>
+<tr><td><code>-Include high</code></td><td>string[]</td><td>apply</td><td>อนุญาต tweaks ความเสี่ยงสูง</td></tr>
+<tr><td><code>-IncludeHigh</code></td><td>switch</td><td>audit</td><td>แสดง/ตรวจ tweaks High ด้วย</td></tr>
+<tr><td><code>-BackupPath &lt;file&gt;</code></td><td>string</td><td>restore</td><td>ระบุไฟล์ backup (ค่าเริ่มต้น: ล่าสุด)</td></tr>
+<tr><td><code>-Path &lt;file&gt;</code></td><td>string</td><td>report</td><td>ที่เก็บรายงาน</td></tr>
+<tr><td><code>-Label &lt;text&gt;</code></td><td>string</td><td>bench</td><td>ชื่อกำกับผล (เช่น <code>before</code>, <code>after</code>, <code>max-profile</code>)</td></tr>
+<tr><td><code>-Seconds &lt;n&gt;</code></td><td>int</td><td>bench</td><td>เวลาต่อรอบ CPU (ค่าเริ่มต้น 3)</td></tr>
+<tr><td><code>-Last &lt;n&gt;</code></td><td>int</td><td>compare</td><td>จำนวนผลที่จะเทียบ (ค่าเริ่มต้น 2)</td></tr>
+<tr><td><code>-Open</code></td><td>switch</td><td>docs</td><td>เปิด index.html หลังสร้าง</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-4">status</h2>
+<p>แสดงภาพรวมทั้งหมดโดยไม่แก้อะไร</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 status</code></pre>
+<p>เนื้อหาที่แสดง: ชื่อเครื่อง/รุ่น, OS build, CPU (cores/threads/L3/base clock), RAM (พร้อม slot, ความเร็ว, part number), GPU ทุกตัวพร้อม clock/temp/power จาก <code>nvidia-smi</code>, ดิสก์, แบตเตอรี่, สถานะ Hypervisor/VT-x, สิทธิ์ admin, uptime, power scheme ทั้งหมด (มี <code>*</code> หน้าอันที่ใช้อยู่), ค่า processor min/max/boost ปัจจุบัน, thermal zone และโปรไฟล์ที่ apply ล่าสุด</p>
+<blockquote>
+<p>ถ้า <code>nvidia-smi</code> ไม่ตอบ (ไดรเวอร์มีปัญหา) โปรแกรมจะ fallback ไปใช้ WMI ซึ่งให้ข้อมูลน้อยกว่า (ไม่มี clock/temp)</p>
+</blockquote>
+<h2 id="sec-5">profiles</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 profiles</code></pre>
+<p>แสดง 5 โปรไฟล์พร้อมคำอธิบายไทย, สถานการณ์ที่ควรใช้ และจำนวน tweaks (แยกจำนวน High risk ให้เห็น)</p>
+<h2 id="sec-6">list</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 list
+.\Level51Tune.ps1 list -Category Power
+.\Level51Tune.ps1 list -Category GPU</code></pre>
+<p>ตารางคอลัมน์: <code>Id</code>, <code>Category</code>, <code>Risk</code>, <code>Profiles</code>, <code>Admin</code>, <code>Title</code> — ใช้ดูว่ามี tweak อะไรบ้างก่อน apply</p>
+<h2 id="sec-7">audit</h2>
+<p>ตรวจสถานะจริงของแต่ละ tweak เทียบกับค่าเป้าหมาย โดยอ่านค่าจากระบบ (ไม่ใช้ข้อมูลที่จำไว้)</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 audit -Profile gaming
+.\Level51Tune.ps1 audit -Category Network
+.\Level51Tune.ps1 audit -Profile gaming -IncludeHigh</code></pre>
+<p>คอลัมน์ <code>Applied</code>: <code>YES</code> = ตรงกับเป้าหมายแล้ว, <code>no</code> = ยังไม่ตรง, <code>?</code> = ตรวจไม่ได้ (เช่น tweak แบบ Script ที่ไม่มี detect)</p>
+<p>ใช้ <code>audit</code> เพื่อตอบคำถามว่า &quot;ตอนนี้เครื่องอยู่ในสภาพไหน&quot; หลังจาก apply ไปแล้วหรือหลัง Windows Update รีเซ็ตค่าบางอย่าง</p>
+<h2 id="sec-8">apply</h2>
+<pre><code class="lang-powershell"># ดูของก่อน
+.\Level51Tune.ps1 apply -Profile performance -DryRun
+
+# apply จริง (ต้อง admin)
+.\Level51Tune.ps1 apply -Profile performance
+
+# ขอ UAC เอง
+.\Level51Tune.ps1 apply -Profile gaming -Elevate
+
+# รวม tweaks เสี่ยงสูงด้วย
+.\Level51Tune.ps1 apply -Profile max -Include high</code></pre>
+<p>สถานะที่รายงานทีละ tweak:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>สถานะ</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>OK</code></td><td>สำเร็จ</td></tr>
+<tr><td><code>WARN</code></td><td>คำสั่งถูกปฏิเสธ (มักเพราะค่านั้นถูกซ่อน — unhide ก่อน)</td></tr>
+<tr><td><code>SKIP</code></td><td>ไม่มีเป้าหมายให้ทำ (เช่น ไม่พบบริการนั้น)</td></tr>
+<tr><td><code>FAIL</code></td><td>เกิด exception — ดู log ใน <code>logs/</code></td></tr>
+</tbody>
+</table></div>
+<p><code>FAIL</code> ไม่ทำให้ทั้ง proses หยุด (tweak อื่นยังทำงานต่อ) แต่ควรตรวจว่าเกิดจากอะไร</p>
+<h2 id="sec-9">restore</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 restore                    # ไฟล์ apply ล่าสุด
+.\Level51Tune.ps1 restore -BackupPath .\backups\20261112-153012_apply-gaming.json
+.\Level51Tune.ps1 restore -Elevate</code></pre>
+<p>สิ่งที่ restore ทำ:</p>
+<ol>
+<li>คืนค่า power index ทุกตัวที่เคยแก้ กลับเป็นค่าเดิม</li>
+<li>คืนค่า registry (รวมถึงลบค่าที่เดิมไม่มี)</li>
+<li>คืน startup type ของบริการและ start บริการที่เดิมทำงานอยู่</li>
+<li><code>powercfg -setactive &lt;scheme เดิม&gt;</code> และลบ scheme <code>LEVEL51-TUNE ...</code> ที่สร้างไว้</li>
+</ol>
+<blockquote>
+<p>tweaks ประเภท <code>Script</code> (fsutil, netsh, bcdedit, งาน ScheduledDefrag, MMCSS tasks) <strong>ไม่สามารถย้อนอัตโนมัติได้</strong> เพราะผลลัพธ์ไม่ใช่ค่าที่อ่านกลับมาเปรียบเทียบได้ง่าย — restore จะรายงานเป็น <code>SKIP</code> และบอกให้คืนค่าเอง (ดู <a href="12-ความปลอดภัย-ย้อนกลับ.md">ความปลอดภัย การสำรอง และการย้อนกลับ</a>)</p>
+</blockquote>
+<h2 id="sec-10">backup</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 backup</code></pre>
+<p>สร้าง <code>backups/&lt;เวลา&gt;_snapshot.json</code> ที่บรรจุฮาร์ดแวร์ + power scheme ปัจจุบัน ทำก่อนลองอะไรด้วยมือ (เช่น ก่อนแก้ใน BIOS-less tools)</p>
+<h2 id="sec-11">report</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 report
+.\Level51Tune.ps1 report -Path .\reports\before-tuning.md</code></pre>
+<p>สร้าง markdown ที่มี: ตารางฮาร์ดแวร์, power scheme ทั้งหมด, สถานะทุก tweak (ทั้งโปรเจกต์), จำนวนที่ยังไม่ถูกปรับ เหมาะสำหรับแนบใน issue หรือเก็บไว้เทียบภายหลัง</p>
+<h2 id="sec-12">bench / compare</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label before -Seconds 5
+.\Level51Tune.ps1 bench -Label after
+.\Level51Tune.ps1 compare -Last 4</code></pre>
+<p><code>bench</code> วัด 4 อย่าง:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวชี้วัด</th><th>วิธีวัด</th><th>บอกอะไร</th></tr></thead>
+<tbody>
+<tr><td>CPU 1 thread</td><td>ลูปคำนวณ sqrt ตามเวลาที่กำหนด</td><td>single-thread performance และ clock ที่ได้จริง</td></tr>
+<tr><td>CPU N threads</td><td>runspace pool ตามจำนวน logical processor</td><td>multi-thread + scaling % (ถ้า scaling ต่ำผิดปกติ = throttling)</td></tr>
+<tr><td>Memory copy</td><td>Buffer.BlockCopy 256 MB &#215; 4 รอบ</td><td>memory bandwidth</td></tr>
+<tr><td>Disk write/read</td><td>FileStream 1 MB buffer, 256 MB, Flush(true)</td><td>sequential IO ของ NVMe</td></tr>
+</tbody>
+</table></div>
+<p><code>compare</code> แสดง delta เป็น % พร้อมสี (เขียว = ดีขึ้น, แดง = แย่ลง) และย้ำว่า noise &#177;3-5%</p>
+<h2 id="sec-13">gpu</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
+<p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>
+<pre><code class="lang-powershell">nvidia-smi -q -d CLOCK,POWER,TEMPERATURE
+nvidia-smi --query-gpu=clocks.gr,clocks.throttle --format=csv</code></pre>
+<h2 id="sec-14">docs</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 docs
+.\Level51Tune.ps1 docs -Open</code></pre>
+<p>แปลง <code>docs/*.md</code> ทั้งหมดเป็น HTML พร้อม sidebar, TOC, ตาราง, ปุ่มก่อนหน้า/ถัดไป และสร้าง <code>docs/index.html</code> เป็นสารบัญ ไม่ต้องติดตั้ง pandoc หรืออะไรเพิ่ม</p>
+<h2 id="sec-15">Exit codes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>code</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td>สำเร็จ</td></tr>
+<tr><td><code>1</code></td><td>เกิดข้อผิดพลาด (สิทธิ์ไม่พอ, ไม่พบไฟล์, exception)</td></tr>
+<tr><td><code>2</code></td><td>ไม่รู้จักคำสั่ง</td></tr>
+</tbody>
+</table></div>
+<p>ใช้ในสคริปต์ได้:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -DryRun
+if ($LASTEXITCODE -ne 0) { Write-Error &#39;dry-run ล้มเหลว&#39; }</code></pre>
+<h2 id="sec-16">การใช้จาก PowerShell profile</h2>
+<p>ถ้าอยากเรียกสั้น ๆ ให้เพิ่ม function ใน <code>$PROFILE</code>:</p>
+<pre><code class="lang-powershell">function l51 { &amp; &#39;C:\_Project\LEVEL51-TUNE\Level51Tune.ps1&#39; @args }</code></pre>
+<p>แล้วใช้ <code>l51 status</code>, <code>l51 apply -Profile gaming -DryRun</code> ได้เลย</p>
+<h2 id="sec-17">การเรียกใช้ engine ตรง ๆ (สำหรับ automation)</h2>
+<pre><code class="lang-powershell">Import-Module C:\_Project\LEVEL51-TUNE\src\Level51Tune.psm1 -Force
+
+$hw = Get-L51Hardware
+$rows = Invoke-L51Audit -Profile &#39;gaming&#39;
+$result = Invoke-L51Apply -Profile &#39;performance&#39; -DryRun
+$result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
+<p>ฟังก์ชันที่ export: <code>Get-L51Hardware</code>, <code>Get-L51GpuState</code>, <code>Get-L51Catalog</code>, <code>Get-L51Profiles</code>, <code>Get-L51ProfileTweaks</code>, <code>Invoke-L51Apply</code>, <code>Invoke-L51Restore</code>, <code>Invoke-L51Audit</code>, <code>Invoke-L51Backup</code>, <code>Get-L51Status</code>, <code>New-L51Report</code>, <code>Invoke-L51Bench</code>, <code>Compare-L51Bench</code>, <code>Build-L51Docs</code>, <code>Get-L51PowerValue</code>, <code>Set-L51PowerValue</code>, <code>Test-L51TweakApplied</code></p>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="02-เริ่มต้นใช้งาน.html">&larr; ติดตั้งและเริ่มต้นใช้งาน</a><a class="pager-next" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

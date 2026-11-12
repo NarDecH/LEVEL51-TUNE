@@ -1,0 +1,206 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows, services และ debloat · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item active" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">Windows, services และ debloat</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">แนวคิด: debloat ≠ tuning</a></li>
+<li><a href="#sec-3">Game Mode / Game Bar / GameDVR</a></li>
+<li><a href="#sec-4">Visual effects</a></li>
+<li><a href="#sec-5">MMCSS และการจัดลำดับความสำคัญ</a></li>
+<li><a href="#sec-6">บริการ (services) ที่โปรแกรมแตะ</a></li>
+<li><a href="#sec-7">Startup apps — ที่ได้ผลมากกว่าการปิด service</a></li>
+<li><a href="#sec-8">Scheduled tasks ที่กิน IO</a></li>
+<li><a href="#sec-9">Windows Defender — exclusions ที่ปลอดภัย</a></li>
+<li><a href="#sec-10">Power Throttling / Efficiency Mode</a></li>
+<li><a href="#sec-11">Notification / Focus / Widgets</a></li>
+<li><a href="#sec-12">Windows Update — อย่าปิด แต่จัดการเวลา</a></li>
+<li><a href="#sec-13">tweaks ของโปรเจกต์ในหมวด Windows</a></li>
+<li><a href="#sec-14">เช็กลิสต์ debloat ที่ปลอดภัย</a></li>
+<li><a href="#sec-15">ตรวจสอบผลกระทบ</a></li>
+</ol></nav>
+<h2 id="sec-2">แนวคิด: debloat ≠ tuning</h2>
+<p>การปิดบริการและฟีเจอร์ &quot;เพื่อให้เร็วขึ้น&quot; เป็นคำแนะนำยอดนิยมที่มักให้ผลน้อยกว่าที่คิด และบางครั้งให้ผลตรงข้าม เอกสารนี้จึงแยกให้ชัดระหว่าง:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ประเภท</th><th>ตัวอย่าง</th><th>ผลจริง</th></tr></thead>
+<tbody>
+<tr><td>ลด overhead ที่วัดได้</td><td>GameDVR, telemetry, background apps</td><td>0.5-5% ในเกม/งานหนัก</td></tr>
+<tr><td>ลด IO พื้นหลัง</td><td>Windows Search, defrag task, SysMain</td><td>รู้สึกได้ตอน idle/บูต</td></tr>
+<tr><td>เปลี่ยนพฤติกรรม UI</td><td>visual effects, transparency</td><td>รู้สึกได้ แต่ไม่ใช่ performance</td></tr>
+<tr><td>ความเชื่อที่ไม่มีหลักฐาน</td><td>ปิด Superfetch ทุกกรณี, ปิด pagefile, &quot;Limit reservable bandwidth&quot;</td><td>น้อยมากหรือไม่มีผล</td></tr>
+</tbody>
+</table></div>
+<p>โปรไฟล์ <code>max</code> รวมของกลุ่มแรกและกลุ่มที่สองไว้ แต่ <strong>ปิด Search และ SysMain เป็นการแลกที่คุณต้องเลือกเอง</strong></p>
+<h2 id="sec-3">Game Mode / Game Bar / GameDVR</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ฟีเจอร์</th><th>ทำอะไร</th><th>คำแนะนำ</th></tr></thead>
+<tbody>
+<tr><td>Game Mode</td><td>ให้ priority กับเกม, หยุด Windows Update บางงานระหว่างเล่น</td><td>เปิด (<code>win.gamemode-on</code>)</td></tr>
+<tr><td>Game Bar (Win+G)</td><td>overlay, widget</td><td>เปิดไว้ได้ ไม่กิน resource เมื่อไม่เรียก</td></tr>
+<tr><td>GameDVR background recording</td><td>อัดคลิปย้อนหลังตลอดเวลา</td><td>ปิด (<code>gpu.gamedvr-off</code>) — นี่คือของจริงที่กิน GPU encoder</td></tr>
+<tr><td>Captures</td><td>อัดเมื่อสั่ง</td><td>เปิดได้ถ้าใช้</td></tr>
+</tbody>
+</table></div>
+<p>ตรวจสอบว่า GameDVR ปิดจริง:</p>
+<pre><code class="lang-powershell">Get-ItemProperty &#39;HKCU:\System\GameConfigStore&#39; -Name GameDVR_Enabled
+Get-ItemProperty &#39;HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR&#39; -Name AllowGameDVR</code></pre>
+<h2 id="sec-4">Visual effects</h2>
+<p><code>win.visualfx-performance</code> ตั้ง <code>VisualFXSetting=2</code> (Adjust for best performance) ซึ่งปิด:</p>
+<ul>
+<li>Animate windows when minimizing/maximizing</li>
+<li>Fade/Slide menus</li>
+<li>Show shadows under windows</li>
+<li>Smooth edges of screen fonts (ปิดอันนี้ทำให้ตัวอักษรดูแย่ลง — พิจารณา)</li>
+<li>Thumbnails แทน icons</li>
+<li>Peek, translucent selection rectangle</li>
+</ul>
+<p>ผลต่อ fps: ~0-1% บน GPU แยก ผลต่อ <strong>ความรู้สึกเร็ว</strong> ของ UI: ชัดเจน แต่หลายคนไม่ชอบที่ไม่มี animation</p>
+<p>ถ้าต้องการเลือกเอง: <code>SystemPropertiesPerformance.exe</code></p>
+<h2 id="sec-5">MMCSS และการจัดลำดับความสำคัญ</h2>
+<p>ดูรายละเอียดใน <a href="09-NETWORK.md#4-mmcss-multimedia-class-scheduler-service">เครือข่ายและ latency</a> — สรุปคือ tweak <code>net.mmcss-games</code> และ <code>net.mmcss-responsiveness</code> ปรับ priority ที่ Windows ใช้กับงาน multimedia/เกม</p>
+<p><code>mem.priority-separation</code> (Win32PrioritySeparation=38) ปรับ quantum ของ scheduler ให้ foreground ได้ 3 เท่า</p>
+<h2 id="sec-6">บริการ (services) ที่โปรแกรมแตะ</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>บริการ</th><th>ชื่อ</th><th>โปรไฟล์</th><th>ผลเมื่อปิด</th><th>คำแนะนำ</th></tr></thead>
+<tbody>
+<tr><td>SysMain</td><td><code>SysMain</code></td><td>max</td><td>ไม่มี prefetch, ลด IO</td><td>ทดลองและวัดผล</td></tr>
+<tr><td>Windows Search</td><td><code>WSearch</code></td><td>max</td><td>ค้นหาไฟล์ช้ามาก, Outlook search เสีย</td><td>ไม่แนะนำถ้าใช้ค้นหาไฟล์</td></tr>
+<tr><td>DiagTrack</td><td><code>DiagTrack</code></td><td>max</td><td>ไม่ส่ง telemetry</td><td>ปลอดภัย</td></tr>
+<tr><td>dmwappushservice</td><td><code>dmwappushservice</code></td><td>max</td><td>ไม่มีผลข้างเคียงที่เห็นได้</td><td>ปลอดภัย</td></tr>
+<tr><td>MapsBroker</td><td><code>MapsBroker</code></td><td>max</td><td>แอป Maps โหลดแผนที่ไม่ได้</td><td>ปลอดภัย</td></tr>
+<tr><td>NVIDIA Telemetry</td><td><code>NvTelemetryContainer</code></td><td>gaming, max</td><td>ไม่มีผลกับการเล่นเกม</td><td>ปลอดภัย</td></tr>
+</tbody>
+</table></div>
+<p><strong>บริการที่โปรแกรมไม่แตะโดยเจตนา</strong>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>บริการ</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>Windows Update (wuauserv)</td><td>ความปลอดภัย — ไม่ใช่การจูน</td></tr>
+<tr><td>Defender (WinDefend)</td><td>ความปลอดภัย</td></tr>
+<tr><td>Audio (Audiosrv)</td><td>จำเป็น</td></tr>
+<tr><td>Print Spooler</td><td>ปิดได้แต่บางโปรแกรม (PDF printer) จะเสีย — ให้ผู้ใช้เลือก</td></tr>
+<tr><td>Xbox services</td><td>หลายเกม (รวม Game Pass) ต้องใช้</td></tr>
+<tr><td>Bluetooth</td><td>จำเป็นถ้าใช้หูฟัง/เมาส์</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-7">Startup apps — ที่ได้ผลมากกว่าการปิด service</h2>
+<p>โปรแกรมที่รันตอน login กินทั้ง RAM และ CPU เป็นระยะ:</p>
+<pre><code class="lang-powershell">Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, Location, User</code></pre>
+<p>หรือดูผ่าน Task Manager → Startup apps (มีคอลัมน์ &quot;Startup impact&quot;)</p>
+<p>ปิดใน Task Manager หรือลบ shortcut ใน:</p>
+<pre><code>%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup
+HKCU:\Software\Microsoft\Windows\CurrentVersion\Run
+HKLM:\Software\Microsoft\Windows\CurrentVersion\Run</code></pre>
+<p><strong>ตัวอย่างที่มักปิดได้</strong>: OneDrive (ถ้าไม่ใช้), Teams, Discord (ถ้าไม่ต้อง auto-start), GeForce Experience, c&#225;c app ของ OEM</p>
+<h2 id="sec-8">Scheduled tasks ที่กิน IO</h2>
+<pre><code class="lang-powershell">Get-ScheduledTask | Where-Object State -eq &#39;Ready&#39; |
+  Get-ScheduledTaskInfo |
+  Sort-Object LastRunTime -Descending |
+  Select-Object -First 20 TaskName, LastRunTime, LastTaskResult</code></pre>
+<p>งานที่มักไม่มีประโยชน์ในเครื่องส่วนตัว: Customer Experience Improvement Program, Office telemetry, Adobe GC Invoker, Google Update (ถ้าไม่ใช้ Chrome)</p>
+<h2 id="sec-9">Windows Defender — exclusions ที่ปลอดภัย</h2>
+<p>การสแกนโฟลเดอร์ build ที่มีไฟล์หมื่นไฟล์ทำให้ช้าและกิน CPU:</p>
+<pre><code class="lang-powershell"># ต้อง admin
+Add-MpPreference -ExclusionPath &#39;C:\_Project&#39;
+Add-MpPreference -ExclusionPath &quot;$env:USERPROFILE\.cargo&quot;
+Add-MpPreference -ExclusionProcess &#39;node.exe&#39;
+Get-MpPreference | Select-Object ExclusionPath, ExclusionProcess</code></pre>
+<p>⚠️ <strong>อย่า</strong> เพิ่ม exclusion ให้โฟลเดอร์ดาวน์โหลดหรือทั้งไดรฟ์ — นั่นคือการปิดการป้องกัน</p>
+<h2 id="sec-10">Power Throttling / Efficiency Mode</h2>
+<p>Windows 11 ติดป้ายโปรเซสพื้นหลังว่า &quot;Efficiency mode&quot; และจำกัด clock ให้</p>
+<ul>
+<li>ดูได้ใน Task Manager (แท็บ Processes, คอลัมน์ Status)</li>
+<li>tweak <code>power.throttling-off</code> ปิดกลไกนี้ (ต้อง reboot)</li>
+<li>ผล: งานพื้นหลังเร็วขึ้น แต่กินไฟและร้อนขึ้น</li>
+</ul>
+<p>ถ้าเครื่องเย็นพอปิดได้ แต่ถ้าใช้ <code>max</code> + ปิด throttling + ปิด C-state พร้อมกัน จะร้อนมาก</p>
+<h2 id="sec-11">Notification / Focus / Widgets</h2>
+<p>ไม่ใช่ performance แต่เป็น &quot;ความรู้สึกเร็ว&quot; ของเครื่อง:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ฟีเจอร์</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td>Widgets (Win+W)</td><td>โหลด process เพิ่ม ~40-80 MB</td></tr>
+<tr><td>News and interests</td><td>รันเบื้องหลัง</td></tr>
+<tr><td>Notification popups</td><td>ขัดจังหวะเกม (มีโหมด Game Mode ช่วย)</td></tr>
+</tbody>
+</table></div>
+<p>ปิด Widgets: Taskbar settings → Widgets = Off</p>
+<h2 id="sec-12">Windows Update — อย่าปิด แต่จัดการเวลา</h2>
+<pre><code class="lang-powershell"># ตั้ง active hours เพื่อไม่ให้ reboot ระหว่างเล่นเกม
+Get-ItemProperty &#39;HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings&#39;</code></pre>
+<p>Settings → Windows Update → Advanced options → Active hours ตั้งช่วงที่ใช้งาน</p>
+<h2 id="sec-13">tweaks ของโปรเจกต์ในหมวด Windows</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>โปรไฟล์</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>win.gamemode-on</code></td><td>balanced, performance, gaming, max</td><td>เปิด Game Mode</td></tr>
+<tr><td><code>win.mouse-accel-off</code> + <code>win.mouse-thresholds</code></td><td>gaming, max</td><td>ปิด mouse acceleration</td></tr>
+<tr><td><code>win.keyboard-delay</code></td><td>gaming, max</td><td>ดีเลย์คีย์สั้นสุด</td></tr>
+<tr><td><code>win.unhide-power-settings</code></td><td>performance, gaming, max</td><td>แสดงค่า power ขั้นสูง</td></tr>
+<tr><td><code>win.visualfx-performance</code></td><td>max</td><td>ปิด animation</td></tr>
+<tr><td><code>win.transparency-off</code></td><td>max</td><td>ปิด acrylic/blur</td></tr>
+<tr><td><code>win.background-apps-off</code></td><td>max</td><td>ปิดแอปพื้นหลัง</td></tr>
+<tr><td><code>win.services-diagtrack</code></td><td>max</td><td>ปิด telemetry</td></tr>
+<tr><td><code>win.services-dmwappush</code></td><td>max</td><td>ปิด WAP push</td></tr>
+<tr><td><code>win.services-mapsbroker</code></td><td>max</td><td>ปิด MapsBroker</td></tr>
+<tr><td><code>win.bcd-dynamictick</code> (High)</td><td>max</td><td>ปิด dynamic tick</td></tr>
+<tr><td><code>win.bcd-platformclock</code> (High)</td><td>max</td><td>บังคับ TSC</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-14">เช็กลิสต์ debloat ที่ปลอดภัย</h2>
+<ol>
+<li>ปิด startup apps ที่ไม่ใช้ (ได้ผลที่สุด)</li>
+<li>ปิด GameDVR</li>
+<li>ตั้ง Defender exclusions สำหรับโฟลเดอร์ build</li>
+<li>ปิด Widgets / News</li>
+<li>ตั้ง Active hours ของ Windows Update</li>
+<li>ลบแอป Store ที่ไม่ใช้ (Settings → Apps → Installed apps)</li>
+<li><strong>อย่า</strong> ปิด Windows Update, Defender, หรือ service ที่ไม่รู้จัก</li>
+<li><strong>อย่า</strong> ใช้สคริปต์ debloat จากอินเทอร์เน็ตที่ไม่ตรวจสอบ — หลายตัวปิดสิ่งที่จำเป็นต่อการบูต</li>
+</ol>
+<h2 id="sec-15">ตรวจสอบผลกระทบ</h2>
+<p>หลังปิดบริการ ให้ตรวจว่าไม่มีอะไรพัง:</p>
+<pre><code class="lang-powershell"># ดู error ใน Event Log 24 ชั่วโมงล่าสุด
+Get-WinEvent -FilterHashtable @{LogName=&#39;System&#39;; Level=1,2; StartTime=(Get-Date).AddDays(-1)} |
+  Group-Object ProviderName | Sort-Object Count -Descending |
+  Select-Object -First 10 Count, Name</code></pre>
+<p>ถ้าเจอ error ใหม่ที่เกี่ยวกับบริการที่ปิด → <code>restore</code> หรือเปิดบริการกลับด้วย <code>Set-Service -StartupType Manual</code></p>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="09-NETWORK.html">&larr; เครือข่ายและ latency</a><a class="pager-next" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

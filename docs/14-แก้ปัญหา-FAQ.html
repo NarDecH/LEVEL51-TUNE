@@ -1,0 +1,209 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แก้ปัญหาและคำถามที่พบบ่อย · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item active" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">แก้ปัญหาและคำถามที่พบบ่อย</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ปัญหาการใช้งานโปรแกรม</a></li>
+<li><a href="#sec-9">ปัญหาหลัง apply</a></li>
+<li><a href="#sec-16">ปัญหาฮาร์ดแวร์/ประสิทธิภาพ</a></li>
+<li><a href="#sec-23">คำถามที่พบบ่อย</a></li>
+</ol></nav>
+<h2 id="sec-2">ปัญหาการใช้งานโปรแกรม</h2>
+<h3 id="sec-3">&quot;cannot be loaded because running scripts is disabled on this system&quot;</h3>
+<pre><code class="lang-powershell">Get-ChildItem -Recurse -Include *.ps1,*.psm1 | Unblock-File
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
+<h3 id="sec-4">&quot;ต้องใช้สิทธิ์ Administrator&quot;</h3>
+<p>เปิด PowerShell ด้วยคลิกขวา → <strong>Run as administrator</strong> หรือเพิ่ม <code>-Elevate</code>:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile gaming -Elevate</code></pre>
+<h3 id="sec-5">apply แล้วขึ้น WARN &quot;powercfg ปฏิเสธค่า&quot;</h3>
+<p>ค่านั้นถูกซ่อนอยู่ วิธีแก้:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile performance     # มี win.unhide-power-settings
+# หรือสั่งเองรายตัว:
+powercfg -attributes SUB_PROCESSOR PERFBOOSTMODE -ATTRIB_HIDE</code></pre>
+<h3 id="sec-6">ตัวอักษรไทยใน console เพี้ยน (PowerShell 5.1)</h3>
+<pre><code class="lang-powershell">chcp 65001</code></pre>
+<p>หรือใช้ Windows Terminal / PowerShell 7 (<code>pwsh</code>) ซึ่งรองรับ UTF-8 โดย default</p>
+<h3 id="sec-7"><code>Import-Module</code> ฟ้องว่าไม่มีไฟล์</h3>
+<p>ต้องรันจากโฟลเดอร์รากของโปรเจกต์ หรือใช้ absolute path:</p>
+<pre><code class="lang-powershell">Import-Module C:\_Project\LEVEL51-TUNE\src\Level51Tune.psm1 -Force</code></pre>
+<h3 id="sec-8">ไฟล์ <code>.psm1</code> อ่านภาษาไทยไม่ออก</h3>
+<p>ไฟล์ทั้งหมดถูกบันทึกเป็น UTF-8 <strong>with BOM</strong> เพื่อให้ Windows PowerShell 5.1 อ่านได้ถูกต้อง ถ้าแก้ไฟล์ด้วย editor ที่บันทึกเป็น UTF-8 without BOM แล้วภาษาไทยเพี้ยน ให้บันทึกใหม่เป็น &quot;UTF-8 with BOM&quot;</p>
+<h2 id="sec-9">ปัญหาหลัง apply</h2>
+<h3 id="sec-10">audit ขึ้น <code>no</code> ทั้งที่ apply ไปแล้ว</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>สาเหตุ</th><th>วิธีตรวจ</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td>ค่า power ถูกซ่อน/ถูกปฏิเสธ</td><td>ดู WARN ตอน apply</td><td>unhide ก่อน</td></tr>
+<tr><td>โปรแกรม OEM เขียนทับ</td><td>ปิด Control Center/ThrottleStop</td><td>ปิดแล้ว apply ใหม่</td></tr>
+<tr><td>Windows Update รีเซ็ต registry</td><td>ดู <code>audit</code> หลังอัปเดต</td><td>apply ซ้ำ</td></tr>
+<tr><td>ยังไม่ reboot</td><td>ดูคอลัมน์ <code>reboot</code></td><td>restart เครื่อง</td></tr>
+<tr><td>Fast Startup ยังเปิด</td><td><code>powercfg /a</code></td><td><code>powercfg -h off</code> แล้ว shutdown จริง</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-11">หลัง apply แล้วเครื่องร้อนขึ้น/พัดลมดังขึ้น</h3>
+<p>นี่คือ <strong>ผลที่คาดหวัง</strong> ของโปรไฟล์ <code>performance</code>/<code>gaming</code>/<code>max</code> (min state สูงขึ้น, boost aggressive, C-state off)</p>
+<p>ถ้าไม่ต้องการ:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 restore      # กลับทั้งหมด
+# หรือใช้โปรไฟล์ที่เบากว่า
+.\Level51Tune.ps1 apply -Profile balanced</code></pre>
+<h3 id="sec-12">เกมได้ fps ต่ำลงหลัง apply</h3>
+<p>สาเหตุที่เป็นไปได้:</p>
+<ol>
+<li><strong>HAGS</strong> — เกมเก่าบางตัวแย่ลงเมื่อเปิด HAGS → ปิด <code>HwSchMode=0</code> และ reboot</li>
+<li><strong>Fullscreen optimization ปิด</strong> — เกม DX12 บางตัวมีปัญหา → คืนค่า <code>GameDVR_FSEBehaviorMode=0</code></li>
+<li><strong>ความร้อน</strong> — โปรไฟล์ max ทำให้ throttle → เปลี่ยนเป็น gaming/performance</li>
+<li><strong>Power Throttling ปิด</strong> — ความร้อนเพิ่ม → ตรวจอุณหภูมิ</li>
+</ol>
+<h3 id="sec-13">ปิด GameDVR แล้วอัดคลิปไม่ได้</h3>
+<p>GameDVR background recording คือการอัดย้อนหลังอัตโนมัติ ถ้าต้องการอัดจริงจัง ให้ใช้ OBS (และใช้ QuickSync ของ iGPU เป็น encoder)</p>
+<h3 id="sec-14">ปิด Windows Search แล้วหาไฟล์ไม่เจอ</h3>
+<pre><code class="lang-powershell">Set-Service -Name WSearch -StartupType Automatic
+Start-Service -Name WSearch</code></pre>
+<p>แล้วรอ indexing ทำงาน (อาจใช้เวลาหลายชั่วโมงในเครื่องที่มีไฟล์เยอะ)</p>
+<h3 id="sec-15">ปิด SysMain แล้วเครื่องบูตช้าลง</h3>
+<pre><code class="lang-powershell">Set-Service -Name SysMain -StartupType Automatic
+Start-Service -Name SysMain</code></pre>
+<h2 id="sec-16">ปัญหาฮาร์ดแวร์/ประสิทธิภาพ</h2>
+<h3 id="sec-17">เครื่องร้อนจัด (95 &#176;C+) ตอนเล่นเกม</h3>
+<ol>
+<li>ตรวจด้วย <code>.\Level51Tune.ps1 status</code> และ HWiNFO</li>
+<li>ทำความสะอาดพัดลม/ฮีตซิงก์</li>
+<li>เปลี่ยน thermal paste (ถ้าเครื่องอายุ 3+ ปี)</li>
+<li>undervolt CPU (-100 mV) และ GPU</li>
+<li>จำกัด fps ในเกมเป็น 60</li>
+<li>ถ้าใช้โปรไฟล์ max → เปลี่ยนเป็น gaming</li>
+</ol>
+<h3 id="sec-18">เกมกระตุกเป็นช่วง ๆ (stutter) แต่ avg fps ดี</h3>
+<p>ตรวจ 1% low ด้วย CapFrameX/PresentMon แล้วดู:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>สาเหตุ</th></tr></thead>
+<tbody>
+<tr><td>กระตุกทุก ~2 วินาที</td><td>P-State แกว่ง / power limit</td></tr>
+<tr><td>กระตุกเมื่อโหลด texture ใหม่</td><td>RAM/VRAM ไม่พอ หรือดิสก์ช้า</td></tr>
+<tr><td>กระตุกเมื่อมีเสียง</td><td>DPC latency ของไดรเวอร์เสียง (ดู LatencyMon)</td></tr>
+<tr><td>กระตุกตอนศัตรูโผล่</td><td>CPU limit (ตรวจ utilization ต่อคอร์)</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-19"><code>nvidia-smi</code> ขึ้น &quot;has failed because it couldn&#39;t communicate with the NVIDIA driver&quot;</h3>
+<ol>
+<li>Device Manager → Display adapters → มี GTX 1060 และไม่มีเครื่องหมายเตือนไหม</li>
+<li>ถ้ามีเตือน → DDU + ติดตั้งไดรเวอร์ใหม่</li>
+<li>ถ้าไม่มี GTX 1060 เลย → ตรวจใน BIOS ว่า dGPU ถูกปิดไหม</li>
+</ol>
+<h3 id="sec-20">ใช้ GTX 1060 ไม่ได้ เกมวิ่งช้า</h3>
+<pre><code class="lang-powershell"># ตรวจว่าตั้ง per-app preference ไว้หรือยัง
+Get-ItemProperty &#39;HKCU:\Software\Microsoft\DirectX\UserGpuPreferences&#39;</code></pre>
+<p>ตั้งเพิ่มสำหรับเกมนั้น:</p>
+<pre><code class="lang-powershell">$k = &#39;HKCU:\Software\Microsoft\DirectX\UserGpuPreferences&#39;
+Set-ItemProperty -Path $k -Name &#39;C:\Games\Game\game.exe&#39; -Value &#39;GpuPreference=2;&#39; -Type String</code></pre>
+<p>หรือ Settings → Display → Graphics → เพิ่มแอป → High performance</p>
+<h3 id="sec-21">SSD ช้ากว่าสเปกมาก</h3>
+<ul>
+<li>ตรวจว่า SSD อยู่ในสล็อต PCIe 3.0 x4 (แพลตฟอร์มนี้ไม่รองรับ 4.0)</li>
+<li>ตรวจ TRIM: <code>fsutil behavior query DisableDeleteNotify</code> (ต้องเป็น 0)</li>
+<li>ตรวจพื้นที่ว่าง &gt; 20%</li>
+<li>ตรวจอุณหภูมิ: <code>Get-StorageReliabilityCounter</code></li>
+<li>ตรวจว่าไม่ได้ใช้ SATA M.2 แทน NVMe</li>
+</ul>
+<h3 id="sec-22">Wi-Fi ping แกว่ง</h3>
+<ul>
+<li>ใช้ 5 GHz</li>
+<li>ปิด &quot;Allow the computer to turn off this device to save power&quot; ใน Device Manager</li>
+<li>อัปเดตไดรเวอร์ Intel 9260</li>
+<li>ตรวจ interference ด้วย <code>netsh wlan show interfaces</code></li>
+</ul>
+<h2 id="sec-23">คำถามที่พบบ่อย</h2>
+<h3 id="sec-24">โปรแกรมนี้ปลอดภัยไหม</h3>
+<p>มันแก้เฉพาะค่าที่ Windows เปิดให้แก้ผ่าน API (powercfg, registry, service) และ backup ก่อนทุกครั้ง ไม่แตะ BIOS, ไม่ติดตั้งไดรเวอร์, ไม่ปิด Windows Update/Defender และไม่ดาวน์โหลดอะไรจากอินเทอร์เน็ต</p>
+<h3 id="sec-25">ใช้กับเครื่องอื่นได้ไหม</h3>
+<p>ได้ แต่:</p>
+<ul>
+<li>ชื่อโปรไฟล์และคำอธิบายเขียนขึ้นสำหรับเครื่องนี้</li>
+<li>tweaks บางตัว (เช่น <code>gpu.prefer-dgpu-global</code>) ไม่มีความหมายบนเครื่องที่ไม่มี Optimus</li>
+<li><code>win.unhide-power-settings</code> และ tweaks แบบ power ทำงานได้ทุกเครื่อง Windows</li>
+<li>โปรไฟล์ <code>max</code> บนเครื่องที่ระบายความร้อนไม่ดีอาจเป็นอันตราย</li>
+</ul>
+<h3 id="sec-26">ต้อง admin ตลอดไหม</h3>
+<p>ไม่ — <code>status</code>, <code>audit</code>, <code>bench</code>, <code>list</code>, <code>profiles</code>, <code>report</code>, <code>docs</code>, <code>gpu</code> ทำงานได้โดยไม่ต้อง admin</p>
+<h3 id="sec-27">apply ซ้ำได้ไหม</h3>
+<p>ได้ และปลอดภัย แต่ควรรู้ว่า:</p>
+<ul>
+<li>ถ้า apply โปรไฟล์เดิมซ้ำ โปรแกรมจะใช้ scheme ที่มีอยู่ (ไม่สร้างใหม่)</li>
+<li>ถ้า apply โปรไฟล์อื่น จะสร้าง scheme ใหม่จาก scheme ปัจจุบัน (ซึ่งเป็น tune scheme เดิม) แล้วลบ scheme เก่า</li>
+<li>backup ใหม่จะถูกสร้างทุกครั้ง</li>
+</ul>
+<p>ถ้าอยากกลับไปจุดเริ่มต้นจริง ๆ ให้ <code>restore</code> ไฟล์ backup แรกสุด</p>
+<h3 id="sec-28">ทำไมตัวเลข bench ไม่ต่างกันเลย</h3>
+<p>เพราะโปรไฟล์ส่วนใหญ่ปรับ <strong>latency/jitter</strong> ไม่ใช่ throughput ดิบ <code>bench</code> วัด throughput ซึ่งได้ผลเฉพาะกับ:</p>
+<ul>
+<li>การปลดล็อก power limit (ซึ่งเครื่องนี้ทำไม่ได้)</li>
+<li>การปิด core parking ในงาน multi-thread (เล็กน้อย)</li>
+<li>การลด IO พื้นหลัง (เห็นชัดตอนวัดพร้อมกับรันอย่างอื่น)</li>
+</ul>
+<p>ถ้าอยากเห็นผลของ latency ให้ใช้ LatencyMon (DPC) หรือ frametime graph ในเกม</p>
+<h3 id="sec-29">ลบโปรแกรมนี้ต้องทำอะไร</h3>
+<ol>
+<li><code>.\Level51Tune.ps1 restore</code> (ย้อนค่าทั้งหมด)</li>
+<li>ลบโฟลเดอร์โปรเจกต์</li>
+<li>ไม่มีอะไรค้างในระบบ (ไม่มี service, ไม่มี scheduled task, ไม่มี driver)</li>
+</ol>
+<h3 id="sec-30">ทำไมต้องสร้าง power scheme ใหม่แทนที่จะแก้ของเดิม</h3>
+<p>เพราะการแก้ scheme เดิมจะทำให้คุณไม่สามารถเปรียบเทียบ &quot;ก่อน/หลัง&quot; ได้ และถ้าอยากกลับต้องจำค่าดิบทั้งหมด การแยก scheme ทำให้สลับไปมาใน Control Panel ได้ทันที</p>
+<h3 id="sec-31"><code>-Include high</code> ทำอะไร</h3>
+<p>อนุญาตให้รวม tweaks ความเสี่ยงสูง 4 รายการ (ปิด C-state, ปิด GPU dynamic P-State, disabledynamictick, useplatformclock) ซึ่งปกติถูกข้าม เพราะอาจทำให้เครื่องร้อนมากหรือไม่เสถียร</p>
+<h3 id="sec-32">ใช้ร่วมกับ ThrottleStop / XTU / MSI Afterburner ได้ไหม</h3>
+<p>ได้ แต่ระวังการเขียนทับกัน:</p>
+<ul>
+<li>ThrottleStop ตั้ง power limit และ undervolt → ไม่ชนกับ powercfg แต่จะ overwrite ค่า power limit ที่คุณตั้ง</li>
+<li>XTU ตั้งค่า clock/voltage → คนละชั้น ไม่ชน</li>
+<li>Afterburner ตั้ง GPU clock/voltage → ไม่ชนกับ tweaks ของโปรแกรมนี้</li>
+</ul>
+<p><strong>ข้อแนะนำ</strong>: ใช้ Level51Tune จัดการ power scheme/registry/service และใช้ ThrottleStop/Afterburner สำหรับ voltage/clock</p>
+<h3 id="sec-33">ทำไม <code>restore</code> ไม่คืนค่า fsutil/netsh/bcdedit</h3>
+<p>เพราะ tweaks เหล่านั้นให้ผลลัพธ์เป็นข้อความ ไม่ใช่ค่าที่อ่านกลับมาเปรียบเทียบได้ การเดาค่าเดิมแล้วเขียนทับมีความเสี่ยงมากกว่าการบอกผู้ใช้ให้คืนเอง — เอกสาร <a href="12-ความปลอดภัย-ย้อนกลับ.md">ความปลอดภัย การสำรอง และการย้อนกลับ</a> มีคำสั่งครบทุกตัว</p>
+<h3 id="sec-34">ตรวจสอบว่าเครื่องใช้ Modern Standby หรือ S3</h3>
+<pre><code class="lang-powershell">powercfg /a</code></pre>
+<p>ถ้าเห็น &quot;Standby (S0 Low Power Idle)&quot; = Modern Standby (กินไฟในกระเป๋า) ถ้าเป็น S3 = sleep แบบเดิม</p>
+<h3 id="sec-35">จะรู้ได้อย่างไรว่าไฟล์ docs เป็นเวอร์ชันล่าสุด</h3>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 docs</code></pre>
+<p>สร้าง HTML ใหม่จาก md ทุกครั้ง (md คือต้นฉบับ ไม่ใช่ HTML)</p>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="13-ผลตรวจเครื่องนี้.html">&larr; ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a><span></span></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ความปลอดภัย การสำรอง และการย้อนกลับ · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item active" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">ความปลอดภัย การสำรอง และการย้อนกลับ</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">หลักประกัน 3 ชั้นของโปรแกรมนี้</a></li>
+<li><a href="#sec-3">รูปแบบไฟล์ backup</a></li>
+<li><a href="#sec-4">สิ่งที่ restore ทำได้และทำไม่ได้</a></li>
+<li><a href="#sec-6">กู้คืนเมื่อเครื่องมีปัญหา</a></li>
+<li><a href="#sec-12">Checklist ก่อน apply ครั้งแรก</a></li>
+<li><a href="#sec-13">Checklist หลัง apply</a></li>
+<li><a href="#sec-14">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</a></li>
+<li><a href="#sec-15">ข้อควรระวังเฉพาะเครื่องนี้</a></li>
+<li><a href="#sec-16">การเก็บ backup ระยะยาว</a></li>
+<li><a href="#sec-17">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">หลักประกัน 3 ชั้นของโปรแกรมนี้</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ชั้น</th><th>กลไก</th><th>ทำอะไร</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>-DryRun</code></td><td>เดินทุกขั้นตอนโดยไม่แตะระบบ ตรวจได้ก่อน apply</td></tr>
+<tr><td>2</td><td>backup อัตโนมัติ</td><td>เขียน <code>backups/&lt;เวลา&gt;_apply-&lt;โปรไฟล์&gt;.json</code> ก่อนแก้อย่างแรก</td></tr>
+<tr><td>3</td><td><code>restore</code></td><td>คืนค่าทุกอย่างตามลำดับย้อนกลับ + ลบ scheme ที่สร้าง + สลับ scheme เดิม</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">รูปแบบไฟล์ backup</h2>
+<pre><code class="lang-json">{
+  &quot;Version&quot;: 1,
+  &quot;Created&quot;: &quot;2026-11-12T15:30:12.4821+07:00&quot;,
+  &quot;Computer&quot;: &quot;LEVEL51&quot;,
+  &quot;Profile&quot;: &quot;gaming&quot;,
+  &quot;DryRun&quot;: false,
+  &quot;Hardware&quot;: { &quot;Cpu&quot;: &quot;Intel(R) Core(TM) i9-9900K CPU @ 3.60GHz&quot;, &quot;RamGB&quot;: 30.4, &quot;Model&quot;: &quot;N95TP6&quot;, &quot;OS&quot;: &quot;Microsoft Windows 11 Pro&quot; },
+  &quot;ActiveSchemeBefore&quot;: &quot;381b4222-f694-41f0-9685-ff5bb260df2e&quot;,
+  &quot;BaseScheme&quot;: &quot;381b4222-f694-41f0-9685-ff5bb260df2e&quot;,
+  &quot;TuneScheme&quot;: &quot;9a3f... &quot;,
+  &quot;Tweaks&quot;: [
+    {
+      &quot;Id&quot;: &quot;power.cpu.min50&quot;,
+      &quot;Type&quot;: &quot;Power&quot;,
+      &quot;Risk&quot;: &quot;Low&quot;,
+      &quot;Previous&quot;: { &quot;AC&quot;: 5, &quot;DC&quot;: 1 },
+      &quot;Target&quot;: { &quot;Subgroup&quot;: &quot;SUB_PROCESSOR&quot;, &quot;Setting&quot;: &quot;PROCTHROTTLEMIN&quot;, &quot;AC&quot;: 50, &quot;DC&quot;: 5 }
+    },
+    {
+      &quot;Id&quot;: &quot;gpu.hags&quot;,
+      &quot;Type&quot;: &quot;Registry&quot;,
+      &quot;Previous&quot;: { &quot;Exists&quot;: true, &quot;Value&quot;: 0, &quot;Kind&quot;: &quot;DWord&quot; },
+      &quot;Target&quot;: { &quot;Path&quot;: &quot;HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers&quot;, &quot;Name&quot;: &quot;HwSchMode&quot;, &quot;Value&quot;: 2, &quot;ValueType&quot;: &quot;DWord&quot; }
+    }
+  ]
+}</code></pre>
+<p>จุดสำคัญ: <code>Previous.Exists = false</code> หมายถึงค่าเดิม <strong>ไม่มีอยู่</strong> — restore จะลบค่านั้นออก ไม่ใช่ตั้งเป็น 0</p>
+<h2 id="sec-4">สิ่งที่ restore ทำได้และทำไม่ได้</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ประเภท</th><th>restore อัตโนมัติ</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td>Power settings</td><td>✅</td><td>คืนค่า AC/DC ตามที่บันทึก</td></tr>
+<tr><td>Registry (รวมค่าที่เดิมไม่มี)</td><td>✅</td><td>ลบค่าที่เดิมไม่มีให้</td></tr>
+<tr><td>Services (startup type + start)</td><td>✅</td><td>คืนค่าและ start ถ้าเดิมทำงานอยู่</td></tr>
+<tr><td>power scheme</td><td>✅</td><td>สลับกลับ + ลบ scheme ที่สร้าง</td></tr>
+<tr><td><code>fsutil</code> (last access, 8dot3)</td><td>❌</td><td>รายงาน <code>SKIP</code> — ต้องคืนเอง</td></tr>
+<tr><td><code>netsh</code> (TCP global)</td><td>❌</td><td>ตั้งค่ามาตรฐานคืนให้ แต่ไม่ใช่ค่าเดิมเป๊ะ</td></tr>
+<tr><td><code>bcdedit</code> (dynamictick, platformclock)</td><td>❌</td><td>ต้อง <code>bcdedit /deletevalue</code> เอง</td></tr>
+<tr><td>ScheduledDefrag task</td><td>❌</td><td><code>RevertScript</code> มีอยู่ แต่ restore ไม่เรียกใช้ (ดูด้านล่าง)</td></tr>
+<tr><td>MMCSS tasks</td><td>❌</td><td>คืนค่าเดิมได้ถ้า backup มี (แต่ตอนนี้รายงาน SKIP)</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>ทำไม</strong>: tweaks ประเภท Script ให้ผลลัพธ์ที่ไม่สามารถอ่านกลับมาเปรียบเทียบเป็นค่าเดียวได้ (เช่น netsh คืนข้อความหลายบรรทัด) การ restore จึงเลือกที่จะไม่แตะและบอกผู้ใช้ตรง ๆ ดีกว่าเดาแล้วทำให้แย่ลง</p>
+</blockquote>
+<h3 id="sec-5">วิธีคืนค่า Script tweaks ด้วยมือ</h3>
+<pre><code class="lang-powershell"># fsutil
+fsutil behavior set disablelastaccess 2      # กลับเป็น default (อัปเดตตามการเข้าถึง)
+fsutil behavior set disable8dot3 2           # กลับเป็น per-volume
+
+# netsh
+netsh int tcp set global autotuninglevel=normal
+netsh int tcp set global rss=enabled
+netsh int tcp set global timestamps=disabled
+netsh int tcp set global ecn=default
+
+# bcdedit
+bcdedit /deletevalue disabledynamictick
+bcdedit /deletevalue useplatformclock
+
+# scheduled task
+Enable-ScheduledTask -TaskName ScheduledDefrag
+
+# power (hibernate)
+powercfg -h on</code></pre>
+<h2 id="sec-6">กู้คืนเมื่อเครื่องมีปัญหา</h2>
+<h3 id="sec-7">กรณีที่ 1: ระบบยังบูตได้ แต่พฤติกรรมแปลก</h3>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 restore</code></pre>
+<p>ถ้าลืมว่า backup ไฟล์ไหน:</p>
+<pre><code class="lang-powershell">Get-ChildItem .\backups\*_apply-*.json | Sort-Object LastWriteTime -Descending |
+  Select-Object -First 5 Name, LastWriteTime</code></pre>
+<h3 id="sec-8">กรณีที่ 2: บูตช้า/ค้างหลังแก้ bcdedit</h3>
+<ol>
+<li>บูตเข้า <strong>Safe Mode</strong> (กด Shift ค้างตอนกด Restart → Troubleshoot → Advanced → Startup Settings → Safe Mode)</li>
+<li>เปิด Command Prompt (Admin)</li>
+<li><code>bcdedit /deletevalue disabledynamictick</code> และ <code>bcdedit /deletevalue useplatformclock</code></li>
+<li>รีบูตปกติ</li>
+</ol>
+<p>หรือใช้ <strong>System Restore</strong> (<code>rstrui.exe</code>) ย้อนไปจุดก่อนหน้า</p>
+<h3 id="sec-9">กรณีที่ 3: power scheme เสียหายทั้งหมด</h3>
+<pre><code class="lang-powershell"># คืนค่า scheme มาตรฐานของ Windows (ไม่ลบ scheme ที่สร้างเอง)
+powercfg -restoredefaultschemes</code></pre>
+<p>⚠️ คำสั่งนี้ลบ power plan ที่ผู้ใช้สร้าง<strong>ทั้งหมด</strong> รวม <code>LEVEL51 Ultimate Performance</code> และ <code>GameTurbo</code> ของคุณ — ใช้เป็นทางเลือกสุดท้าย</p>
+<h3 id="sec-10">กรณีที่ 4: บริการที่ปิดทำให้ Windows ทำงานผิดปกติ</h3>
+<pre><code class="lang-powershell"># เปิดบริการกลับเป็น Manual (ค่า default ของส่วนใหญ่)
+foreach ($s in &#39;SysMain&#39;,&#39;WSearch&#39;,&#39;DiagTrack&#39;,&#39;dmwappushservice&#39;,&#39;MapsBroker&#39;) {
+  Set-Service -Name $s -StartupType Manual -ErrorAction SilentlyContinue
+  Start-Service -Name $s -ErrorAction SilentlyContinue
+}</code></pre>
+<h3 id="sec-11">กรณีที่ 5: registry ผิดปกติ</h3>
+<ul>
+<li>ใช้ <code>System Restore</code> (จะคืน registry snapshot)</li>
+<li>หรือใช้ <code>reg export</code>/<code>reg import</code> ถ้าสำรองไว้</li>
+<li><strong>อย่า</strong> แก้ registry ด้วยมือถ้าไม่แน่ใจ — <code>HKLM\SYSTEM</code> ผิดพลาดอาจทำให้บูตไม่ขึ้น</li>
+</ul>
+<h2 id="sec-12">Checklist ก่อน apply ครั้งแรก</h2>
+<pre><code>[ ] อ่าน docs/04-โปรไฟล์.md แล้วเลือกโปรไฟล์ที่ตรงกับงาน
+[ ] รัน bench -Label before และบันทึกผล
+[ ] รัน apply -DryRun และอ่านทุกรายการ
+[ ] รู้ว่าต้อง reboot หรือไม่ (มี tweak ที่ Reboot = จริง)
+[ ] ปิดโปรแกรมที่จัดการพลังงานเอง (Control Center, ThrottleStop, XTU)
+[ ] มีไฟล์สำคัญสำรองไว้
+[ ] รู้วิธีเข้าถึง Safe Mode
+[ ] รู้คำสั่ง restore</code></pre>
+<h2 id="sec-13">Checklist หลัง apply</h2>
+<pre><code>[ ] รัน status — ไม่มีอะไรผิดปกติ
+[ ] รัน audit -Profile &lt;ชื่อ&gt; — ตรวจว่า OK ตามที่ควร
+[ ] ใช้งานปกติ 30 นาที — ไม่มีอาการแปลก
+[ ] เล่นเกม/ทำงานหนัก 15 นาที — ดูอุณหภูมิและ frametime
+[ ] bench -Label after แล้ว compare
+[ ] ถ้าไม่พอใจ → restore</code></pre>
+<h2 id="sec-14">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ถ้าผิดพลาดจะเป็นอย่างไร</th><th>ความสามารถกู้คืน</th></tr></thead>
+<tbody>
+<tr><td>power settings</td><td>เครื่องร้อน/ช้า</td><td>100% (restore)</td></tr>
+<tr><td>registry HKCU</td><td>UI เปลี่ยน, ฟีเจอร์หาย</td><td>100% (restore)</td></tr>
+<tr><td>registry HKLM</td><td>ไดรเวอร์/ฟีเจอร์บางตัวไม่ทำงาน</td><td>100% (restore) + reboot</td></tr>
+<tr><td>services</td><td>ฟีเจอร์บางอย่างเสีย</td><td>100% (restore)</td></tr>
+<tr><td>fsutil/netsh</td><td>IO/เครือข่ายเปลี่ยนพฤติกรรม</td><td>ทำมือได้ 100%</td></tr>
+<tr><td>bcdedit</td><td>บูตช้า/ค้าง</td><td>Safe Mode + deletevalue</td></tr>
+<tr><td>DisableDynamicPstate</td><td>GPU ร้อนตลอด</td><td>restore + reboot</td></tr>
+<tr><td>IDLEDISABLE</td><td>เครื่องร้อน idle</td><td>restore</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-15">ข้อควรระวังเฉพาะเครื่องนี้</h2>
+<ol>
+<li><strong>อย่า apply <code>max</code> แล้วปิดเครื่องทันที</strong> — scheme ใหม่จะยัง active อยู่ตอนบูตครั้งถัดไป ต้องรอให้แน่ใจว่าเครื่องเสถียรก่อน</li>
+<li><strong>Windows Update อาจรีเซ็ต registry บางค่า</strong> — audit หลังอัปเดตใหญ่ทุกครั้ง</li>
+<li><strong>อย่าใช้หลายเครื่องมือพร้อมกัน</strong> — ThrottleStop + Level51Tune + Control Center อาจเขียนทับกันจนหาสาเหตุไม่ได้</li>
+<li><strong>Fast Startup ปิดอยู่หรือไม่</strong> — ถ้าเปิด (default) การ shutdown จะไม่รีเซ็ตไดรเวอร์จริง ทำให้ tweak ที่ &quot;ต้อง reboot&quot; อาจไม่ทำงานจนกว่าจะ restart จริง</li>
+</ol>
+<h2 id="sec-16">การเก็บ backup ระยะยาว</h2>
+<p><code>backups/</code> ถูก gitignore ไว้ (ไม่ขึ้น GitHub) จึงควร:</p>
+<ul>
+<li>คัดลอกโฟลเดอร์ <code>backups/</code> ไปเก็บที่อื่นเป็นระยะ</li>
+<li>หรือรัน <code>report</code> เก็บไว้เป็นหลักฐานสถานะ</li>
+<li>เก็บไฟล์ <code>state/last.json</code> ไว้ด้วยถ้าอยากรู้ว่าล่าสุดทำอะไร</li>
+</ul>
+<h2 id="sec-17">สรุป</h2>
+<ol>
+<li><code>-DryRun</code> ฟรีและปลอดภัย — ใช้ทุกครั้งก่อน apply</li>
+<li>backup ถูกสร้างอัตโนมัติ ไม่ต้องสั่งเอง</li>
+<li><code>restore</code> คืนได้ 100% สำหรับ power/registry/services</li>
+<li>Script tweaks ต้องคืนเอง — เอกสารนี้บอกคำสั่งครบ</li>
+<li>รู้ทางออก (Safe Mode, System Restore, powercfg -restoredefaultschemes) ก่อนเริ่ม</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">&larr; เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a><a class="pager-next" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง) &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

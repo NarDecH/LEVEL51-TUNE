@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item active" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</h1>
+<p>โปรไฟล์คือ &quot;ชุด tweaks ที่เลือกไว้แล้ว&quot; การเลือกโปรไฟล์ไม่ได้แปลว่าเครื่องจะเร็วขึ้นเสมอ — มันแปลว่าเครื่องจะถูกปรับให้เหมาะกับงานชนิดหนึ่ง โดยแลกกับอย่างอื่น</p>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ภาพรวม 5 โปรไฟล์</a></li>
+<li><a href="#sec-3">balanced — baseline ที่ปลอดภัย</a></li>
+<li><a href="#sec-4">performance — ใช้งานประจำวัน</a></li>
+<li><a href="#sec-5">gaming — latency ต่ำ</a></li>
+<li><a href="#sec-6">max — สูงสุด (ใช้อย่างระวัง)</a></li>
+<li><a href="#sec-7">battery — ประหยัดไฟ</a></li>
+<li><a href="#sec-8">การเลือกโปรไฟล์</a></li>
+<li><a href="#sec-9">ตรวจสอบว่าโปรไฟล์ทำงานจริง</a></li>
+<li><a href="#sec-10">การปรับแต่งเพิ่มหลัง apply</a></li>
+</ol></nav>
+<h2 id="sec-2">ภาพรวม 5 โปรไฟล์</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>โปรไฟล์</th><th>ปรัชญา</th><th>จำนวน tweaks</th><th>เหมาะกับ</th><th>แลกกับ</th></tr></thead>
+<tbody>
+<tr><td><code>balanced</code></td><td>เปิดของที่ได้ผลและปลอดภัยที่สุด</td><td>6</td><td>ใช้งานทั่วไป, เครื่องทำงาน</td><td>แทบไม่มี</td></tr>
+<tr><td><code>performance</code></td><td>ลด latency พื้นฐานโดยไม่ทำเครื่องร้อนเกิน</td><td>18</td><td>งานประจำวัน, เขียนโค้ด, เรนเดอร์สั้น</td><td>กินไฟมากขึ้นเล็กน้อย</td></tr>
+<tr><td><code>gaming</code></td><td>latency ต่ำสุดสำหรับเกม/VR</td><td>24</td><td>เล่นเกม, งานอินเทอร์แอกทีฟ</td><td>กินไฟ, ความร้อน, ปิดฟีเจอร์ Windows บางอย่าง</td></tr>
+<tr><td><code>max</code></td><td>ดึงทุกอย่างที่ทำได้ (รวม High risk)</td><td>32</td><td>benchmark, burst workload</td><td>ร้อนมาก, กินไฟมาก, ฟีเจอร์บางอย่างหาย</td></tr>
+<tr><td><code>battery</code></td><td>ประหยัดไฟเมื่อไม่ได้ต่อสาย</td><td>7</td><td>พาออกนอกบ้าน</td><td>ประสิทธิภาพลดลงชัด</td></tr>
+</tbody>
+</table></div>
+<p>จำนวน tweaks นับจากแค็ตตาล็อกจริง (<code>list</code> จะแสดงให้ตรวจสอบได้) และโปรไฟล์หนึ่ง ๆ อาจได้ tweak ไม่ครบถ้าการตั้งค่านั้นถูกซ่อนหรือไม่มีอยู่ในเครื่อง</p>
+<h2 id="sec-3">balanced — baseline ที่ปลอดภัย</h2>
+<p>สิ่งที่ทำ:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>gpu.hags</code></td><td>เปิด Hardware-Accelerated GPU Scheduling</td></tr>
+<tr><td><code>gpu.gamedvr-off</code></td><td>ปิด GameDVR (อัดหน้าจอเบื้องหลัง)</td></tr>
+<tr><td><code>win.gamemode-on</code></td><td>เปิด Game Mode</td></tr>
+<tr><td><code>net.throttling-off</code></td><td>ปิด NetworkThrottlingIndex</td></tr>
+<tr><td><code>disk.last-access-off</code></td><td>ยืนยันว่าปิด NTFS last access (ปกติ Win11 ปิดอยู่แล้ว)</td></tr>
+</tbody>
+</table></div>
+<p>เมื่อใช้: เป็นจุดเริ่มต้นสำหรับคนที่ไม่เคยจูน ปลอดภัยพอที่จะเปิดค้างไว้ตลอด และใช้เป็น &quot;กลุ่มควบคุม&quot; เวลาเปรียบเทียบผล</p>
+<h2 id="sec-4">performance — ใช้งานประจำวัน</h2>
+<p>เพิ่มจาก balanced:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ค่า</th><th>ผลที่คาดหวัง</th></tr></thead>
+<tbody>
+<tr><td><code>power.cpu.min50</code></td><td>min state 50% (AC)</td><td>ลดการสลับ P-state ถี่ ลด jitter</td></tr>
+<tr><td><code>power.cpu.max100</code></td><td>max state 100% (AC+DC)</td><td>ปลดล็อกความเร็วเต็มตอนใช้แบต</td></tr>
+<tr><td><code>power.cpu.boost-enabled</code></td><td>boost = Enabled</td><td>ให้ Turbo ทำงานปกติ</td></tr>
+<tr><td><code>power.cpu.cooling-active</code></td><td>cooling = Active</td><td>พัดลมนำการลด clock (ดีต่อประสิทธิภาพ)</td></tr>
+<tr><td><code>power.cpu.epp-performance</code></td><td>EPP 25</td><td>CPU เอนไปทางความเร็ว</td></tr>
+<tr><td><code>power.cpu.thresholds</code></td><td>increase threshold 30</td><td>ขึ้น clock เร็วขึ้นเมื่อมีงาน</td></tr>
+<tr><td><code>power.pcie.aspm-off</code></td><td>ASPM off (AC)</td><td>NVMe/GPU ตื่นเร็วขึ้น</td></tr>
+<tr><td><code>power.disk.timeout-never</code></td><td>ดิสก์ไม่ sleep</td><td>ไม่มีอาการค้าง 1-2 วินาที</td></tr>
+<tr><td><code>power.video.timeout-20m</code></td><td>จอดับ 20 นาที</td><td>ไม่จอดับกลางงานยาว</td></tr>
+<tr><td><code>power.sleep.never-ac</code></td><td>ไม่ sleep (AC)</td><td>งานยาวไม่ถูกตัด</td></tr>
+<tr><td><code>net.tcp-global</code></td><td>autotuning normal, RSS on</td><td>throughput เครือข่ายเสถียร</td></tr>
+<tr><td><code>mem.priority-separation</code></td><td>38</td><td>foreground ได้ CPU มากกว่า</td></tr>
+<tr><td><code>disk.defrag-task-off</code></td><td>ปิด defrag ตามกำหนด</td><td>ไม่มี IO พื้นหลังระหว่างงาน</td></tr>
+<tr><td><code>win.unhide-power-settings</code></td><td>ปลดซ่อนค่า power ขั้นสูง</td><td>ปรับเองใน Control Panel ได้</td></tr>
+</tbody>
+</table></div>
+<p><strong>ผลข้างเคียงที่ต้องรู้</strong>: min state 50% ทำให้ idle power สูงขึ้นเล็กน้อย (พัดลมอาจดังขึ้นตอนพัก) และ <code>mem.priority-separation</code> ต้อง reboot</p>
+<h2 id="sec-5">gaming — latency ต่ำ</h2>
+<p>เพิ่มจาก performance:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ค่า</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>power.cpu.coreparking-off</code></td><td>core parking ปิด (AC 100%)</td><td>ไม่มี wake latency ของคอร์</td></tr>
+<tr><td><code>power.usb.suspend-off</code></td><td>ปิด USB selective suspend</td><td>เมาส์/คีย์บอร์ด/capture card ตอบสนองนิ่ง</td></tr>
+<tr><td><code>gpu.gamedvr-policy</code></td><td>ปิด GameDVR ทั้งเครื่อง</td><td>ไม่มี encoder แย่ง GPU</td></tr>
+<tr><td><code>gpu.fullscreen-opt-off</code></td><td>ปิด fullscreen optimization</td><td>exclusive fullscreen, input lag ต่ำลง</td></tr>
+<tr><td><code>gpu.fullscreen-opt-honor</code></td><td>เคารพการตั้งต่อโปรแกรม</td><td>—</td></tr>
+<tr><td><code>gpu.prefer-dgpu-global</code></td><td>default GPU = GTX 1060</td><td>เกมไม่ไปใช้ UHD 630</td></tr>
+<tr><td><code>gpu.nvidia-telemetry-off</code></td><td>ปิด NvTelemetryContainer</td><td>ไม่มี background service ของไดรเวอร์</td></tr>
+<tr><td><code>net.mmcss-responsiveness</code></td><td>10</td><td>สำรอง CPU ให้ multimedia น้อยลง</td></tr>
+<tr><td><code>net.mmcss-games</code></td><td>GPU Priority 8, Priority 6, High</td><td>thread ของเกมได้คิวก่อน</td></tr>
+<tr><td><code>net.nagle-off</code></td><td>TcpAckFrequency=1, TCPNoDelay=1</td><td>ลดดีเลย์แพ็กเก็ตเล็ก</td></tr>
+<tr><td><code>win.mouse-accel-off</code></td><td>ปิด mouse acceleration</td><td>การเล็งตรงกับมือ</td></tr>
+<tr><td><code>win.mouse-thresholds</code></td><td>threshold = 0</td><td>ทำงานคู่กับข้างบน</td></tr>
+<tr><td><code>win.keyboard-delay</code></td><td>ดีเลย์สั้นสุด</td><td>กดรัวได้ไว</td></tr>
+</tbody>
+</table></div>
+<p><strong>เครื่องนี้เหมาะกับ gaming ไหม?</strong> GTX 1060 6 GB ยังเล่นเกม 1080p ยุค 2016-2020 ได้ดี แต่ i9-9900K ในตัวเครื่อง N95TP6 จะชนเพดานความร้อนเร็ว การปิด core parking ทำให้ร้อนเร็วกว่าปกติ ถ้าเฟรมกระตุกหลังเล่น 10 นาที ให้ดู <code>status</code> ว่าอุณหภูมิเท่าไร และพิจารณาใช้ <code>performance</code> แทน</p>
+<h2 id="sec-6">max — สูงสุด (ใช้อย่างระวัง)</h2>
+<p>เพิ่มจาก gaming:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ค่า</th><th>ผล / ความเสี่ยง</th></tr></thead>
+<tbody>
+<tr><td><code>power.cpu.min100</code></td><td>min state 100%</td><td>latency ต่ำสุด, ร้อนตลอดเวลา</td></tr>
+<tr><td><code>power.cpu.boost-aggressive</code></td><td>boost = Aggressive</td><td>กระโดด clock ทันที, กินไฟพุ่ง</td></tr>
+<tr><td><code>power.cpu.epp-max</code></td><td>EPP 0</td><td>เลือกความถี่สูงสุดเสมอ</td></tr>
+<tr><td><code>power.throttling-off</code></td><td>ปิด EcoQoS</td><td>งานพื้นหลังไม่ถูกหน่วง</td></tr>
+<tr><td><code>power.hibernate-off</code></td><td>ปิด hibernate + fast startup</td><td>คืนพื้นที่ ~32 GB, cold boot จริง</td></tr>
+<tr><td><code>mem.large-system-cache</code></td><td>LargeSystemCache 1</td><td>file cache มากขึ้น</td></tr>
+<tr><td><code>mem.ntfs-memory-usage</code></td><td>NtfsMemoryUsage 2</td><td>metadata cache มากขึ้น</td></tr>
+<tr><td><code>mem.sysmain-off</code></td><td>ปิด SysMain</td><td>ลด IO พื้นหลัง</td></tr>
+<tr><td><code>mem.prefetch-off</code></td><td>ปิด Prefetcher</td><td>ลด IO, โปรแกรมเปิดช้าลงเล็กน้อย</td></tr>
+<tr><td><code>disk.indexing-off</code></td><td>ปิด Windows Search</td><td>ลด IO, ค้นหาช้าลงมาก</td></tr>
+<tr><td><code>disk.8dot3-off</code></td><td>ปิดชื่อไฟล์ 8.3</td><td>metadata น้อยลง</td></tr>
+<tr><td><code>win.visualfx-performance</code></td><td>visual effects = performance</td><td>ปิด animation</td></tr>
+<tr><td><code>win.transparency-off</code></td><td>ปิด transparency</td><td>compositor เบาลง</td></tr>
+<tr><td><code>win.background-apps-off</code></td><td>ปิดแอปพื้นหลัง</td><td>แอป Store ไม่ทำงานเบื้องหลัง</td></tr>
+<tr><td><code>win.services-diagtrack</code></td><td>ปิด DiagTrack</td><td>ลด telemetry</td></tr>
+<tr><td><code>win.services-dmwappush</code></td><td>ปิด dmwappushservice</td><td>—</td></tr>
+<tr><td><code>win.services-mapsbroker</code></td><td>ปิด MapsBroker</td><td>—</td></tr>
+<tr><td><code>power.cpu.idle-disable</code> (High)</td><td>ปิด C-state</td><td>latency ต่ำสุด, +20-40W idle</td></tr>
+<tr><td><code>gpu.nvlddmkm-pstate</code> (High)</td><td>ปิด dynamic P-State</td><td>clock นิ่ง, GPU ร้อนตลอด</td></tr>
+<tr><td><code>win.bcd-dynamictick</code> (High)</td><td>disabledynamictick</td><td>timer jitter ต่ำลง</td></tr>
+<tr><td><code>win.bcd-platformclock</code> (High)</td><td>useplatformclock false</td><td>บังคับ TSC</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>คำเตือนจริงจัง</strong>: <code>max</code> บนเครื่องนี้ไม่ใช่โปรไฟล์สำหรับเล่นเกมเป็นชั่วโมง ๆ การรวม min state 100% + boost aggressive + C-state off + GPU P-State off จะทำให้ทั้ง CPU (95W TDP) และ GPU ปล่อยความร้อนพร้อมกัน ในตัวเครื่องที่ระบายความร้อนด้วยฮีตไปป์ 2-3 ท่อ อุณหภูมิจะชน 95-100&#176;C ภายใน 5-10 นาที แล้ว throttling จะทำให้ประสิทธิภาพ <strong>ต่ำกว่า</strong> โปรไฟล์ gaming ใช้เฉพาะ benchmark สั้น ๆ</p>
+</blockquote>
+<h2 id="sec-7">battery — ประหยัดไฟ</h2>
+<p>ทุก tweak ในโปรไฟล์นี้แตะเฉพาะฝั่ง <strong>DC</strong> (ตอนใช้แบต) ไม่แตะ AC:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>ค่า DC</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>battery.cpu.min5</code></td><td>min 5%</td><td>downclock ลึกสุด</td></tr>
+<tr><td><code>battery.cpu.max70</code></td><td>max 70%</td><td>ตัด boost</td></tr>
+<tr><td><code>battery.cpu.boost-efficient</code></td><td>boost = Efficient Enabled</td><td>boost เฉพาะเมื่อคุ้ม</td></tr>
+<tr><td><code>battery.cooling-passive</code></td><td>cooling = Passive</td><td>ลด clock ก่อนเร่งพัดลม (เงียบ)</td></tr>
+<tr><td><code>battery.pcie-aspm-max</code></td><td>ASPM max savings</td><td>NVMe/GPU ประหยัดสุด</td></tr>
+<tr><td><code>battery.video-timeout-5m</code></td><td>จอดับ 5 นาที</td><td>จอคือตัวกินไฟอันดับหนึ่ง</td></tr>
+<tr><td><code>battery.lid-sleep</code></td><td>ปิดฝา = sleep</td><td>—</td></tr>
+</tbody>
+</table></div>
+<p><strong>ข้อควรระวัง</strong>: i9-9900K ไม่ใช่ซีพียูประหยัดไฟ ถึงจะจำกัดที่ 70% ก็ยังกินไฟมากกว่า U-series หลายเท่า โปรไฟล์นี้ช่วยได้จริงแต่ไม่ได้ทำให้เป็น ultrabook — คาดว่าได้เพิ่มขึ้น 20-40% ของเวลาใช้งาน แล้วแต่ภาระงาน</p>
+<h2 id="sec-8">การเลือกโปรไฟล์</h2>
+<pre><code>ต้องการความเสถียรสูงสุด ──────────────► balanced
+ใช้งานทั่วไป/ทำงาน ────────────────────► performance
+เล่นเกมเป็นหลัก ───────────────────────► gaming
+benchmark / burst สั้น ๆ ──────────────► max (+ -Include high ถ้าจำเป็น)
+ออกไปข้างนอก ใช้แบต ─────────────────► battery</code></pre>
+<p><strong>เปลี่ยนไปมาได้ตลอด</strong> เพราะแต่ละครั้งจะสร้าง scheme ใหม่จาก scheme ที่ใช้อยู่ และ backup เก็บค่าเดิมไว้ ทดลอง <code>performance</code> หนึ่งสัปดาห์ แล้วค่อยขยับไป <code>gaming</code> จะปลอดภัยกว่ากระโดดไป <code>max</code> เลย</p>
+<h2 id="sec-9">ตรวจสอบว่าโปรไฟล์ทำงานจริง</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 audit -Profile gaming</code></pre>
+<p>ถ้าคอลัมน์ <code>Applied</code> เป็น <code>no</code> ทั้งที่เพิ่ง apply แสดงว่า:</p>
+<ul>
+<li>tweak นั้นเป็นประเภท Script ที่ไม่มี detect (แสดง <code>?</code>) — ปกติ</li>
+<li>ค่า power ถูกซ่อนและถูกปฏิเสธ (ดู <code>WARN</code> ตอน apply) — ให้ apply โปรไฟล์ที่มี <code>win.unhide-power-settings</code> ก่อน</li>
+<li>Windows Update หรือโปรแกรมอื่น (เช่น Armoury Crate, ThrottleStop, GeForce Experience) เขียนทับค่า — ต้องปิดตัวจัดการพลังงานของ OEM</li>
+</ul>
+<h2 id="sec-10">การปรับแต่งเพิ่มหลัง apply</h2>
+<p>บางอย่างควรทำด้วยมือหลัง apply เพื่อผลที่ดีกว่า:</p>
+<ul>
+<li>ตั้ง per-app GPU preference ใน Settings → System → Display → Graphics สำหรับเกมที่ยังไปใช้ iGPU</li>
+<li>สร้าง fan curve ใน BIOS (ดู <a href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.md">เชิงลึก: BIOS และฮาร์ดแวร์</a>)</li>
+<li>ตั้ง NVIDIA Control Panel: Power management = Prefer maximum performance (เฉพาะตอนเล่นเกม), Low latency mode = On</li>
+<li>ปิด startup apps ที่ไม่จำเป็นใน Task Manager</li>
+</ul>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="03-คำสั่ง-CLI.html">&larr; คู่มือคำสั่ง CLI</a><a class="pager-next" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K) &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ภาพรวมโปรเจกต์และปรัชญาการจูน · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item active" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">ภาพรวมโปรเจกต์และปรัชญาการจูน</h1>
+<p>Level51Tune คือชุดเครื่องมือบรรทัดคำสั่ง (PowerShell) สำหรับปรับแต่งประสิทธิภาพของเครื่อง <strong>LEVEL51</strong> — โน้ตบุ๊ก Clevo รุ่น N95TP6 ที่ใส่ซีพียูเดสก์ท็อป (Intel Core i9-9900K), การ์ดจอ NVIDIA GTX 1060, แรม 32 GB และ SSD NVMe Samsung 990 EVO Plus 1 TB ภายใต้ Windows 11 Pro</p>
+<p>เป้าหมายไม่ใช่ &quot;ปุ่มวิเศษที่ทำให้เครื่องเร็วขึ้น 50%&quot; แต่คือการทำให้ทุกอย่างที่ Windows, ไดรเวอร์ และฮาร์ดแวร์ทำนั้น <strong>สอดคล้องกัน</strong> — ไม่มีคอขวดที่เกิดจากการตั้งค่าที่ขัดกันเอง และทุกการเปลี่ยนแปลงสามารถวัดผลและย้อนกลับได้</p>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ปัญหาที่เครื่องลักษณะนี้มักเจอ</a></li>
+<li><a href="#sec-3">หลักการ 4 ข้อของ Level51Tune</a></li>
+<li><a href="#sec-4">สถาปัตยกรรมของโปรแกรม</a></li>
+<li><a href="#sec-5">ระดับความเสี่ยง</a></li>
+<li><a href="#sec-6">สิ่งที่โปรแกรมนี้ *ไม่* ทำ</a></li>
+<li><a href="#sec-7">จะเริ่มยังไง</a></li>
+</ol></nav>
+<h2 id="sec-2">ปัญหาที่เครื่องลักษณะนี้มักเจอ</h2>
+<p>เครื่องระดับนี้มีจุดอ่อนเชิงสถาปัตยกรรมที่ tweak ซอฟต์แวร์แก้ได้บางส่วน และแก้ไม่ได้บางส่วน การรู้ว่าอันไหนคืออันไหนคือหัวใจของการจูนทั้งหมด</p>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>สาเหตุที่แท้จริง</th><th>แก้ด้วยซอฟต์แวร์ได้ไหม</th></tr></thead>
+<tbody>
+<tr><td>เฟรมไทม์กระตุกเป็นช่วง ๆ</td><td>CPU ถูกจำกัดพลังงาน (PL1/PL2) และร้อนเร็วเพราะใช้ซีพียูเดสก์ท็อปในตัวเครื่องบาง</td><td>ได้บางส่วน (ลดงานพื้นหลัง, เปิด cooling policy active) — ที่เหลือต้องแก้ที่ BIOS/ระบบระบายความร้อน</td></tr>
+<tr><td>เกมใช้ Intel UHD 630 แทน GTX 1060</td><td>Optimus เลือก GPU ผิดให้โปรแกรมที่ไม่ได้ลงทะเบียน</td><td>ได้ (GPU preference + per-app registry)</td></tr>
+<tr><td>เปิดโปรแกรมครั้งแรกช้า</td><td>SysMain/Prefetcher ถูกปิด หรือดิสก์ถูกจำกัดด้วย ASPM</td><td>ได้ (ปรับ power scheme, เปิด/ปิด prefetch ตามงาน)</td></tr>
+<tr><td>ดีเลย์ในการคลิก/ยิง</td><td>timer coalescing, Nagle, MMCSS priority ต่ำ, core parking</td><td>ได้ (นี่คือกลุ่ม tweak หลักของโปรไฟล์ gaming)</td></tr>
+<tr><td>เครื่องร้อนและพัดลมดังตอน idle</td><td>C-state ถูกปิดค้าง, boost aggressive, fan curve จาก BIOS</td><td>ได้บางส่วน — และบาง tweak ของโปรแกรมนี้คือสาเหตุ (ต้องรู้จักย้อนกลับ)</td></tr>
+<tr><td>แบตหมดเร็ว</td><td>state ขั้นต่ำสูง, boost เต็ม, ASPM ปิด</td><td>ได้ (โปรไฟล์ battery)</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-3">หลักการ 4 ข้อของ Level51Tune</h2>
+<p><strong>1. วัดก่อน วัดหลัง</strong> — ทุกโปรไฟล์มี <code>bench</code> คู่กันเสมอ ตัวเลข CPU/RAM/Disk ถูกเก็บใน <code>benchmarks/history.jsonl</code> และเทียบได้ด้วย <code>compare</code> ไม่มีการอ้างว่า &quot;เร็วขึ้น&quot; โดยไม่มีตัวเลขรองรับ</p>
+<p><strong>2. สำรองก่อนทุกครั้ง</strong> — <code>apply</code> จะสร้างไฟล์ <code>backups/&lt;เวลา&gt;_apply-&lt;โปรไฟล์&gt;.json</code> ที่บรรจุค่าก่อนหน้าของทุก tweak (ค่า power index, ค่า registry เดิม, สถานะบริการ, power scheme ที่ใช้อยู่) ก่อนที่จะแก้อะไรหนึ่งอย่าง</p>
+<p><strong>3. ย้อนกลับได้หนึ่งคำสั่ง</strong> — <code>restore</code> อ่านไฟล์ backup แล้วคืนค่าทุกอย่างตามลำดับย้อนกลับ ลบ power scheme ที่สร้างขึ้น และสลับกลับไป scheme เดิม</p>
+<p><strong>4. แยก scheme ไม่แตะของเดิม</strong> — โปรแกรมไม่แก้ power plan &quot;Balanced&quot; ของคุณ แต่จะ <code>powercfg -duplicate</code> ออกมาเป็น scheme ใหม่ชื่อ <code>LEVEL51-TUNE &lt;โปรไฟล์&gt;</code> แล้วสลับไปใช้ scheme นั้น ทำให้แผนเดิมยังสมบูรณ์แบบ 100%</p>
+<h2 id="sec-4">สถาปัตยกรรมของโปรแกรม</h2>
+<pre><code>Level51Tune.ps1              CLI entry (parsing, help, exit codes)
+└── src/
+    ├── Level51Tune.psm1     engine: ตรวจฮาร์ดแวร์, backup, apply, restore, audit, docs
+    ├── Catalog.ps1          ข้อมูล tweaks ทั้งหมด (declarative, ไม่มี logic)
+    ├── Markdown.ps1         markdown → HTML renderer (ไม่ต้องพึ่งโมดูลภายนอก)
+    └── Bench.ps1            micro-benchmark + history + compare
+docs/                        เอกสาร md (ต้นฉบับ) และ html (สร้างจาก md)
+tools/Build-Docs.ps1         สร้าง html จาก md
+tests/Test-Level51Tune.ps1   ชุดทดสอบที่ไม่ต้องใช้สิทธิ์ admin</code></pre>
+<p>แนวคิดสำคัญ: <strong>tweak คือข้อมูล ไม่ใช่โค้ด</strong> แต่ละรายการใน <code>Catalog.ps1</code> ประกาศว่าตัวเองเป็นประเภทไหน (<code>Power</code>, <code>Registry</code>, <code>Service</code>, <code>Script</code>) ต้องใช้สิทธิ์ admin ไหม เสี่ยงระดับไหน อยู่โปรไฟล์ใด แล้ว engine จะรู้วิธี backup/apply/revert ให้เอง การเพิ่ม tweak ใหม่จึงทำได้โดยไม่ต้องแก้ engine</p>
+<h2 id="sec-5">ระดับความเสี่ยง</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>ระดับ</th><th>ความหมาย</th><th>ต้องเปิดเองไหม</th></tr></thead>
+<tbody>
+<tr><td>Low</td><td>คืนค่าเดิมของ Windows ได้ทันที ไม่กระทบความเสถียร</td><td>ไม่ (อยู่ในโปรไฟล์เลย)</td></tr>
+<tr><td>Medium</td><td>เปลี่ยนพฤติกรรมที่ผู้ใช้รู้สึกได้ (เช่น ปิด SysMain, Win32PrioritySeparation) หรือกินไฟขึ้นชัด</td><td>ไม่ แต่ควรอ่านหมายเหตุก่อน</td></tr>
+<tr><td>High</td><td>อาจทำให้เครื่องไม่เสถียร/ร้อนมาก/ต้อง reboot และแก้คืนยากกว่า</td><td>ใช่ ต้องใส่ <code>-Include high</code></td></tr>
+</tbody>
+</table></div>
+<p>tweaks ระดับ High ทั้งหมดของโปรเจกต์นี้มี 3 รายการ: <code>power.cpu.idle-disable</code> (ปิด C-state), <code>gpu.nvlddmkm-pstate</code> (ปิด P-State ของไดรเวอร์ NVIDIA) และ <code>win.bcd-dynamictick</code> / <code>win.bcd-platformclock</code> (แก้ boot configuration) — ทั้งหมดอยู่ในโปรไฟล์ <code>max</code> เท่านั้นและจะถูกข้ามถ้าไม่ระบุ <code>-Include high</code></p>
+<h2 id="sec-6">สิ่งที่โปรแกรมนี้ *ไม่* ทำ</h2>
+<p>ต้องพูดให้ชัดเพื่อไม่ให้คาดหวังเกิน:</p>
+<ul>
+<li><strong>ไม่ undervolt CPU/GPU</strong> — การ undervolt i9-9900K ต้องใช้ Intel XTU หรือ ThrottleStop และต้องทดสอบเสถียรภาพทีละขั้น (ดู <a href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.md">เชิงลึก: BIOS และฮาร์ดแวร์</a>)</li>
+<li><strong>ไม่แฟลช BIOS หรือแก้ fan curve</strong> — เป็นงานระดับ firmware ต้องทำใน BIOS setup ตอนบูต</li>
+<li><strong>ไม่ติดตั้งไดรเวอร์หรือ DDU</strong> — โปรแกรมตรวจเวอร์ชันให้ แต่การติดตั้งเป็นหน้าที่คุณ</li>
+<li><strong>ไม่ปิด Windows Update / Defender แบบถาวร</strong> — ไม่ใช่การจูนประสิทธิภาพ แต่คือการลดความปลอดภัย</li>
+<li><strong>ไม่ overclock</strong> — เครื่องนี้มี margin น้อยมากจากระบบระบายความร้อน</li>
+</ul>
+<h2 id="sec-7">จะเริ่มยังไง</h2>
+<ol>
+<li>อ่าน <a href="02-เริ่มต้นใช้งาน.md">ติดตั้งและเริ่มต้นใช้งาน</a> แล้วรัน <code>status</code> + <code>bench -Label before</code></li>
+<li>เลือกโปรไฟล์จาก <a href="04-โปรไฟล์.md">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a> — เริ่มที่ <code>performance</code> หรือ <code>gaming</code></li>
+<li>ทดลองด้วย <code>-DryRun</code> ก่อน แล้วค่อย apply จริง</li>
+<li>วัดซ้ำ <code>bench -Label after</code> และ <code>compare</code></li>
+<li>ถ้าไม่ชอบอะไรก็ <code>restore</code> — ไม่มีอะไรค้างคา</li>
+</ol>
+<blockquote>
+<p>คำเตือนที่ต้องย้ำ: โปรไฟล์ <code>max</code> ตั้งใจให้เครื่องร้อนและกินไฟมากขึ้นอย่างมีนัยสำคัญ บน N95TP6 ที่ใช้ซีพียู 95W ในตัวเครื่องบาง อุณหภูมิอาจแตะจุด throttling ภายในไม่กี่นาที ซึ่งทำให้ *แย่ลง* กว่าเดิมถ้าระบบระบายความร้อนไม่พร้อม ใช้เฉพาะงาน burst สั้น ๆ และตรวจอุณหภูมิด้วย <code>status</code> ทุกครั้ง</p>
+</blockquote>
+
+    </article>
+      <nav class="pager"><span></span><a class="pager-next" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

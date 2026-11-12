@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จูน GPU (GTX 1060 + UHD 630) · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item active" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">จูน GPU (GTX 1060 + UHD 630)</h1>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">สถาปัตยกรรมกราฟิกของเครื่องนี้</a></li>
+<li><a href="#sec-3">ฮาร์ดแวร์ที่ได้จาก <code>nvidia-smi</code></a></li>
+<li><a href="#sec-4">tweaks ของโปรเจกต์ที่เกี่ยวกับ GPU</a></li>
+<li><a href="#sec-7">การตั้งค่า NVIDIA Control Panel ที่แนะนำ</a></li>
+<li><a href="#sec-8">Undervolt GPU ด้วย MSI Afterburner (curve editor)</a></li>
+<li><a href="#sec-9">การติดตั้งไดรเวอร์ที่สะอาด (DDU)</a></li>
+<li><a href="#sec-10">Intel UHD Graphics 630</a></li>
+<li><a href="#sec-11">อาการที่พบบ่อยและวิธีแก้</a></li>
+<li><a href="#sec-12">ตรวจสอบหลัง apply</a></li>
+<li><a href="#sec-13">สรุป</a></li>
+</ol></nav>
+<h2 id="sec-2">สถาปัตยกรรมกราฟิกของเครื่องนี้</h2>
+<p>เครื่อง N95TP6 ใช้ระบบ <strong>NVIDIA Optimus</strong> — มี GPU สองตัวทำงานร่วมกันโดยไม่มีสวิตช์ MUX:</p>
+<pre><code>                    ┌──────────────────────────┐
+Display (eDP/LVDS) ─│ Intel UHD Graphics 630   │◄── แสดงผลทุกอย่าง
+                    └──────────▲───────────────┘
+                               │ copy framebuffer
+                    ┌──────────┴───────────────┐
+                    │ NVIDIA GTX 1060 (GP106)  │◄── เรนเดอร์เมื่อถูกเลือก
+                    └──────────────────────────┘</code></pre>
+<p>ผลที่ตามมาที่สำคัญมาก:</p>
+<ul>
+<li><strong>ทุกเฟรมต้องผ่าน iGPU</strong> แม้จะเรนเดอร์บน GTX 1060 → มี overhead และเพิ่ม latency เล็กน้อย เป็นข้อจำกัดของฮาร์ดแวร์ แก้ด้วยซอฟต์แวร์ไม่ได้</li>
+<li><strong>ถ้าโปรแกรมไม่ได้ลงทะเบียน ระบบอาจเลือก iGPU</strong> ซึ่งทำให้เกมวิ่ง 15-25 fps แทน 100+ fps — นี่คือปัญหาที่พบบ่อยที่สุดและ tweak <code>gpu.prefer-dgpu-global</code> แก้ให้</li>
+<li><strong>HDMI/DisplayPort บางพอร์ตต่อตรงกับ NVIDIA</strong> (ถ้าเครื่องมี) ทำให้ต่อจอภายนอกแล้วได้เส้นทางลัดและ latency ต่ำลง</li>
+</ul>
+<h2 id="sec-3">ฮาร์ดแวร์ที่ได้จาก <code>nvidia-smi</code></h2>
+<pre><code>NVIDIA GeForce GTX 1060, driver 582.78
+temp 49 C &#183; util 1% &#183; 164 MHz core / 4006 MHz mem &#183; 23.91 W &#183; 6144 MiB
+power.default_limit = 88.00 W</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>ค่า</th><th>ความหมาย</th></tr></thead>
+<tbody>
+<tr><td>164 MHz @ idle</td><td>P8/P0 low state — ปกติเมื่อไม่มีงาน</td></tr>
+<tr><td>4006 MHz mem</td><td>GDDR5 effective clock ที่ idle</td></tr>
+<tr><td>88 W limit</td><td>เพดานไฟของไดรเวอร์ในเครื่องนี้ (การ์ดเดสก์ท็อปอยู่ที่ 120 W) — แสดงว่า EC/BIOS จำกัดไว้</td></tr>
+<tr><td>6144 MiB</td><td>VRAM 6 GB</td></tr>
+<tr><td>23.91 W ตอน idle</td><td>ค่อนข้างสูงสำหรับ idle; ปกติ 8-15 W — ถ้าสูงค้างอาจมีโปรเซสใช้ GPU อยู่</td></tr>
+<tr><td><code>power.limit</code> = N/A</td><td>ไดรเวอร์ไม่เปิดให้อ่าน/ตั้งผ่าน <code>nvidia-smi</code> บนโมบายล์</td></tr>
+</tbody>
+</table></div>
+<p>ตรวจแบบละเอียด:</p>
+<pre><code class="lang-powershell">nvidia-smi -q -d CLOCK,POWER,TEMPERATURE,UTILIZATION
+nvidia-smi --query-gpu=clocks.gr,clocks.mem,pstate,power.draw,temperature.gpu --format=csv -l 1</code></pre>
+<h2 id="sec-4">tweaks ของโปรเจกต์ที่เกี่ยวกับ GPU</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tweak</th><th>กลไก</th><th>โปรไฟล์</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td><code>gpu.hags</code></td><td><code>HwSchMode=2</code></td><td>balanced, performance, gaming, max</td><td>GPU จัดคิวงานเองในฮาร์ดแวร์ ลด CPU overhead</td></tr>
+<tr><td><code>gpu.gamedvr-off</code></td><td><code>GameDVR_Enabled=0</code></td><td>balanced+</td><td>ปิด encoder พื้นหลัง คืน fps 2-8% ในบางเกม</td></tr>
+<tr><td><code>gpu.gamedvr-policy</code></td><td>policy <code>AllowGameDVR=0</code></td><td>gaming, max</td><td>ปิดทั้งเครื่อง (กันบัญชีอื่นเปิดค้าง)</td></tr>
+<tr><td><code>gpu.fullscreen-opt-off</code></td><td><code>GameDVR_FSEBehaviorMode=2</code></td><td>gaming, max</td><td>exclusive fullscreen, input lag ต่ำลง</td></tr>
+<tr><td><code>gpu.fullscreen-opt-honor</code></td><td><code>GameDVR_HonorUserFSEBehaviorMode=1</code></td><td>gaming, max</td><td>เคารพการตั้งรายโปรแกรม</td></tr>
+<tr><td><code>gpu.prefer-dgpu-global</code></td><td><code>GpuPreference=2</code></td><td>gaming, max</td><td>default GPU = GTX 1060</td></tr>
+<tr><td><code>gpu.nvidia-telemetry-off</code></td><td>Service <code>NvTelemetryContainer=Disabled</code></td><td>gaming, max</td><td>ไม่มี service ส่งข้อมูลของไดรเวอร์</td></tr>
+<tr><td><code>gpu.nvlddmkm-pstate</code> (High)</td><td><code>DisableDynamicPstate=1</code></td><td>max</td><td>clock ไม่แกว่ง แต่ GPU ร้อนตลอด</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-5">HAGS (Hardware-Accelerated GPU Scheduling)</h3>
+<p>Windows ปกติให้ CPU driver จัดคิว command buffer ให้ GPU ทุกเฟรม HAGS ย้ายงานนี้ไปทำในฮาร์ดแวร์ GPU scheduler ทำให้ CPU มีเวลาเหลือและ latency ลดลงเล็กน้อย</p>
+<ul>
+<li>ต้องมีไดรเวอร์ WDDM 2.7+ (ไดรเวอร์ 582.78 ของเครื่องนี้รองรับ)</li>
+<li>ต้อง reboot</li>
+<li>ผลจริงขึ้นกับเกม: 0-5% ในเกมส่วนใหญ่, บางเกมไม่มีผล</li>
+<li>ตรวจว่าทำงานจริง: Task Manager → Performance → GPU → ดูว่า &quot;Hardware-accelerated GPU scheduling&quot; เปิดอยู่</li>
+</ul>
+<h3 id="sec-6">ทำไม per-app GPU preference ถึงสำคัญบน Optimus</h3>
+<p>Windows เลือก GPU จาก 3 แหล่ง เรียงตามลำดับความสำคัญ:</p>
+<ol>
+<li><code>HKCU\Software\Microsoft\DirectX\UserGpuPreferences\&lt;ชื่อ exe&gt;</code> (per-app)</li>
+<li><code>DirectXUserGlobalSettings</code> (global)</li>
+<li>ไดรเวอร์/ผู้ผลิตเลือกเอง (มักเลือก iGPU เพื่อประหยัดไฟ)</li>
+</ol>
+<p>ถ้าตั้ง global แล้วยังไม่พอ ให้ตั้ง per-app เพิ่มสำหรับเกมที่ยังวิ่งช้า:</p>
+<pre><code class="lang-powershell"># ตั้งให้เกมหนึ่งใช้ GTX 1060 (GpuPreference=2 = high performance)
+$key = &#39;HKCU:\Software\Microsoft\DirectX\UserGpuPreferences&#39;
+Set-ItemProperty -Path $key -Name &#39;C:\Games\Example\game.exe&#39; -Value &#39;GpuPreference=2;&#39; -Type String</code></pre>
+<p>หรือผ่าน UI: <strong>Settings → System → Display → Graphics → เลือกแอป → Options → High performance</strong></p>
+<blockquote>
+<p>เคล็ดลับตรวจสอบ: ถ้า Task Manager แสดง GPU 0 (Intel) ทำงาน 30-60% พร้อม GPU 1 (NVIDIA) ทำงานต่ำ ๆ ตอนเล่นเกม = เกมกำลังใช้ iGPU</p>
+</blockquote>
+<h2 id="sec-7">การตั้งค่า NVIDIA Control Panel ที่แนะนำ</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>การตั้งค่า</th><th>ค่า</th><th>เหตุผล</th></tr></thead>
+<tbody>
+<tr><td>Power management mode</td><td>Prefer maximum performance (ตอนเล่นเกม) / Optimal power (ตอนใช้งานทั่วไป)</td><td>ลดการ downclock ระหว่างเล่น แต่ร้อนขึ้น</td></tr>
+<tr><td>Low latency mode</td><td>On (หรือ Ultra ถ้าเกมไม่กระตุก)</td><td>ลดคิวเฟรมล่วงหน้า 1 เฟรม</td></tr>
+<tr><td>Texture filtering - Quality</td><td>High performance</td><td>ได้ fps เพิ่มเล็กน้อย</td></tr>
+<tr><td>Threaded optimization</td><td>Auto</td><td>เปิดสำหรับเกม DX9/11 เก่า, ปิดถ้าเกมมีปัญหา</td></tr>
+<tr><td>Vertical sync</td><td>Off (ใช้ในเกมแทน)</td><td>ลด input lag</td></tr>
+<tr><td>Max frame rate</td><td>ตั้งเท่ารีเฟรชเรตจอ หรือ 141 (ถ้าจอ 144)</td><td>ลดความร้อนโดยไม่ต้องใช้ V-Sync</td></tr>
+<tr><td>Antialiasing - FXAA</td><td>Off</td><td>เบลอภาพ</td></tr>
+<tr><td>Shader cache size</td><td>10 GB (ถ้าดิสก์เหลือ)</td><td>ลดการ compile shader ซ้ำ</td></tr>
+<tr><td>Preferred graphics processor</td><td>High-performance NVIDIA processor</td><td>ค่าเริ่มต้นที่ปลอดภัย</td></tr>
+</tbody>
+</table></div>
+<p><strong>สิ่งที่ควรระวัง</strong>: การตั้ง &quot;Prefer maximum performance&quot; ค้างไว้ทำให้ GPU ไม่ downclock ตอน idle → อุณหภูมิและไฟสูงตลอดเวลา ตั้งเฉพาะตอนเล่นเกมหรือใช้ per-app profile</p>
+<h2 id="sec-8">Undervolt GPU ด้วย MSI Afterburner (curve editor)</h2>
+<p>GTX 1060 ในโน้ตบุ๊กได้ประโยชน์มากจาก undervolt เพราะติดเพดานไฟ 88 W:</p>
+<ol>
+<li>เปิด MSI Afterburner (ต้องปิด Secure Boot บางกรณี? ไม่ต้อง — Afterburner ทำงานผ่านไดรเวอร์ปกติ)</li>
+<li>กด <code>Ctrl+F</code> เปิด Voltage/Frequency curve</li>
+<li>เลือกจุดที่ ~1,900-2,000 MHz แล้วลากจุดนั้นขึ้นไปที่แรงดันต่ำกว่าเดิม (เช่น 0.950 V → 0.900 V)</li>
+<li>กด <code>L</code> เพื่อ lock จุดนั้น แล้ว Apply</li>
+<li>ทดสอบด้วย Unigine Heaven 20 นาที หรือเกมจริง 30 นาที</li>
+<li>ถ้า crash/artifact → เพิ่มแรงดันกลับ 25 mV</li>
+</ol>
+<p>ผลที่ได้: clock สูงขึ้น ~50-100 MHz ที่ watt เท่าเดิม หรือ watt ลดลง ~10 W ที่ clock เท่าเดิม (เย็นลง 5-8 &#176;C)</p>
+<p><strong>ทดสอบ artifact ให้ดี</strong>: GTX 1060 ที่ undervolt เกินจะแสดงจุดสี/เส้นแปลก ๆ ก่อน crash — ต้องดูด้วยตา ไม่ใช่รอ crash</p>
+<h2 id="sec-9">การติดตั้งไดรเวอร์ที่สะอาด (DDU)</h2>
+<p>อาการที่บ่งบอกว่าต้องลงไดรเวอร์ใหม่แบบสะอาด:</p>
+<ul>
+<li>เกม crash เฉพาะเมื่อใช้ GTX 1060</li>
+<li><code>nvidia-smi</code> ตอบช้า/ไม่ตอบ</li>
+<li>มี error <code>nvlddmkm</code> ใน Event Viewer</li>
+<li>หลัง Windows Update อัปเดตไดรเวอร์ทับแล้วมีปัญหา</li>
+</ul>
+<p>ขั้นตอน:</p>
+<ol>
+<li>ดาวน์โหลดไดรเวอร์ล่าสุดจาก NVIDIA + ดาวน์โหลด DDU</li>
+<li>บูตเข้า Safe Mode</li>
+<li>รัน DDU → Clean and restart (เลือก NVIDIA)</li>
+<li>ติดตั้งไดรเวอร์ที่ดาวน์โหลดไว้ (เลือก Custom → ทำเครื่องหมาย Clean install)</li>
+<li>รีบูต แล้วตรวจด้วย <code>.\Level51Tune.ps1 status</code></li>
+</ol>
+<blockquote>
+<p>ไดรเวอร์ 582.78 บนเครื่องนี้ค่อนข้างใหม่ (มิถุนายน 2026) — ถ้าไม่มีปัญหา ไม่ต้องอัปเดต &quot;เพราะมีเวอร์ชันใหม่&quot; เพราะไดรเวอร์ใหม่บนการ์ดเก่ามักไม่ได้ดีขึ้นและอาจแย่ลง</p>
+</blockquote>
+<h2 id="sec-10">Intel UHD Graphics 630</h2>
+<p>iGPU ไม่ใช่ของ useless — มันทำงานตลอดเวลาเพราะเป็นตัวขับจอ:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>การตั้งค่า</th><th>ที่ไหน</th><th>คำแนะนำ</th></tr></thead>
+<tbody>
+<tr><td>Power plan</td><td>Intel Graphics Command Center</td><td>Balanced</td></tr>
+<tr><td>Video post-processing</td><td>IGCC → Video</td><td>เปิดเฉพาะตอนดูวิดีโอ</td></tr>
+<tr><td>Xe/QuickSync</td><td>เปิดไว้</td><td>ช่วย decode วิดีโอในเบราว์เซอร์และ OBS</td></tr>
+<tr><td>Display refresh rate</td><td>Settings → Display → Advanced</td><td>ตรวจว่าได้ 60 Hz (หรือสูงกว่า ถ้าจอรองรับ)</td></tr>
+</tbody>
+</table></div>
+<p>ถ้าใช้ OBS/Streamlabs ให้ใช้ QuickSync ของ iGPU เป็น encoder จะลดภาระ GTX 1060 ได้มาก — นี่คือประโยชน์จริงของการมี iGPU</p>
+<h2 id="sec-11">อาการที่พบบ่อยและวิธีแก้</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>อาการ</th><th>สาเหตุที่เป็นไปได้</th><th>วิธีแก้</th></tr></thead>
+<tbody>
+<tr><td>เกมได้ 20 fps ทั้งที่การ์ดแรง</td><td>ใช้ iGPU</td><td>ตั้ง per-app GPU preference</td></tr>
+<tr><td>ภาพกระตุกทุก 2-3 วินาที</td><td>P-State แกว่ง + Optimus</td><td>ตั้ง Power management = Prefer maximum performance</td></tr>
+<tr><td>จอดำแล้วกลับมา + Event 4101</td><td>TDR (ไดรเวอร์ reset)</td><td>DDU + ไดรเวอร์เสถียร, ตรวจ undervolt/overclock</td></tr>
+<tr><td>อุณหภูมิ GPU 86 &#176;C+ ตลอด</td><td>fan curve ไม่พอ / dust</td><td>ทำความสะอาด, ตั้ง fan curve, ลด max frame rate</td></tr>
+<tr><td>เฟรมเรตต่ำลงหลังอัปเดต Windows</td><td>HAGS/GameDVR ถูกเปิดใหม่</td><td><code>audit -Category GPU</code> แล้ว apply ซ้ำ</td></tr>
+<tr><td><code>nvidia-smi</code> ขึ้น &quot;NVIDIA-SMI has failed&quot;</td><td>ไดรเวอร์หลุด/ชนกับ driver update</td><td>DDU + ติดตั้งใหม่</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-12">ตรวจสอบหลัง apply</h2>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 audit -Category GPU
+.\Level51Tune.ps1 gpu</code></pre>
+<p>ค่าที่ควรเห็นหลัง <code>gaming</code>:</p>
+<ul>
+<li><code>gpu.hags</code> = YES (และ Task Manager แสดง HAGS เปิด)</li>
+<li><code>gpu.gamedvr-off</code> = YES</li>
+<li><code>gpu.prefer-dgpu-global</code> = YES</li>
+<li><code>gpu.nvidia-telemetry-off</code> = YES (ถ้ามี service นี้ในเครื่อง)</li>
+</ul>
+<h2 id="sec-13">สรุป</h2>
+<ol>
+<li>ปัญหา GPU อันดับหนึ่งบนเครื่อง Optimus คือ &quot;เกมไปใช้ iGPU&quot; — แก้ด้วย per-app preference ก่อนเสมอ</li>
+<li>HAGS + ปิด GameDVR = ของฟรีที่ได้ผลเล็กน้อยแต่ปลอดภัย</li>
+<li>undervolt เป็น tweak ที่คุ้มที่สุด แต่ต้องทำด้วย Afterburner เอง</li>
+<li>อย่าใช้ <code>Prefer maximum performance</code> ค้างไว้ 24/7</li>
+<li>88 W คือเพดานจริงของเครื่องนี้ — ซอฟต์แวร์ไม่สามารถทำให้เกินได้</li>
+</ol>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="05-CPU.html">&larr; จูน CPU เชิงลึก (Core i9-9900K)</a><a class="pager-next" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน &rarr;</a></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

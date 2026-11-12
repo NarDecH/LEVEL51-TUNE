@@ -104,6 +104,16 @@
 | 5 | ทำซ้ำ 3 ครั้ง ใช้ค่ากลาง (median) |
 | 6 | เปรียบเทียบด้วย `compare` |
 
+### วัด A/B ระหว่างสอง power scheme
+
+ถ้าต้องการรู้ว่า scheme ที่ apply ให้ผลต่างจริงหรือเป็นแค่ noise ให้ใช้ `tools/AB-Bench.ps1` (ต้องรันแบบ Administrator เพราะต้องสลับ active scheme):
+
+```powershell
+.\tools\AB-Bench.ps1 -Seconds 4
+```
+
+สคริปต์จะสลับ A-B-B-A (A = scheme ต้นฉบับใน `state/last.json`, B = scheme ที่โปรแกรมสร้าง) แล้วเทียบค่าเฉลี่ย ลำดับสลับช่วยลด order bias จากความร้อนที่สะสมระหว่างการวัด และเขียนสรุปเป็น JSON ลง `benchmarks/ab-summary-*.json`
+
 ### เครื่องมือวัดที่ควรมี
 
 | เครื่องมือ | วัด | ฟรี |

@@ -113,7 +113,7 @@
 <pre><code class="lang-powershell">.\Level51Tune.ps1 audit -Profile gaming
 .\Level51Tune.ps1 audit -Category Network
 .\Level51Tune.ps1 audit -Profile gaming -IncludeHigh</code></pre>
-<p>คอลัมน์ <code>Applied</code>: <code>YES</code> = ตรงกับเป้าหมายแล้ว, <code>no</code> = ยังไม่ตรง, <code>?</code> = ตรวจไม่ได้ (เช่น tweak แบบ Script ที่ไม่มี detect)</p>
+<p>คอลัมน์ <code>Applied</code>: <code>YES</code> = ตรงกับเป้าหมายแล้ว, <code>no</code> = ยังไม่ตรง, <code>?</code> = ตรวจไม่ได้หรือเครื่องไม่รองรับ (เช่น tweak แบบ Script ที่ไม่มี detect หรือ power setting ที่ไดรเวอร์/BIOS ไม่ได้ expose บนเครื่องนี้)</p>
 <p>ใช้ <code>audit</code> เพื่อตอบคำถามว่า &quot;ตอนนี้เครื่องอยู่ในสภาพไหน&quot; หลังจาก apply ไปแล้วหรือหลัง Windows Update รีเซ็ตค่าบางอย่าง</p>
 <h2 id="sec-8">apply</h2>
 <pre><code class="lang-powershell"># ดูของก่อน
@@ -137,7 +137,8 @@
 <tr><td><code>FAIL</code></td><td>เกิด exception — ดู log ใน <code>logs/</code></td></tr>
 </tbody>
 </table></div>
-<p><code>FAIL</code> ไม่ทำให้ทั้ง proses หยุด (tweak อื่นยังทำงานต่อ) แต่ควรตรวจว่าเกิดจากอะไร</p>
+<p><code>FAIL</code> ไม่ทำให้ทั้งโปรเซสหยุด (tweak อื่นยังทำงานต่อ) แต่ควรตรวจว่าเกิดจากอะไร</p>
+<p><strong>apply ไม่ใช่การเลเยอร์</strong>: ทุกครั้งจะ duplicate scheme จาก scheme ต้นฉบับแล้วใส่เฉพาะ tweaks ของโปรไฟล์นั้น การ apply โปรไฟล์ที่สองจะแทนที่ผลของโปรไฟล์แรก ไม่ใช่ต่อยอด (ดู <a href="04-โปรไฟล์.md">โปรไฟล์</a>)</p>
 <h2 id="sec-9">restore</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 restore                    # ไฟล์ apply ล่าสุด
 .\Level51Tune.ps1 restore -BackupPath .\backups\20261112-153012_apply-gaming.json

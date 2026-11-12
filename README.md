@@ -95,6 +95,7 @@ src/Markdown.ps1             markdown → HTML renderer
 src/Bench.ps1                micro-benchmark + history + compare
 docs/                        เอกสาร .md (ต้นฉบับ) และ .html (สร้างอัตโนมัติ)
 tools/Build-Docs.ps1         สร้าง docs/*.html
+tools/AB-Bench.ps1          วัด A/B ระหว่างสอง power scheme (A-B-B-A)
 tests/Test-Level51Tune.ps1   ชุดทดสอบ (ไม่ต้อง admin, ไม่แก้ระบบ)
 ```
 

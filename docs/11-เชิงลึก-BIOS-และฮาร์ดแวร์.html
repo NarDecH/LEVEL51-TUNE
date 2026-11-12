@@ -39,9 +39,9 @@
 <li><a href="#sec-3">BIOS: สิ่งที่ควรและไม่ควรทำ</a></li>
 <li><a href="#sec-7">การระบายความร้อน: งานที่ได้ผลที่สุด</a></li>
 <li><a href="#sec-11">การวัดผลอย่างมีความหมาย</a></li>
-<li><a href="#sec-16">อาการฮาร์ดแวร์ที่ควรระวัง</a></li>
-<li><a href="#sec-17">การ backup ระดับระบบ</a></li>
-<li><a href="#sec-18">สรุป</a></li>
+<li><a href="#sec-17">อาการฮาร์ดแวร์ที่ควรระวัง</a></li>
+<li><a href="#sec-18">การ backup ระดับระบบ</a></li>
+<li><a href="#sec-19">สรุป</a></li>
 </ol></nav>
 <h2 id="sec-2">สิ่งที่รู้เกี่ยวกับเครื่องนี้</h2>
 <div class="table-wrap"><table>
@@ -147,7 +147,11 @@
 <tr><td>6</td><td>เปรียบเทียบด้วย <code>compare</code></td></tr>
 </tbody>
 </table></div>
-<h3 id="sec-14">เครื่องมือวัดที่ควรมี</h3>
+<h3 id="sec-14">วัด A/B ระหว่างสอง power scheme</h3>
+<p>ถ้าต้องการรู้ว่า scheme ที่ apply ให้ผลต่างจริงหรือเป็นแค่ noise ให้ใช้ <code>tools/AB-Bench.ps1</code> (ต้องรันแบบ Administrator เพราะต้องสลับ active scheme):</p>
+<pre><code class="lang-powershell">.\tools\AB-Bench.ps1 -Seconds 4</code></pre>
+<p>สคริปต์จะสลับ A-B-B-A (A = scheme ต้นฉบับใน <code>state/last.json</code>, B = scheme ที่โปรแกรมสร้าง) แล้วเทียบค่าเฉลี่ย ลำดับสลับช่วยลด order bias จากความร้อนที่สะสมระหว่างการวัด และเขียนสรุปเป็น JSON ลง <code>benchmarks/ab-summary-*.json</code></p>
+<h3 id="sec-15">เครื่องมือวัดที่ควรมี</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>เครื่องมือ</th><th>วัด</th><th>ฟรี</th></tr></thead>
 <tbody>
@@ -160,7 +164,7 @@
 <tr><td><code>.\Level51Tune.ps1 bench</code></td><td>ภาพรวมเร็ว ๆ ในเครื่อง</td><td>ใช่</td></tr>
 </tbody>
 </table></div>
-<h3 id="sec-15">อ่านค่า frametime ให้เป็น</h3>
+<h3 id="sec-16">อ่านค่า frametime ให้เป็น</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>ค่า</th><th>ความหมาย</th></tr></thead>
 <tbody>
@@ -171,7 +175,7 @@
 </tbody>
 </table></div>
 <p>เกมที่ 1% low ต่ำแต่ avg สูง = มี stutter ซึ่งมักมาจาก CPU/RAM/IO ไม่ใช่ GPU</p>
-<h2 id="sec-16">อาการฮาร์ดแวร์ที่ควรระวัง</h2>
+<h2 id="sec-17">อาการฮาร์ดแวร์ที่ควรระวัง</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>อาการ</th><th>ความหมาย</th><th>ควรทำ</th></tr></thead>
 <tbody>
@@ -183,7 +187,7 @@
 <tr><td>แบตบวม</td><td>อันตราย</td><td>หยุดใช้ เปลี่ยนแบตทันที</td></tr>
 </tbody>
 </table></div>
-<h2 id="sec-17">การ backup ระดับระบบ</h2>
+<h2 id="sec-18">การ backup ระดับระบบ</h2>
 <p>ก่อนแก้อะไรเชิงลึก ควรมี:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>ระดับ</th><th>วิธี</th></tr></thead>
@@ -194,7 +198,7 @@
 <tr><td>ค่า registry/power</td><td><code>.\Level51Tune.ps1 backup</code></td></tr>
 </tbody>
 </table></div>
-<h2 id="sec-18">สรุป</h2>
+<h2 id="sec-19">สรุป</h2>
 <ol>
 <li>บนเครื่องนี้ ฮาร์ดแวร์และความร้อนคือคอขวด ไม่ใช่การตั้งค่า Windows</li>
 <li>สิ่งที่ได้ผลที่สุดเรียงตามลำดับ: ทำความสะอาด → เปลี่ยน paste → undervolt → จำกัด fps → fan curve</li>

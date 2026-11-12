@@ -80,12 +80,19 @@ function Invoke-L51External {
     $cmd = $File
     if ($Arguments.Count -gt 0) { $cmd = "$File " + ($Arguments -join ' ') }
     Write-L51Log $cmd 'DEBUG'
+    # คำสั่ง native ที่เขียน stderr จะกลายเป็น error record — ต้องไม่ให้ EAP=Stop
+    # โยน exception ทิ้งก่อนที่เราจะได้อ่าน exit code
+    $savedEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     try {
         $out = & $File @Arguments 2>&1 | Out-String
         $code = $LASTEXITCODE
         if ($null -eq $code) { $code = 0 }
     } catch {
-        return [pscustomobject]@{ Output = $_.Exception.Message; ExitCode = 1 }
+        $out = $_.Exception.Message
+        $code = 1
+    } finally {
+        $ErrorActionPreference = $savedEap
     }
     return [pscustomobject]@{ Output = $out; ExitCode = $code }
 }
@@ -192,7 +199,7 @@ function Get-L51PowerValue {
 }
 
 function Set-L51PowerValue {
-    param([string]$Subgroup, [string]$Setting, $AC, $DC, [string]$Scheme = 'SCHEME_CURRENT')
+    param([string]$Subgroup, [string]$Setting, $AC, $DC, [string]$Scheme = 'SCHEME_CURRENT', [switch]$Verify)
     $ok = $true
     if ($null -ne $AC) {
         $r = Invoke-L51External 'powercfg' @('-setacvalueindex', $Scheme, $Subgroup, $Setting, [string]$AC)
@@ -202,14 +209,25 @@ function Set-L51PowerValue {
         $r = Invoke-L51External 'powercfg' @('-setdcvalueindex', $Scheme, $Subgroup, $Setting, [string]$DC)
         if ($r.ExitCode -ne 0) { $ok = $false; Write-L51Log ("setdcvalueindex failed: {0}/{1} = {2}" -f $Subgroup, $Setting, $DC) 'DEBUG' }
     }
+    # powercfg คืน exit 0 แม้ค่าไม่เปลี่ยน (เช่น setting ไม่มีใน scheme นี้) — ต้องอ่านกลับมายืนยัน
+    if ($Verify -and $ok) {
+        $cur = Get-L51PowerValue -Subgroup $Subgroup -Setting $Setting -Scheme $Scheme
+        if ($null -eq $cur) {
+            $ok = $false
+        } else {
+            if ($null -ne $AC -and $cur.AC -ne $AC) { $ok = $false }
+            if ($null -ne $DC -and $cur.DC -ne $DC) { $ok = $false }
+        }
+    }
     return $ok
 }
 
 function New-L51TuneScheme {
     param([string]$BaseScheme, [string]$Profile)
-    $r = Invoke-L51External 'powercfg' @('-duplicate', $BaseScheme)
+    # switch ที่ถูกต้องของ powercfg คือ /DUPLICATESCHEME (-duplicatescheme)
+    $r = Invoke-L51External 'powercfg' @('-duplicatescheme', $BaseScheme)
     if (-not ($r.Output -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})')) {
-        throw "สร้าง power scheme ใหม่ไม่สำเร็จ: $($r.Output.Trim())"
+        throw "สร้าง power scheme ใหม่ไม่สำเร็จ (powercfg -duplicatescheme $BaseScheme, exit $($r.ExitCode)): $($r.Output.Trim())"
     }
     $guid = $Matches[1].ToLower()
     Invoke-L51External 'powercfg' @('-changename', $guid, "LEVEL51-TUNE $Profile") | Out-Null
@@ -547,14 +565,21 @@ function Invoke-L51Apply {
         try {
             switch ($t.Type) {
                 'Power' {
-                    if ($DryRun) {
+                    $supported = $null -ne (Get-L51PowerValue -Subgroup $t.Subgroup -Setting $t.Setting)
+                    if (-not $supported) {
+                        $res.Status = 'SKIP'
+                        $res.Detail = "เครื่องนี้ไม่มี power setting $($t.Setting) (ไดรเวอร์/BIOS ไม่รองรับ)"
+                    } elseif ($DryRun) {
                         $bits = @()
                         if ($null -ne $t.AC) { $bits += "setacvalueindex SCHEME_CURRENT $($t.Subgroup) $($t.Setting) $($t.AC)" }
                         if ($null -ne $t.DC) { $bits += "setdcvalueindex SCHEME_CURRENT $($t.Subgroup) $($t.Setting) $($t.DC)" }
                         $res.Detail = 'powercfg ' + ($bits -join ' + ')
                     } else {
-                        $ok = Set-L51PowerValue -Subgroup $t.Subgroup -Setting $t.Setting -AC $t.AC -DC $t.DC -Scheme 'SCHEME_CURRENT'
-                        if (-not $ok) { $res.Status = 'WARN'; $res.Detail = 'powercfg ปฏิเสธค่า (การตั้งค่านี้อาจถูกซ่อนอยู่ — ลอง unhide ก่อน)' }
+                        $ok = Set-L51PowerValue -Subgroup $t.Subgroup -Setting $t.Setting -AC $t.AC -DC $t.DC -Scheme 'SCHEME_CURRENT' -Verify
+                        if (-not $ok) {
+                            $res.Status = 'WARN'
+                            $res.Detail = 'ค่าไม่เปลี่ยนหลังสั่ง (อาจถูกซ่อนอยู่ — apply โปรไฟล์ที่มี win.unhide-power-settings ก่อน แล้วลองอีกครั้ง)'
+                        }
                     }
                 }
                 'Registry' {
@@ -706,7 +731,7 @@ function Test-L51TweakApplied {
         switch ($Tweak.Type) {
             'Power' {
                 $cur = Get-L51PowerValue -Subgroup $Tweak.Subgroup -Setting $Tweak.Setting
-                if ($null -eq $cur) { return $false }
+                if ($null -eq $cur) { return $null }   # เครื่องนี้ไม่รองรับค่าดังกล่าว
                 $acOk = ($null -eq $Tweak.AC) -or ($cur.AC -eq $Tweak.AC)
                 $dcOk = ($null -eq $Tweak.DC) -or ($cur.DC -eq $Tweak.DC)
                 return ($acOk -and $dcOk)

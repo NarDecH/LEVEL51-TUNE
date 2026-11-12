@@ -166,7 +166,14 @@
 เล่นเกมเป็นหลัก ───────────────────────► gaming
 benchmark / burst สั้น ๆ ──────────────► max (+ -Include high ถ้าจำเป็น)
 ออกไปข้างนอก ใช้แบต ─────────────────► battery</code></pre>
-<p><strong>เปลี่ยนไปมาได้ตลอด</strong> เพราะแต่ละครั้งจะสร้าง scheme ใหม่จาก scheme ที่ใช้อยู่ และ backup เก็บค่าเดิมไว้ ทดลอง <code>performance</code> หนึ่งสัปดาห์ แล้วค่อยขยับไป <code>gaming</code> จะปลอดภัยกว่ากระโดดไป <code>max</code> เลย</p>
+<p><strong>เปลี่ยนไปมาได้ตลอด</strong> เพราะแต่ละครั้งจะสร้าง scheme ใหม่และ backup เก็บค่าเดิมไว้ ทดลอง <code>performance</code> หนึ่งสัปดาห์ แล้วค่อยขยับไป <code>gaming</code> จะปลอดภัยกว่ากระโดดไป <code>max</code> เลย</p>
+<blockquote>
+<p><strong>สำคัญ: apply ไม่ใช่การเลเยอร์</strong> — ทุกครั้งที่ apply โปรแกรมจะ duplicate จาก scheme <strong>ต้นฉบับ</strong> (scheme ที่คุณใช้ก่อน apply ครั้งแรก) แล้วใส่เฉพาะ tweaks ของโปรไฟล์นั้น</p>
+<p></p>
+<p>ตัวอย่าง: apply <code>performance</code> แล้ว apply <code>battery</code> ต่อ → ผลลัพธ์คือ *Balanced + battery* (ค่าของ performance ทั้งหมดหายไป)</p>
+<p></p>
+<p>ถ้าต้องการผลรวมของสองโปรไฟล์ ให้ใช้โปรไฟล์ที่ครอบคลุมอยู่แล้ว (<code>gaming</code> มี tweaks ของ <code>performance</code> รวมอยู่, <code>max</code> มีของ <code>gaming</code>) หรือปรับค่าที่เหลือด้วยมือใน Control Panel</p>
+</blockquote>
 <h2 id="sec-9">ตรวจสอบว่าโปรไฟล์ทำงานจริง</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 audit -Profile gaming</code></pre>
 <p>ถ้าคอลัมน์ <code>Applied</code> เป็น <code>no</code> ทั้งที่เพิ่ง apply แสดงว่า:</p>

@@ -45,6 +45,7 @@
 <li><a href="#sec-14">6. ลำดับงานที่แนะนำสำหรับเครื่องนี้</a></li>
 <li><a href="#sec-15">7. ข้อจำกัดของการวัดชุดนี้</a></li>
 <li><a href="#sec-16">8. การตรวจซ้ำด้วยตัวเอง</a></li>
+<li><a href="#sec-17">9. ภาคผนวก: ผลหลัง apply โปรไฟล์ performance (12 พ.ย. 2026, 12:04)</a></li>
 </ol></nav>
 <h2 id="sec-2">1. ภาพรวมฮาร์ดแวร์</h2>
 <div class="table-wrap"><table>
@@ -179,6 +180,48 @@ nvidia-smi -q -d PERFORMANCE</code></pre>
 .\Level51Tune.ps1 bench -Label baseline -Seconds 4
 .\Level51Tune.ps1 report -Path .\reports\level51-status.md</code></pre>
 <p>ผลจะถูกเก็บใน <code>benchmarks/history.jsonl</code> และ <code>reports/</code> ซึ่งไม่อยู่ใน git (มีข้อมูลเฉพาะเครื่อง)</p>
+<h2 id="sec-17">9. ภาคผนวก: ผลหลัง apply โปรไฟล์ performance (12 พ.ย. 2026, 12:04)</h2>
+<p>หลังอ่านผลตรวจข้างต้น ได้ apply โปรไฟล์ <code>performance</code> จริงบนเครื่องนี้ด้วย <code>apply -Profile performance</code> (รันแบบ Administrator)</p>
+<div class="table-wrap"><table>
+<thead><tr><th>รายการ</th><th>ผล</th></tr></thead>
+<tbody>
+<tr><td>Power scheme ที่สร้าง</td><td><code>LEVEL51-TUNE performance</code> — <code>e7ffd28e-2105-40e9-aba7-07030b95d103</code></td></tr>
+<tr><td>ไฟล์ backup</td><td><code>backups/20261112-120049_apply-performance.json</code></td></tr>
+<tr><td>tweaks สำเร็จ</td><td>17 จาก 18</td></tr>
+<tr><td>ข้าม</td><td><code>power.cpu.cooling-active</code> — เครื่องนี้ไม่มี <code>SYSCOOLPOL</code> (EC ของ Clevo คุมพัดลมเอง)</td></tr>
+<tr><td><code>audit -Profile performance</code></td><td>17 / 18 (<code>?</code> 1 รายการ = ไม่รองรับ)</td></tr>
+<tr><td>ScheduledDefrag</td><td>Disabled (ยืนยันหลังสั่ง)</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-18">ผล A/B (สลับ A-B-B-A, เฉลี่ย 2 รอบ/ฝั่ง)</h3>
+<p>A = <code>Balanced</code> (scheme เดิม) &#183; B = <code>LEVEL51-TUNE performance</code></p>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวชี้วัด</th><th>A</th><th>B</th><th>delta</th></tr></thead>
+<tbody>
+<tr><td>CPU 1 thread (MB/s)</td><td>466</td><td>468</td><td>+0.3%</td></tr>
+<tr><td>CPU all threads (MB/s)</td><td>3,119</td><td>3,110</td><td>-0.3%</td></tr>
+<tr><td>Memory copy (MB/s)</td><td>5,648</td><td>6,638</td><td>+17.5%</td></tr>
+<tr><td>Disk write (MB/s)</td><td>1,284</td><td>1,286</td><td>+0.1%</td></tr>
+<tr><td>Disk read (MB/s)</td><td>4,334</td><td>4,455</td><td>+2.8%</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-19">วิธีตีความ (สำคัญ)</h3>
+<ul>
+<li><strong>CPU และ disk ไม่ต่างกันเลย</strong> (|delta| ≤ 0.3%) — โปรไฟล์นี้ไม่ได้เพิ่ม throughput และไม่ได้ลดลง</li>
+<li><strong>Memory +17.5% ไม่ควรถือว่าเป็นผลของ scheme</strong> — memory copy ขึ้นกับ uncore/ring clock และสภาพ cache มากกว่า power plan; รอบ B อยู่ตรงกลางลำดับ (ร้อน/ตื่นเต็มที่แล้ว) จึงมีแนวโน้มได้เปรียบจาก warm-up มากกว่าจากการตั้งค่า</li>
+<li>การวัดแบบ A-B-B-A ลด order bias ได้แต่ไม่หมด — ถ้าต้องการข้อสรุปที่แน่นอนกว่านี้ ต้องรัน 5 รอบ/ฝั่งและใช้ median</li>
+</ul>
+<h3 id="sec-20">สรุปที่ซื่อสัตย์</h3>
+<p>การปรับแต่งชุดนี้ <strong>ไม่ได้ทำให้ throughput เพิ่มขึ้นอย่างวัดได้</strong> บนเครื่องนี้ เพราะ:</p>
+<ol>
+<li>ซีพียูถูกจำกัดด้วยความร้อน/พลังงานอยู่แล้ว (efficiency 83-85% ของ physical cores คือสภาวะปกติ ไม่ใช่ throttling รุนแรง)</li>
+<li>คอขวดใหญ่ที่สุดคือ <strong>แรม single channel</strong> ซึ่ง tweak ซอฟต์แวร์แตะไม่ได้</li>
+<li>สิ่งที่โปรไฟล์นี้เปลี่ยนคือ <strong>latency/jitter</strong> (core parking, ASPM, disk timeout, MMCSS, Nagle) ซึ่ง <code>bench</code> วัดไม่ได้ — ต้องใช้ LatencyMon หรือ frametime graph</li>
+</ol>
+<p>ถ้าอยากได้ตัวเลขที่ยืนยันผลด้าน latency ให้วัด DPC latency ด้วย LatencyMon ก่อน/หลัง และดู <code>Highest measured interrupt to process latency</code> (ค่าที่ต่ำลงคือดีขึ้น)</p>
+<h3 id="sec-21">ถ้าไม่ต้องการโปรไฟล์นี้ต่อ</h3>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 restore      # กลับไป Balanced ตาม backup ล่าสุด</code></pre>
+<p>หรือสลับเองใน Control Panel → Power Options → Balanced (scheme <code>LEVEL51-TUNE performance</code> จะยังอยู่ให้สลับกลับได้)</p>
 
     </article>
       <nav class="pager"><a class="pager-prev" href="12-ความปลอดภัย-ย้อนกลับ.html">&larr; ความปลอดภัย การสำรอง และการย้อนกลับ</a><a class="pager-next" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย &rarr;</a></nav>

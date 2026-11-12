@@ -745,19 +745,24 @@ $script:L51TweakCatalog = @(
         Notes = 'บน SSD ไม่จำเป็นต้อง defrag (Windows ทำ TRIM ให้) — การรันตาม schedule ทำให้เกิด IO พื้นหลังตอนเล่นเกม'
         ApplyScript = {
             param($ctx)
-            $t = Get-ScheduledTask -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue
+            $taskPath = '\Microsoft\Windows\Defrag\'
+            $t = Get-ScheduledTask -TaskName 'ScheduledDefrag' -TaskPath $taskPath -ErrorAction SilentlyContinue
             if (-not $t) { return @{ Found = $false } }
             $prev = @{ Found = $true; State = [string]$t.State }
-            if (-not $ctx.DryRun) { Disable-ScheduledTask -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue | Out-Null }
+            if (-not $ctx.DryRun) {
+                Disable-ScheduledTask -TaskName 'ScheduledDefrag' -TaskPath $taskPath -ErrorAction Stop | Out-Null
+                $after = Get-ScheduledTask -TaskName 'ScheduledDefrag' -TaskPath $taskPath -ErrorAction Stop
+                if ([string]$after.State -ne 'Disabled') { throw "ปิด ScheduledDefrag ไม่สำเร็จ (สถานะยังเป็น $($after.State))" }
+            }
             return $prev
         }
         RevertScript = {
             param($ctx)
-            if ($ctx.Previous.Found) { Enable-ScheduledTask -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue | Out-Null }
+            if ($ctx.Previous.Found) { Enable-ScheduledTask -TaskName 'ScheduledDefrag' -TaskPath '\Microsoft\Windows\Defrag\' -ErrorAction SilentlyContinue | Out-Null }
         }
         DetectScript = {
             param($ctx)
-            $t = Get-ScheduledTask -TaskName 'ScheduledDefrag' -ErrorAction SilentlyContinue
+            $t = Get-ScheduledTask -TaskName 'ScheduledDefrag' -TaskPath '\Microsoft\Windows\Defrag\' -ErrorAction SilentlyContinue
             if (-not $t) { return $false }
             return ([string]$t.State -eq 'Disabled')
         }

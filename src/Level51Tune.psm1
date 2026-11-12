@@ -1270,7 +1270,16 @@ function Get-L51UpdateInfo {
                 # JSON array ว่างจะถูกคืนเป็น $null — ต้องกรองทิ้งก่อนนับ
                 $tags = @($raw | Where-Object { $_ -and $_.name })
                 if ($tags.Count -gt 0) {
-                    $latest = [string]$tags[0].name
+                    # API ไม่รับประกันลำดับ — เลือกเวอร์ชันสูงสุดเอง
+                    $best = $null
+                    $bestVer = $null
+                    foreach ($t in $tags) {
+                        $ver = $null
+                        try { $ver = [version](([string]$t.name) -replace '^[vV]', '') } catch { }
+                        if (-not $best) { $best = $t; $bestVer = $ver; continue }
+                        if ($ver -and (-not $bestVer -or $ver -gt $bestVer)) { $best = $t; $bestVer = $ver }
+                    }
+                    $latest = [string]$best.name
                     $url = ('https://github.com/{0}/tree/{1}' -f $Repo, $latest)
                 } else {
                     $errorText = 'ยังไม่มี release หรือ tag บน GitHub (repo ยังไม่เคย publish)'

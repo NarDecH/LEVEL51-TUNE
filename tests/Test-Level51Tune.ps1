@@ -276,6 +276,25 @@ Test-Case 'GUI: มีแบบเนอร์แจ้งต้องรีส�
     $html -match 'rebootPending'
 }
 
+Test-Case 'Test-L51PortOpen: ตรวจพอร์ตที่เปิด/ปิดได้ถูกต้อง' {
+    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, 0)
+    $listener.Start()
+    $port = $listener.LocalEndpoint.Port
+    $open = Test-L51PortOpen -Port $port
+    $listener.Stop()
+    Start-Sleep -Milliseconds 200
+    $closed = Test-L51PortOpen -Port $port -TimeoutMs 300
+    if (-not $open) { throw 'ไม่เห็นพอร์ตที่กำลังเปิดอยู่' }
+    if ($closed) { throw 'ยังเห็นพอร์ตที่ปิดแล้ว' }
+    $true
+}
+
+Test-Case 'tray: เมนูเปิด Dashboard ตรวจพอร์ตก่อนไม่เปิดซ้ำ' {
+    $tray = Get-Content (Join-Path $root 'Level51Tune.Tray.ps1') -Raw -Encoding UTF8
+    if ($tray -notmatch 'Test-L51PortOpen') { throw 'ไม่พบการตรวจพอร์ตก่อนเปิด Dashboard' }
+    $tray -match '-Elevate'
+}
+
 Test-Case 'audit -TweakIds: ตรวจสถานะเฉพาะรายการที่เลือกได้' {
     $ids = @('gpu.hags', 'power.cpu.min100')
     $rows = @(Invoke-L51Audit -TweakIds $ids)

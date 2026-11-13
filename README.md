@@ -73,6 +73,8 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 
 ใน tray: คลิกขวาเพื่อสลับโปรไฟล์ (ขอ UAC เองทุกครั้ง), ตรวจสถานะเป็น balloon, เปิดโฟลเดอร์ log/เอกสาร — ไม่รันค้างแบบ Administrator
 
+เมนู “เปิด Dashboard” จะตรวจก่อนว่ามีพอร์ต 8730 ถูกใช้อยู่หรือไม่: ถ้ามีอยู่แล้วจะขึ้น balloon บอกให้ใช้ URL/token ของเซิร์ฟเวอร์ตัวเดิม (ไม่เปิดซ้ำเพราะจะ bind ไม่ได้) ถ้าว่างจะขอ UAC แล้วเปิด `Level51Tune.Web.ps1 -Port 8730 -Elevate`
+
 MSIX (`Build-Msix.ps1`) ห่อแอปเป็นแพ็กเกจติดตั้งได้ โดยมี launcher เล็ก ๆ ที่เปิด dashboard — แต่ MSIX รันใน container จึงขอ UAC ไม่ได้ ปุ่ม Apply/Restore ในโหมดนั้นจะได้ 403 (ใช้ `Start-LEVEL51.cmd` เมื่อต้อง apply)
 
 ไฟล์ `.msix` ที่ build ยังไม่ลงนาม: ติดตั้งได้เมื่อเปิด Developer Mode (`Add-AppxPackage -AllowUnsigned`) หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`

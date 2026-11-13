@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.10'
+$script:L51Version = '1.0.11'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -64,6 +64,26 @@ function Test-L51Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($id)
     return $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+function Test-L51PortOpen {
+    # ใช้ตรวจว่า Web GUI รันอยู่หรือยัง (ไม่ต้องต่อเน็ต คุยกับ loopback เท่านั้น)
+    param(
+        [int]$Port = 8730,
+        [string]$ComputerName = '127.0.0.1',
+        [int]$TimeoutMs = 500
+    )
+
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $task = $client.ConnectAsync($ComputerName, $Port)
+        if (-not $task.Wait($TimeoutMs)) { return $false }
+        return [bool]$client.Connected
+    } catch {
+        return $false
+    } finally {
+        try { $client.Close() } catch { }
+    }
 }
 
 function Assert-L51Admin {
@@ -1355,7 +1375,7 @@ Export-ModuleMember -Function @(
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
     'Get-L51State', 'Save-L51State', 'Get-L51Status', 'New-L51Report',
-    'Test-L51TweakApplied', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
+    'Test-L51TweakApplied', 'Test-L51PortOpen', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',
     'Get-L51BackupHistory', 'Get-L51GpuPreferences', 'Set-L51GpuPreference', 'Remove-L51GpuPreference', 'Get-L51ProcessList',

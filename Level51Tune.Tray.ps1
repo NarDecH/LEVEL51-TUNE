@@ -36,6 +36,13 @@ function Invoke-L51Elevated {
 }
 
 function Start-L51Dashboard {
+    # ถ้ามีเซิร์ฟเวอร์ฟังพอร์ตนี้อยู่แล้ว การเปิดซ้ำจะ bind ไม่ได้แล้วปิดตัวไปเงียบ ๆ
+    if (Test-L51PortOpen -Port $Port) {
+        $notify.BalloonTipTitle = 'LEVEL51-TUNE · Dashboard เปิดอยู่แล้ว'
+        $notify.BalloonTipText = (('พอร์ต {0} มีเซิร์ฟเวอร์ทำงานอยู่ — เปิด URL/token จากหน้าต่าง console ของเซิร์ฟเวอร์นั้น (ปิดตัวเดิมก่อนถ้าจะเปิดใหม่แบบ Administrator)') -f $Port)
+        $notify.ShowBalloonTip(6000)
+        return
+    }
     $exe = (Get-Process -Id $PID).Path
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $script:Root 'Level51Tune.Web.ps1'), '-Port', "$Port", '-Elevate')
     Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs

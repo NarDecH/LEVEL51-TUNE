@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.11'
+$script:L51Version = '1.0.12'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -450,6 +450,55 @@ function Get-L51State {
     try { return (Get-Content -Path $file -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { return $null }
 }
 
+function New-L51ApplyState {
+    # สร้าง state หลัง apply (แยกออกมาเพื่อให้เทสต์ได้โดยไม่ต้องมีสิทธิ์ admin)
+    param(
+        [string]$Profile,
+        $Backup,
+        [bool]$HasPower = $false,
+        $SchemeGuid,
+        $BaseScheme,
+        [bool]$RestartRequired = $false,
+        [string[]]$RebootTweaks = @()
+    )
+
+    return [ordered]@{
+        Profile       = $Profile
+        AppliedAt     = (Get-Date).ToString('o')
+        SchemeGuid    = $SchemeGuid
+        BaseScheme    = $BaseScheme
+        Backup        = $Backup
+        RebootPending = $RestartRequired
+        RebootTweaks  = @($RebootTweaks | Where-Object { $_ })
+    }
+}
+
+function Get-L51RestartInfo {
+    # สรุปว่ายังต้อง restart หรือไม่ — ถ้าเครื่อง reboot ไปแล้วหลัง apply ถือว่าเคลียร์
+    $info = [pscustomobject]@{ Pending = $false; Tweaks = @(); AppliedAt = $null; ClearedByReboot = $false }
+    $state = Get-L51State
+    if (-not $state) { return $info }
+    if ($state.AppliedAt) { $info.AppliedAt = $state.AppliedAt }
+    if (-not $state.RebootPending) { return $info }
+
+    $info.Tweaks = @($state.RebootTweaks | Where-Object { $_ })
+    $info.Pending = $true
+
+    try {
+        $boot = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
+        if ($state.AppliedAt -and $boot -gt ([datetime]$state.AppliedAt)) {
+            $info.Pending = $false
+            $info.ClearedByReboot = $true
+            $merged = [ordered]@{}
+            foreach ($p in $state.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+            $merged['RebootPending'] = $false
+            $merged['RebootTweaks'] = @()
+            Save-L51State -State $merged
+        }
+    } catch { }
+    return $info
+}
+
 function Save-L51State {
     param($State)
     $paths = Get-L51Paths
@@ -657,32 +706,27 @@ function Invoke-L51Apply {
     $rebootTweaks = @($apply | Where-Object { $_.Reboot } | ForEach-Object { $_.Id })
     $restartRequired = $rebootTweaks.Count -gt 0
 
-    if ($hasPower -and -not $DryRun) {
-        Invoke-L51External 'powercfg' @('-setactive', $tuneGuid) | Out-Null
-        $state = [ordered]@{
-            Profile       = $Profile
-            AppliedAt     = (Get-Date).ToString('o')
-            SchemeGuid    = $tuneGuid
-            BaseScheme    = $baseScheme
-            Backup        = $backupPath
-            RebootPending = $restartRequired
-            RebootTweaks  = $rebootTweaks
-        }
-        Save-L51State -State $state
-        if ($lastState -and $lastState.SchemeGuid -and $lastState.SchemeGuid -ne $tuneGuid) {
-            Remove-L51Scheme -Guid $lastState.SchemeGuid
-        }
-    }
+    # บันทึก state ทุกครั้งที่ apply จริง — ไม่ผูกกับ "มี power tweak หรือไม่"
+    # (เดิมโปรไฟล์ที่ registry ล้วน เช่น balanced ทำให้ state ค้างเป็นโปรไฟล์เก่า)
+    if (-not $DryRun) {
+        if ($hasPower) { Invoke-L51External 'powercfg' @('-setactive', $tuneGuid) | Out-Null }
 
-    # ไม่มี power tweak (เช่น -TweakIds registry ล้วน) ก็ยังต้องบันทึกว่า pending restart
-    if (-not $hasPower -and -not $DryRun) {
-        $existing = Get-L51State
-        if ($existing) {
-            $merged = [ordered]@{}
-            foreach ($p in $existing.PSObject.Properties) { $merged[$p.Name] = $p.Value }
-            $merged['RebootPending'] = $restartRequired
-            $merged['RebootTweaks'] = $rebootTweaks
-            Save-L51State -State $merged
+        $stateScheme = $null
+        $stateBase = $baseScheme
+        if ($hasPower) {
+            $stateScheme = $tuneGuid
+        } elseif ($lastState) {
+            $stateScheme = $lastState.SchemeGuid
+            if ($lastState.BaseScheme) { $stateBase = $lastState.BaseScheme }
+        }
+
+        $state = New-L51ApplyState -Profile $Profile -Backup $backupPath -HasPower $hasPower `
+            -SchemeGuid $stateScheme -BaseScheme $stateBase `
+            -RestartRequired $restartRequired -RebootTweaks $rebootTweaks
+        Save-L51State -State $state
+
+        if ($hasPower -and $lastState -and $lastState.SchemeGuid -and $lastState.SchemeGuid -ne $tuneGuid) {
+            Remove-L51Scheme -Guid $lastState.SchemeGuid
         }
     }
 
@@ -904,11 +948,15 @@ function Get-L51Status {
     } else {
         Write-Host '  ยังไม่เคย apply โปรไฟล์ใด (ดูโปรไฟล์ด้วย: .\Level51Tune.ps1 profiles)' -ForegroundColor DarkGray
     }
-    if ($state -and $state.RebootPending) {
+    $restartInfo = Get-L51RestartInfo
+    if ($restartInfo.Pending) {
         Write-Host ''
-        Write-Host '  !! ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่' -ForegroundColor Yellow
-        foreach ($id in @($state.RebootTweaks | Where-Object { $_ })) { Write-Host ("     - {0}" -f $id) -ForegroundColor Yellow }
+        Write-Host ('  !! ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่ ({0} รายการ)' -f @($restartInfo.Tweaks).Count) -ForegroundColor Yellow
+        foreach ($id in @($restartInfo.Tweaks | Select-Object -First 8)) { Write-Host ("     - {0}" -f $id) -ForegroundColor Yellow }
         Write-Host '     รัน: Restart-Computer' -ForegroundColor DarkGray
+    } elseif ($restartInfo.ClearedByReboot) {
+        Write-Host ''
+        Write-Host '  [i] restart หลัง apply เรียบร้อยแล้ว — เคลียร์สถานะ "ต้องรีสตาร์ท" ให้แล้ว' -ForegroundColor DarkGray
     }
     Write-Host ''
     return $hw
@@ -1374,7 +1422,7 @@ Export-ModuleMember -Function @(
     'Get-L51Catalog', 'Get-L51Profiles', 'Get-L51Profile', 'Get-L51ProfileTweaks',
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
-    'Get-L51State', 'Save-L51State', 'Get-L51Status', 'New-L51Report',
+    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'New-L51ApplyState', 'Get-L51Status', 'New-L51Report',
     'Test-L51TweakApplied', 'Test-L51PortOpen', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',

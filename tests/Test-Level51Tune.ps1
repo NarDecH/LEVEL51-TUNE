@@ -295,6 +295,46 @@ Test-Case 'tray: เมนูเปิด Dashboard ตรวจพอร์ต�
     $tray -match '-Elevate'
 }
 
+Test-Case 'tray -SelfTest: พอร์ตว่าง → แสดงคำสั่งที่จะเปิด Dashboard' {
+    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, 0)
+    $listener.Start()
+    $port = $listener.LocalEndpoint.Port
+    $listener.Stop()
+    Start-Sleep -Milliseconds 150
+    $exe = (Get-Process -Id $PID).Path
+    $out = & $exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'Level51Tune.Tray.ps1') -SelfTest -Port $port 2>&1 | Out-String
+    if ($out -notmatch 'would launch') { throw ('ไม่พบคำสั่งที่จะเปิด: ' + $out.Trim()) }
+    $out -match 'Level51Tune.Web.ps1'
+}
+
+Test-Case 'New-L51ApplyState: บันทึก state ได้แม้โปรไฟล์ไม่มี power tweak' {
+    $s = New-L51ApplyState -Profile 'balanced' -Backup 'x.json' -HasPower $false -SchemeGuid 'guid-keep' -BaseScheme 'base' -RestartRequired $true -RebootTweaks @('gpu.hags', '')
+    if ($s.Profile -ne 'balanced') { throw 'Profile ไม่ถูก' }
+    if (-not $s.AppliedAt) { throw 'ไม่มี AppliedAt' }
+    if ($s.SchemeGuid -ne 'guid-keep') { throw 'SchemeGuid หายเมื่อไม่มี power tweak' }
+    if (-not $s.RebootPending) { throw 'RebootPending ไม่ถูกบันทึก' }
+    if (@($s.RebootTweaks).Count -ne 1) { throw 'ต้องกรองค่าว่างออก' }
+    $true
+}
+
+Test-Case 'engine: save state อยู่ใต้ -not $DryRun (ไม่ผูกกับ hasPower)' {
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    # ต้องมีบล็อก if (-not $DryRun) { if ($hasPower) { powercfg -setactive ... } ... Save-L51State }
+    if ($src -notmatch 'if \(-not \$DryRun\) \{\s*if \(\$hasPower\) \{ Invoke-L51External') {
+        throw 'ไม่พบบล็อก save state ที่ไม่ผูกกับ hasPower'
+    }
+    $src -match 'New-L51ApplyState -Profile'
+}
+
+Test-Case 'Get-L51RestartInfo: คืน Pending/Tweaks และเคลียร์ให้เมื่อ reboot หลัง apply' {
+    $info = Get-L51RestartInfo
+    if (-not $info.PSObject.Properties['Pending']) { throw 'ไม่มี property Pending' }
+    if (-not $info.PSObject.Properties['Tweaks']) { throw 'ไม่มี property Tweaks' }
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    if ($src -notmatch 'LastBootUpTime') { throw 'ไม่มีการตรวจ LastBootUpTime เพื่อเคลียร์ flag' }
+    $true
+}
+
 Test-Case 'audit -TweakIds: ตรวจสถานะเฉพาะรายการที่เลือกได้' {
     $ids = @('gpu.hags', 'power.cpu.min100')
     $rows = @(Invoke-L51Audit -TweakIds $ids)

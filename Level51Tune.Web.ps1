@@ -108,13 +108,15 @@ function Get-L51StatusPayload {
     }
     $stateObj = $null
     if ($state) {
+        $restart = Get-L51RestartInfo
         $stateObj = [pscustomobject]@{
             profile       = $state.Profile
             appliedAt     = $state.AppliedAt
             backup        = $state.Backup
             scheme        = $state.SchemeGuid
-            rebootPending = [bool]$state.RebootPending
-            rebootTweaks  = @($state.RebootTweaks | Where-Object { $_ })
+            rebootPending = [bool]$restart.Pending
+            rebootTweaks  = @($restart.Tweaks)
+            clearedByReboot = [bool]$restart.ClearedByReboot
         }
     }
     $schemeObj = $null

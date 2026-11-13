@@ -75,6 +75,15 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 
 เมนู “เปิด Dashboard” จะตรวจก่อนว่ามีพอร์ต 8730 ถูกใช้อยู่หรือไม่: ถ้ามีอยู่แล้วจะขึ้น balloon บอกให้ใช้ URL/token ของเซิร์ฟเวอร์ตัวเดิม (ไม่เปิดซ้ำเพราะจะ bind ไม่ได้) ถ้าว่างจะขอ UAC แล้วเปิด `Level51Tune.Web.ps1 -Port 8730 -Elevate`
 
+ทดสอบเมนูนั้นแบบไม่ต้องกด UAC ได้ด้วย:
+
+```powershell
+.\Level51Tune.Tray.ps1 -SelfTest            # 8730 ว่าง → แสดงคำสั่งที่จะรัน
+.\Level51Tune.Tray.ps1 -SelfTest -Port 8899 # ตรวจพอร์ตอื่น
+```
+
+แจ้งเตือน “ต้องรีสตาร์ท” จะถูกเคลียร์อัตโนมัติเมื่อเครื่อง reboot หลัง apply (`Get-L51RestartInfo` เทียบ `LastBootUpTime` กับ `AppliedAt`)
+
 MSIX (`Build-Msix.ps1`) ห่อแอปเป็นแพ็กเกจติดตั้งได้ โดยมี launcher เล็ก ๆ ที่เปิด dashboard — แต่ MSIX รันใน container จึงขอ UAC ไม่ได้ ปุ่ม Apply/Restore ในโหมดนั้นจะได้ 403 (ใช้ `Start-LEVEL51.cmd` เมื่อต้อง apply)
 
 ไฟล์ `.msix` ที่ build ยังไม่ลงนาม: ติดตั้งได้เมื่อเปิด Developer Mode (`Add-AppxPackage -AllowUnsigned`) หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`

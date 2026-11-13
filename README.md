@@ -89,7 +89,10 @@ Remove-AppxPackage -Package NarDecH.LEVEL51TUNE_<full-name>   # ถอน
 
 ```powershell
 .\tools\Build-Msix.ps1 -PfxPath .\cert\my.pfx -PfxPassword '***'   # เรียก signtool sign /fd SHA256
+.\tools\Build-Msix.ps1 -PfxPath .\cert\my.pfx -PfxPassword '***' -TimestampServer http://timestamp.digicert.com
 ```
+
+`-TimestampServer` เป็นทางเลือกแบบ opt-in: ถ้าไม่ระบุ สคริปต์จะไม่ต่อเน็ตเลย
 
 สคริปต์ไม่ประทับเวลา (timestamp) เพื่อไม่ให้คำสั่งอื่นนอก `update` แตะเน็ต — แพ็กเกจที่ได้ใช้ติดตั้งภายในเครื่อง/ทีมได้ แต่สำหรับแจกจ่ายสาธารณะควรลงนามใหม่พร้อม timestamp ด้วย cert จาก CA
 

@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item active" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.5</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.6</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -153,14 +153,14 @@
 <h3 id="sec-14">ระยะ 4 (บางส่วน)</h3>
 <ol>
 <li><code>tools/Build-Package.ps1</code> — สร้าง <code>dist/LEVEL51-TUNE-&lt;version&gt;.zip</code> พร้อมใช้ (เสร็จแล้ว)</li>
-<li><del>หน้าตรวจอัปเดตเวอร์ชัน</del> <strong>เสร็จแล้ว</strong>: CLI <code>update</code> + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release <code>v1.0.5</code> พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)</li>
+<li><del>หน้าตรวจอัปเดตเวอร์ชัน</del> <strong>เสร็จแล้ว</strong>: CLI <code>update</code> + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release <code>v1.0.6</code> พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)</li>
 <li><del>profile detection</del> <strong>เสร็จแล้ว</strong>: <code>recommend</code> + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)</li>
 <li><del>code signing</del> <strong>ทำไปป์ไลน์แล้ว</strong>: <code>Build-Package.ps1 -CertificateThumbprint &lt;thumb&gt;</code> ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา</li>
 <li><del>MSIX</del> <strong>เสร็จแล้ว</strong>: <code>tools/Build-Msix.ps1</code> คอมไพล์ launcher (C# ผ่าน <code>csc.exe</code>) + <code>AppxManifest.xml</code> + assets แล้ว pack ด้วย <code>makeappx.exe</code> → <code>dist/LEVEL51-TUNE-&lt;version&gt;.msix</code></li>
 <li>MSIX — ผลตรวจครบวงจรบนเครื่องนี้: <code>Build-Msix.ps1 -Unsigned</code> → <code>Add-AppxPackage -AllowUnsigned</code> (Administrator) ได้ <code>Status: Ok</code> → เปิดจาก Start ด้วย AUMID <code>NarDecH.LEVEL51TUNE_f8fxc7vhmgvhy!App</code> แล้วเซิร์ฟเวอร์รันจาก <code>C:\Program Files\WindowsApps\...\Level51Tune.Web.ps1</code> และ dashboard ตอบ 401 เมื่อไม่มี token → ถอนด้วย <code>Remove-AppxPackage</code> เรียบร้อย</li>
 <li>เงื่อนไขการติดตั้ง MSIX ที่ต้องรู้: แพ็กเกจ unsigned ต้องมี marker <code>OID.2.25.311729368913984317654407730594956997722=1</code> ต่อท้าย Publisher (สคริปต์ใส่ให้เมื่อใช้ <code>-Unsigned</code>) &#183; ต้องเปิด Developer Mode &#183; และเพราะมี <code>.exe</code> ต้องติดตั้งด้วย PowerShell แบบ Administrator</li>
 <li>ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ <code>Start-LEVEL51.cmd</code>)</li>
-<li>MSIX — การลงนาม: <code>Build-Msix.ps1 -PfxPath &lt;file.pfx&gt; -PfxPassword &lt;...&gt;</code> เรียก <code>signtool sign /fd SHA256</code> (ไม่ประทับเวลา เพราะ invariant 13) &#183; ทดสอบบนเครื่องนี้ด้วย self-signed cert <code>CN=LEVEL51-TUNE</code> แล้วติดตั้งสำเร็จ — แต่สำหรับแจกจ่ายจริงยังต้องใช้ cert จาก CA ที่เชื่อถือได้</li>
+<li>MSIX — การลงนาม: <code>Build-Msix.ps1 -PfxPath &lt;file.pfx&gt; -PfxPassword &lt;...&gt;</code> เรียก <code>signtool sign /fd SHA256</code> &#183; ถ้าเพิ่ม <code>-TimestampServer &lt;url&gt;</code> จะต่อเน็ตเพื่อประทับเวลา (opt-in เท่านั้น — invariant 13) &#183; ทดสอบบนเครื่องนี้ด้วย self-signed cert <code>CN=LEVEL51-TUNE</code> แล้วติดตั้งสำเร็จ — แต่สำหรับแจกจ่ายจริงยังต้องใช้ cert จาก CA ที่เชื่อถือได้</li>
 </ol>
 <h2 id="sec-15">ข้อควรระวังในการทำ GUI ต่อ</h2>
 <ol>

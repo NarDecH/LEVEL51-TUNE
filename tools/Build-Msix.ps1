@@ -24,7 +24,8 @@ param(
     [string]$MakeAppxPath,
     [switch]$Unsigned,
     [string]$PfxPath,
-    [string]$PfxPassword
+    [string]$PfxPassword,
+    [string]$TimestampServer
 )
 
 $ErrorActionPreference = 'Stop'
@@ -240,9 +241,10 @@ if ($PfxPath) {
     $signtool = Join-Path (Split-Path -Parent $makeappx) 'signtool.exe'
     if (-not (Test-Path $signtool)) { throw 'ไม่พบ signtool.exe ข้าง ๆ makeappx.exe' }
     if (-not (Test-Path $PfxPath)) { throw "ไม่พบไฟล์ PFX: $PfxPath" }
-    # ไม่ประทับเวลา: invariant 13 อนุญาตให้ใช้เน็ตเฉพาะคำสั่ง update
+    # ไม่ประทับเวลาโดยปริยาย: invariant 13 อนุญาตให้แตะเน็ตเฉพาะเมื่อผู้ใช้ระบุชัดเจน
     $signArgs = @('sign', '/fd', 'SHA256', '/f', (Resolve-Path $PfxPath).Path)
     if ($PfxPassword) { $signArgs += @('/p', $PfxPassword) }
+    if ($TimestampServer) { $signArgs += @('/tr', $TimestampServer, '/td', 'SHA256') }
     $signArgs += @($msixPath)
     $signOut = & $signtool @signArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -261,7 +263,11 @@ Write-Host ('  ขนาด : {0:N0} KB · เวอร์ชัน {1} · Publi
 Write-Host '  launcher เปิด dashboard แบบไม่ elevated — apply/restore ใช้ Start-LEVEL51.cmd' -ForegroundColor DarkGray
 if ($signed) {
     Write-Host '  ลงนามแล้วด้วย PFX ที่ระบุ — ติดตั้งได้เมื่อ cert อยู่ใน TrustedPeople ของเครื่อง' -ForegroundColor Green
-    Write-Host '  ไม่มีการประทับเวลา (timestamp) — ใช้ภายในเครื่องเท่านั้น' -ForegroundColor DarkGray
+    if ($TimestampServer) {
+        Write-Host ('  ประทับเวลาที่ {0}' -f $TimestampServer) -ForegroundColor DarkGray
+    } else {
+        Write-Host '  ไม่มีการประทับเวลา (timestamp) — ใช้ภายในเครื่องเท่านั้น' -ForegroundColor DarkGray
+    }
 } elseif ($Unsigned) {
     Write-Host '  แพ็กเกจ unsigned (มี marker OID ใน Publisher) — ติดตั้งด้วย:' -ForegroundColor Yellow
     Write-Host ('    Add-AppxPackage -Path "{0}" -AllowUnsigned' -f $info.FullName) -ForegroundColor DarkGray

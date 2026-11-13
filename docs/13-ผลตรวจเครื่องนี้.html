@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -48,6 +48,7 @@
 <li><a href="#sec-16">8. การตรวจซ้ำด้วยตัวเอง</a></li>
 <li><a href="#sec-17">9. ภาคผนวก: ผลหลัง apply โปรไฟล์ performance (12 พ.ย. 2026, 12:04)</a></li>
 <li><a href="#sec-22">10. ภาคผนวก: วัด latency หลัง apply (DPC / interrupt)</a></li>
+<li><a href="#sec-25">11. ภาคผนวก: ความร้อน/พลังงานตอน idle บนโปรไฟล์ max (13 พ.ย. 2026, 12:30)</a></li>
 </ol></nav>
 <h2 id="sec-2">1. ภาพรวมฮาร์ดแวร์</h2>
 <div class="table-wrap"><table>
@@ -244,6 +245,29 @@ nvidia-smi -q -d PERFORMANCE</code></pre>
 </ul>
 <h3 id="sec-24">ข้อสรุปที่เกี่ยวข้อง</h3>
 <p>ผลรวมของหลักฐาน (throughput ไม่เปลี่ยน, memory +17.5% เป็น warm-up artifact, DPC ปกติ) ชี้ว่า <strong>โปรไฟล์ performance ไม่ได้ทำให้เครื่องเร็วขึ้น แต่ก็ไม่ได้ทำให้แย่ลง</strong> — สิ่งที่ได้คือค่าที่นิ่งขึ้นและ fitur ที่ปิดไป (core parking, ASPM, disk timeout, Nagle) ซึ่งช่วยเรื่อง jitter ในสถานการณ์จริงมากกว่าตัวเลข benchmark</p>
+<h2 id="sec-25">11. ภาคผนวก: ความร้อน/พลังงานตอน idle บนโปรไฟล์ max (13 พ.ย. 2026, 12:30)</h2>
+<p>วัดหลัง apply <code>max</code> แล้ว reboot หนึ่งครั้ง (uptime 1.06 ชม.) ไม่มีงานหนักรันอยู่:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวชี้วัด</th><th>ค่า</th><th>หมายเหตุ</th></tr></thead>
+<tbody>
+<tr><td>CPU load (1 วิ)</td><td>5.7%</td><td>เครื่องว่าง</td></tr>
+<tr><td>Thermal zone <code>ACPI\ThermalZone\TZ0__0</code></td><td>62.1 &#176;C</td><td>counter <code>\Thermal Zone Information(_tz.tz0)</code> ให้ 61.9 &#176;C</td></tr>
+<tr><td>Thermal zone ตอนวัดรอบก่อน (11:20)</td><td>72.1 &#176;C</td><td>ทันทีหลังบูต ยังมีงาน boot ค้าง</td></tr>
+<tr><td>GPU (GTX 1060)</td><td>43 &#176;C &#183; 23.7 W &#183; 1% &#183; 303 MHz</td><td>ปกติสำหรับ idle</td></tr>
+<tr><td><code>PROCTHROTTLEMIN</code> (AC)</td><td><code>0x64</code> = 100%</td><td>มาจากโปรไฟล์ <code>max</code></td></tr>
+<tr><td><code>PROCTHROTTLEMAX</code> (AC)</td><td><code>0x64</code> = 100%</td><td>ตามที่ตั้งไว้</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-26">วิธีตีความ</h3>
+<ul>
+<li><code>PROCTHROTTLEMIN = 100%</code> ทำให้ Windows ไม่ลด clock แม้เครื่องว่าง → ความร้อนตอน idle จึงสูงกว่าเครื่องทั่วไป (45–55 &#176;C) อย่างเห็นได้ชัด ค่านี้เป็น <strong>การตั้งใจของโปรไฟล์ max</strong> ไม่ใช่บั๊ก</li>
+<li>72.1 &#176;C ที่วัดตอน 11:20 ไม่ใช่ค่าตัวแทน: วัดทันทีหลังบูตขณะมีงาน boot/update ค้าง ตัวเลข 62.1 &#176;C ที่ load 5.7% จึงเป็นค่าที่ควรใช้</li>
+<li>GPU ปกติ (43 &#176;C, 23.7 W) — ความร้อนมาจากฝั่ง CPU/power plan ไม่ใช่การ์ดจอ</li>
+<li>ยังไม่ได้วัดอุณหภูมิเทียบกับโปรไฟล์ <code>performance</code>/<code>balanced</code> ในรอบนี้ เพราะต้อง apply (ต้องสิทธิ์ Administrator) — ถ้าต้องการตัวเลขเทียบ ใช้ <code>apply -Profile performance</code> แล้ววัดซ้ำด้วยคำสั่งเดียวกัน</li>
+</ul>
+<h3 id="sec-27">ข้อแนะนำสำหรับเครื่องนี้</h3>
+<p>ใช้ <code>max</code> เฉพาะช่วงเล่นเกม/เรนเดอร์ แล้วสลับกลับ:</p>
+<pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile performance</code></pre>
 
     </article>
       <nav class="pager"><a class="pager-prev" href="12-ความปลอดภัย-ย้อนกลับ.html">&larr; ความปลอดภัย การสำรอง และการย้อนกลับ</a><a class="pager-next" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย &rarr;</a></nav>

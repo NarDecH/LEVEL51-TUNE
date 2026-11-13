@@ -22,7 +22,9 @@ param(
     [string]$AppName = 'LEVEL51-TUNE',
     [string]$PackageName = 'NarDecH.LEVEL51TUNE',
     [string]$MakeAppxPath,
-    [switch]$Unsigned
+    [switch]$Unsigned,
+    [string]$PfxPath,
+    [string]$PfxPassword
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +37,9 @@ $msixVersion = "$version.0"
 
 # MSIX ที่ไม่ลงนามต้องมี marker OID นี้ต่อท้าย Publisher เสมอ (ไม่เช่นนั้นจะได้ 0x80073D2C)
 $unsignedMarker = 'OID.2.25.311729368913984317654407730594956997722=1'
+if ($Unsigned -and $PfxPath) {
+    throw 'เลือกอย่างใดอย่างหนึ่ง: -Unsigned (ทดสอบบนเครื่องนี้) หรือ -PfxPath (แจกจ่ายพร้อมลายเซ็น) ไม่ใช้พร้อมกัน'
+}
 if ($Unsigned -and $Publisher -notlike "*$unsignedMarker*") {
     $Publisher = "$Publisher, $unsignedMarker"
 }
@@ -229,6 +234,24 @@ if ($LASTEXITCODE -ne 0) {
     throw 'makeappx pack ไม่สำเร็จ'
 }
 
+# ---- ลงนามด้วย PFX (ถ้าผู้ใช้ระบุ) ----------------------------------------
+$signed = $false
+if ($PfxPath) {
+    $signtool = Join-Path (Split-Path -Parent $makeappx) 'signtool.exe'
+    if (-not (Test-Path $signtool)) { throw 'ไม่พบ signtool.exe ข้าง ๆ makeappx.exe' }
+    if (-not (Test-Path $PfxPath)) { throw "ไม่พบไฟล์ PFX: $PfxPath" }
+    # ไม่ประทับเวลา: invariant 13 อนุญาตให้ใช้เน็ตเฉพาะคำสั่ง update
+    $signArgs = @('sign', '/fd', 'SHA256', '/f', (Resolve-Path $PfxPath).Path)
+    if ($PfxPassword) { $signArgs += @('/p', $PfxPassword) }
+    $signArgs += @($msixPath)
+    $signOut = & $signtool @signArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ($signOut | Out-String) -ForegroundColor Red
+        throw 'signtool sign ไม่สำเร็จ'
+    }
+    $signed = $true
+}
+
 $info = Get-Item $msixPath
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host ''
@@ -236,7 +259,10 @@ Write-Host '  สร้าง MSIX เสร็จ' -ForegroundColor Green
 Write-Host ('  ไฟล์  : {0}' -f $info.FullName)
 Write-Host ('  ขนาด : {0:N0} KB · เวอร์ชัน {1} · Publisher {2}' -f ($info.Length / 1KB), $msixVersion, $Publisher)
 Write-Host '  launcher เปิด dashboard แบบไม่ elevated — apply/restore ใช้ Start-LEVEL51.cmd' -ForegroundColor DarkGray
-if ($Unsigned) {
+if ($signed) {
+    Write-Host '  ลงนามแล้วด้วย PFX ที่ระบุ — ติดตั้งได้เมื่อ cert อยู่ใน TrustedPeople ของเครื่อง' -ForegroundColor Green
+    Write-Host '  ไม่มีการประทับเวลา (timestamp) — ใช้ภายในเครื่องเท่านั้น' -ForegroundColor DarkGray
+} elseif ($Unsigned) {
     Write-Host '  แพ็กเกจ unsigned (มี marker OID ใน Publisher) — ติดตั้งด้วย:' -ForegroundColor Yellow
     Write-Host ('    Add-AppxPackage -Path "{0}" -AllowUnsigned' -f $info.FullName) -ForegroundColor DarkGray
     Write-Host '  ต้องรันใน PowerShell แบบ Administrator เพราะแพ็กเกจมี .exe' -ForegroundColor DarkGray
@@ -252,6 +278,6 @@ return [pscustomobject]@{
     SizeKB    = [math]::Round($info.Length / 1KB, 0)
     Version   = $msixVersion
     Publisher = $Publisher
-    Signed    = $false
+    Signed    = $signed
     Unsigned  = [bool]$Unsigned
 }

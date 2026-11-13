@@ -85,6 +85,14 @@ Add-AppxPackage -Path .\dist\LEVEL51-TUNE-<version>-unsigned.msix -AllowUnsigned
 Remove-AppxPackage -Package NarDecH.LEVEL51TUNE_<full-name>   # ถอน
 ```
 
+ถ้ามี PFX สำหรับลงนาม (ต้องมี Subject ตรงกับ `-Publisher`) ใช้:
+
+```powershell
+.\tools\Build-Msix.ps1 -PfxPath .\cert\my.pfx -PfxPassword '***'   # เรียก signtool sign /fd SHA256
+```
+
+สคริปต์ไม่ประทับเวลา (timestamp) เพื่อไม่ให้คำสั่งอื่นนอก `update` แตะเน็ต — แพ็กเกจที่ได้ใช้ติดตั้งภายในเครื่อง/ทีมได้ แต่สำหรับแจกจ่ายสาธารณะควรลงนามใหม่พร้อม timestamp ด้วย cert จาก CA
+
 ## โปรไฟล์
 
 | โปรไฟล์ | เหมาะกับ | แลกกับ |

@@ -69,16 +69,6 @@ function Start-L51Dashboard {
     Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
 }
 
-if ($script:SelfTest) {
-    # ทดสอบเมนู "เปิด Dashboard" แบบไม่ต้องกด UAC และไม่ต้องมีหน้าตา UI
-    Write-Host ''
-    Write-Host ('  tray self-test · port {0} open = {1}' -f $Port, (Test-L51PortOpen -Port $Port))
-    Start-L51Dashboard
-    Write-Host '  tray self-test · done'
-    Write-Host ''
-    return
-}
-
 function Get-L51TraySummary {
     $state = Get-L51State
     $profileName = 'ยังไม่ apply'
@@ -91,6 +81,18 @@ function Get-L51TraySummary {
     $restart = ''
     if ((Get-L51RestartInfo).Pending) { $restart = ' · ต้องรีสตาร์ทเครื่อง' }
     return ('LEVEL51 · {0}{1}{2}' -f $profileName, $gpuText, $restart)
+}
+
+if ($script:SelfTest) {
+    # ทดสอบเมนู "เปิด Dashboard" แบบไม่ต้องกด UAC และไม่ต้องมีหน้าตา UI
+    # (อยู่หลังนิยามฟังก์ชันทั้งหมด เพราะใช้ Get-L51TraySummary)
+    Write-Host ''
+    Write-Host ('  tray self-test · port {0} open = {1}' -f $Port, (Test-L51PortOpen -Port $Port))
+    Write-Host ('  tray self-test · tooltip: {0}' -f (Get-L51TraySummary))
+    Start-L51Dashboard
+    Write-Host '  tray self-test · done'
+    Write-Host ''
+    return
 }
 
 $notify = New-Object System.Windows.Forms.NotifyIcon

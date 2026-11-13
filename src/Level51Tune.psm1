@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.12'
+$script:L51Version = '1.0.13'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -473,6 +473,18 @@ function New-L51ApplyState {
     }
 }
 
+function Test-L51RebootSinceApplied {
+    # $true เมื่อเครื่อง boot หลังจากเวลา apply (แปลว่า restart ไปแล้วหลัง apply)
+    param($AppliedAt, $BootTime)
+
+    if (-not $AppliedAt -or -not $BootTime) { return $false }
+    try {
+        return ([datetime]$BootTime -gt [datetime]$AppliedAt)
+    } catch {
+        return $false
+    }
+}
+
 function Get-L51RestartInfo {
     # สรุปว่ายังต้อง restart หรือไม่ — ถ้าเครื่อง reboot ไปแล้วหลัง apply ถือว่าเคลียร์
     $info = [pscustomobject]@{ Pending = $false; Tweaks = @(); AppliedAt = $null; ClearedByReboot = $false }
@@ -486,7 +498,7 @@ function Get-L51RestartInfo {
 
     try {
         $boot = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
-        if ($state.AppliedAt -and $boot -gt ([datetime]$state.AppliedAt)) {
+        if (Test-L51RebootSinceApplied -AppliedAt $state.AppliedAt -BootTime $boot) {
             $info.Pending = $false
             $info.ClearedByReboot = $true
             $merged = [ordered]@{}
@@ -1422,7 +1434,7 @@ Export-ModuleMember -Function @(
     'Get-L51Catalog', 'Get-L51Profiles', 'Get-L51Profile', 'Get-L51ProfileTweaks',
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
-    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'New-L51ApplyState', 'Get-L51Status', 'New-L51Report',
+    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'Get-L51Status', 'New-L51Report',
     'Test-L51TweakApplied', 'Test-L51PortOpen', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',

@@ -326,6 +326,16 @@ Test-Case 'engine: save state อยู่ใต้ -not $DryRun (ไม่ผ�
     $src -match 'New-L51ApplyState -Profile'
 }
 
+Test-Case 'Test-L51RebootSinceApplied: แยกกรณี reboot ก่อน/หลัง apply' {
+    $applied = (Get-Date).AddHours(-2)
+    if (-not (Test-L51RebootSinceApplied -AppliedAt $applied -BootTime $applied.AddMinutes(30))) { throw 'ควรเป็น true เมื่อ boot หลัง apply' }
+    if (Test-L51RebootSinceApplied -AppliedAt $applied -BootTime $applied.AddHours(-1)) { throw 'ควรเป็น false เมื่อ boot ก่อน apply' }
+    if (Test-L51RebootSinceApplied -AppliedAt $null -BootTime (Get-Date)) { throw 'ควรเป็น false เมื่อไม่มี AppliedAt' }
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    if ($src -notmatch 'Test-L51RebootSinceApplied -AppliedAt \$state.AppliedAt') { throw 'Get-L51RestartInfo ยังไม่ใช้ helper นี้' }
+    $true
+}
+
 Test-Case 'Get-L51RestartInfo: คืน Pending/Tweaks และเคลียร์ให้เมื่อ reboot หลัง apply' {
     $info = Get-L51RestartInfo
     if (-not $info.PSObject.Properties['Pending']) { throw 'ไม่มี property Pending' }

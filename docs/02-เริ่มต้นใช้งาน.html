@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.8</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.9</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -130,7 +130,14 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
 <pre><code>  [+] เสร็จสิ้น: 23 สำเร็จ, 0 มีปัญหา, 1 ข้าม
   [!] ข้าม tweaks เสี่ยงสูง 1 รายการ (ใช้ -Include high เพื่อเปิด): power.cpu.idle-disable
   [i] ย้อนกลับด้วย: .\Level51Tune.ps1 restore -BackupPath &#39;C:\_Project\LEVEL51-TUNE\backups\20261112-153012_apply-gaming.json&#39;
-  [!] มี tweaks ที่ต้อง restart จึงจะมีผลเต็มที่</code></pre>
+  [!] ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่ (1): power.cpu.idle-disable
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ต้องรีสตาร์ทเครื่อง (restart) ค่าเหล่านี้จึงจะมีผลเต็มที่:
+        - power.cpu.idle-disable
+  รัน:  Restart-Computer
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</code></pre>
+<p>ค่า tweaks ที่ <code>Reboot = $true</code> จะถูกสรุปเป็นกรอบเตือนหลัง apply เสมอ และถูกบันทึกไว้ใน <code>state/last.json</code> (<code>RebootPending</code>) — Web GUI จะขึ้นแบบเนอร์เหนือแท็บและใน tray จะขึ้น balloon จนกว่าจะ restart หรือ restore</p>
 <h2 id="sec-9">ขั้นตอนที่ 7: วัดผลหลัง และเปรียบเทียบ</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label after
 .\Level51Tune.ps1 compare</code></pre>

@@ -262,6 +262,20 @@ Test-Case 'apply -TweakIds: dry-run เฉพาะที่เลือกท�
     $r.Profile -eq 'custom'
 }
 
+Test-Case 'apply: รายงาน RestartRequired + RebootTweaks ให้ผู้ใช้แจ้งเตือนได้' {
+    $r = Invoke-L51Apply -Profile 'max' -Include high -DryRun
+    if (-not $r.PSObject.Properties['RestartRequired']) { throw 'ไม่มี property RestartRequired' }
+    if (-not $r.PSObject.Properties['RebootTweaks']) { throw 'ไม่มี property RebootTweaks' }
+    if (-not $r.RestartRequired) { throw 'profiles max + high ควรมี tweak ที่ต้อง reboot' }
+    (@($r.RebootTweaks) -contains 'power.cpu.idle-disable')
+}
+
+Test-Case 'GUI: มีแบบเนอร์แจ้งต้องรีสตาร์ทและ JS อ่าน rebootPending' {
+    $html = Get-L51DashboardHtml
+    if ($html -notmatch 'id="restart-banner"') { throw 'ไม่พบ #restart-banner ใน dashboard' }
+    $html -match 'rebootPending'
+}
+
 Test-Case 'audit -TweakIds: ตรวจสถานะเฉพาะรายการที่เลือกได้' {
     $ids = @('gpu.hags', 'power.cpu.min100')
     $rows = @(Invoke-L51Audit -TweakIds $ids)

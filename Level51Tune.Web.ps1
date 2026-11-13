@@ -108,7 +108,14 @@ function Get-L51StatusPayload {
     }
     $stateObj = $null
     if ($state) {
-        $stateObj = [pscustomobject]@{ profile = $state.Profile; appliedAt = $state.AppliedAt; backup = $state.Backup; scheme = $state.SchemeGuid }
+        $stateObj = [pscustomobject]@{
+            profile       = $state.Profile
+            appliedAt     = $state.AppliedAt
+            backup        = $state.Backup
+            scheme        = $state.SchemeGuid
+            rebootPending = [bool]$state.RebootPending
+            rebootTweaks  = @($state.RebootTweaks)
+        }
     }
     $schemeObj = $null
     if ($hw.PowerScheme) { $schemeObj = [pscustomobject]@{ guid = $hw.PowerScheme.Guid; name = $hw.PowerScheme.Name } }
@@ -234,6 +241,7 @@ try {
                         scheme  = $r.Scheme
                         results = @($r.Results | ForEach-Object { [pscustomobject]@{ id = $_.Id; status = $_.Status; detail = $_.Detail } })
                         skipped = @($r.Skipped | ForEach-Object { $_.Id })
+                        restartRequired = @($r.RebootTweaks)
                     } | ConvertTo-Json -Depth 6)
                 continue
             }

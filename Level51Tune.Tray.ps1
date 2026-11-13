@@ -25,6 +25,7 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } 
 
 $script:Root = $PSScriptRoot
 $script:LastStatus = 'กำลังเริ่ม…'
+$script:RestartNotified = $false
 
 function Invoke-L51Elevated {
     param([string[]]$Arguments)
@@ -49,7 +50,9 @@ function Get-L51TraySummary {
         $gpu = @(Get-L51GpuState | Where-Object { $_.Source -eq 'nvidia-smi' } | Select-Object -First 1)
         if ($gpu.Count -gt 0) { $gpuText = (' · GPU {0}°C {1}W' -f $gpu[0].TempC, $gpu[0].PowerW) }
     } catch { }
-    return ('LEVEL51 · {0}{1}' -f $profileName, $gpuText)
+    $restart = ''
+    if ($state -and $state.RebootPending) { $restart = ' · ต้องรีสตาร์ทเครื่อง' }
+    return ('LEVEL51 · {0}{1}{2}' -f $profileName, $gpuText, $restart)
 }
 
 $notify = New-Object System.Windows.Forms.NotifyIcon
@@ -114,6 +117,15 @@ $timer.Add_Tick({
             $script:LastStatus = $text
             if ($text.Length -gt 63) { $text = $text.Substring(0, 63) }
             $notify.Text = $text
+            # แจ้งเตือนเมื่อมี tweaks ที่รอ restart (ครั้งเดียวจนกว่าจะ restart/apply ใหม่)
+            $st = Get-L51State
+            if ($st -and $st.RebootPending -and -not $script:RestartNotified) {
+                $script:RestartNotified = $true
+                $notify.BalloonTipTitle = 'LEVEL51-TUNE · ต้องรีสตาร์ท'
+                $notify.BalloonTipText = 'มี tweaks ที่ต้อง restart: ' + (@($st.RebootTweaks) -join ', ')
+                $notify.ShowBalloonTip(6000)
+            }
+            if (-not ($st -and $st.RebootPending)) { $script:RestartNotified = $false }
         } catch { }
     })
 $timer.Start()

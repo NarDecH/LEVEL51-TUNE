@@ -87,6 +87,9 @@ td.neg{color:var(--danger)}
 .chart .val{font-size:17px;font-weight:700;font-family:"JetBrains Mono",Consolas,monospace}
 canvas{width:100%;height:70px;display:block}
 .selinfo{font-size:13px;color:var(--muted);margin:10px 0 0}
+.restartbar{display:flex;gap:10px;align-items:flex-start;margin:16px 0 0;padding:12px 14px;border-radius:12px;border:1px solid var(--warn);background:#33280f;color:#ffe7b3;font-size:13px;line-height:1.5}
+.restartbar b{color:#ffd684}
+.restartbar code{font-family:"JetBrains Mono",Consolas,monospace;font-size:12px}
 </style>
 </head>
 <body>
@@ -103,6 +106,8 @@ canvas{width:100%;height:70px;display:block}
       <a class="badge" href="/docs/index.html" target="_blank" style="text-decoration:none">เอกสาร</a>
     </div>
   </header>
+
+  <div class="restartbar" id="restart-banner" style="display:none"></div>
 
   <div class="tabs">
     <button class="tab active" data-view="overview" onclick="switchView('overview')">ภาพรวม</button>
@@ -269,6 +274,13 @@ async function loadStatus(){
     ba.textContent = 'admin: ' + (d.admin ? 'ใช่' : 'ไม่');
     ba.className = 'badge ' + (d.admin ? 'ok' : 'warn');
 
+    const rbar = document.getElementById('restart-banner');
+    if (d.state && d.state.rebootPending) {
+      rbar.style.display = 'flex';
+      rbar.innerHTML = '<span>⚠</span><span><b>ต้องรีสตาร์ทเครื่อง</b> ค่าบางรายการจะยังไม่เต็มที่จนกว่าจะ restart: <code>' +
+        esc((d.state.rebootTweaks || []).join(', ')) + '</code><br><span class="hint">รัน <code>Restart-Computer</code> ใน PowerShell — ถ้าปิดเครื่องแล้วค่าไม่ติด ให้ปิด Fast Startup ก่อน</span></span>';
+    } else { rbar.style.display = 'none'; rbar.innerHTML = ''; }
+
     const g = d.gpu;
     const hw = [
       { t: 'CPU', a: esc(d.cpu.replace(/\(R\)|\(TM\)|CPU @/g,'')), b: d.cores + 'C / ' + d.threads + 'T' },
@@ -332,6 +344,9 @@ async function applyProfile(profile, dry){
     const d = await api('/api/apply', { profile: profile, dryRun: dry, includeHigh: false });
     const counts = resultTable(d, msg + ' · ' + profile);
     toast(msg + ' เสร็จ: ' + JSON.stringify(counts));
+    if (d.restartRequired && d.restartRequired.length) {
+      toast('ต้องรีสตาร์ทเครื่อง: ' + d.restartRequired.join(', '), true);
+    }
     loadStatus(); loadLog();
   } catch(e){ toast(e.message, true); }
   finally { busy(false); }
@@ -532,6 +547,9 @@ async function applySelection(dry){
     switchView('overview');
     const counts = resultTable(d, (dry ? 'Dry run' : 'Apply') + ' · ที่เลือกเอง (' + ids.length + ')');
     toast((dry ? 'Dry run' : 'Apply') + ' เสร็จ: ' + JSON.stringify(counts));
+    if (d.restartRequired && d.restartRequired.length) {
+      toast('ต้องรีสตาร์ทเครื่อง: ' + d.restartRequired.join(', '), true);
+    }
     loadStatus(); loadLog();
   } catch(e){ toast(e.message, true); }
   finally { busy(false); }

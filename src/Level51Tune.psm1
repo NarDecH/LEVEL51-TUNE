@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.8'
+$script:L51Version = '1.0.9'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -633,18 +633,36 @@ function Invoke-L51Apply {
         if ($res.Detail) { Write-Host ("      {0}" -f $res.Detail) -ForegroundColor DarkGray }
     }
 
+    # tweaks ที่ต้องรีสตาร์ท — ใช้ทั้งใน state, alert และ GUI
+    $rebootTweaks = @($apply | Where-Object { $_.Reboot } | ForEach-Object { $_.Id })
+    $restartRequired = $rebootTweaks.Count -gt 0
+
     if ($hasPower -and -not $DryRun) {
         Invoke-L51External 'powercfg' @('-setactive', $tuneGuid) | Out-Null
         $state = [ordered]@{
-            Profile    = $Profile
-            AppliedAt  = (Get-Date).ToString('o')
-            SchemeGuid = $tuneGuid
-            BaseScheme = $baseScheme
-            Backup     = $backupPath
+            Profile       = $Profile
+            AppliedAt     = (Get-Date).ToString('o')
+            SchemeGuid    = $tuneGuid
+            BaseScheme    = $baseScheme
+            Backup        = $backupPath
+            RebootPending = $restartRequired
+            RebootTweaks  = $rebootTweaks
         }
         Save-L51State -State $state
         if ($lastState -and $lastState.SchemeGuid -and $lastState.SchemeGuid -ne $tuneGuid) {
             Remove-L51Scheme -Guid $lastState.SchemeGuid
+        }
+    }
+
+    # ไม่มี power tweak (เช่น -TweakIds registry ล้วน) ก็ยังต้องบันทึกว่า pending restart
+    if (-not $hasPower -and -not $DryRun) {
+        $existing = Get-L51State
+        if ($existing) {
+            $merged = [ordered]@{}
+            foreach ($p in $existing.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+            $merged['RebootPending'] = $restartRequired
+            $merged['RebootTweaks'] = $rebootTweaks
+            Save-L51State -State $merged
         }
     }
 
@@ -657,17 +675,19 @@ function Invoke-L51Apply {
         Write-L51Log ("ข้าม tweaks เสี่ยงสูง {0} รายการ (ใช้ -Include high เพื่อเปิด): {1}" -f $skipped.Count, (($skipped | ForEach-Object { $_.Id }) -join ', ')) 'WARN'
     }
     if ($backupPath) { Write-L51Log "ย้อนกลับด้วย: .\Level51Tune.ps1 restore -BackupPath '$backupPath'" 'INFO' }
-    if (@($apply | Where-Object { $_.Reboot }).Count -gt 0) {
-        Write-L51Log 'มี tweaks ที่ต้อง restart จึงจะมีผลเต็มที่' 'WARN'
+    if ($restartRequired) {
+        Write-L51Log ("ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่ ({0}): {1}" -f $rebootTweaks.Count, ($rebootTweaks -join ', ')) 'WARN'
     }
 
     return [pscustomobject]@{
-        Profile = $Profile
-        DryRun  = [bool]$DryRun
-        Backup  = $backupPath
-        Scheme  = $tuneGuid
-        Results = $results
-        Skipped = $skipped
+        Profile         = $Profile
+        DryRun          = [bool]$DryRun
+        Backup          = $backupPath
+        Scheme          = $tuneGuid
+        Results         = $results
+        Skipped         = $skipped
+        RestartRequired = $restartRequired
+        RebootTweaks    = $rebootTweaks
     }
 }
 
@@ -733,6 +753,16 @@ function Invoke-L51Restore {
         Write-L51Log "เปลี่ยน power scheme กลับเป็น $($data.ActiveSchemeBefore)" 'OK'
     }
     if ($data.TuneScheme) { Remove-L51Scheme -Guid $data.TuneScheme }
+
+    # restore แล้วไม่มีอะไรค้างรอ restart — เคลียร์ flag ใน state
+    $restoreState = Get-L51State
+    if ($restoreState) {
+        $merged = [ordered]@{}
+        foreach ($p in $restoreState.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+        $merged['RebootPending'] = $false
+        $merged['RebootTweaks'] = @()
+        Save-L51State -State $merged
+    }
 
     $failed = @($results | Where-Object { $_.Status -eq 'FAIL' }).Count
     Write-L51Log ("restore เสร็จ: {0} รายการ, ล้มเหลว {1}" -f $results.Count, $failed) $(if ($failed -gt 0) { 'WARN' } else { 'OK' })
@@ -853,6 +883,12 @@ function Get-L51Status {
         Write-Host ("  backup: {0}" -f $state.Backup) -ForegroundColor DarkGray
     } else {
         Write-Host '  ยังไม่เคย apply โปรไฟล์ใด (ดูโปรไฟล์ด้วย: .\Level51Tune.ps1 profiles)' -ForegroundColor DarkGray
+    }
+    if ($state -and $state.RebootPending) {
+        Write-Host ''
+        Write-Host '  !! ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่' -ForegroundColor Yellow
+        foreach ($id in @($state.RebootTweaks)) { Write-Host ("     - {0}" -f $id) -ForegroundColor Yellow }
+        Write-Host '     รัน: Restart-Computer' -ForegroundColor DarkGray
     }
     Write-Host ''
     return $hw

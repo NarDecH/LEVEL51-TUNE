@@ -44,6 +44,19 @@ if (-not (Test-Path $modulePath)) {
 }
 Import-Module $modulePath -Force -DisableNameChecking
 
+function Show-L51RestartAlert {
+    param([string[]]$Tweaks = @())
+
+    Write-Host ''
+    Write-Host ('  ' + ('!' * 66)) -ForegroundColor Yellow
+    Write-Host '  ต้องรีสตาร์ทเครื่อง (restart) ค่าเหล่านี้จึงจะมีผลเต็มที่:' -ForegroundColor Yellow
+    foreach ($id in @($Tweaks)) { Write-Host ("        - {0}" -f $id) -ForegroundColor Yellow }
+    Write-Host '  รัน:  Restart-Computer' -ForegroundColor Yellow
+    Write-Host '  (ถ้าปิดเครื่องแล้วค่าไม่ติด ให้ปิด Fast Startup ก่อน)' -ForegroundColor DarkGray
+    Write-Host ('  ' + ('!' * 66)) -ForegroundColor Yellow
+    Write-Host ''
+}
+
 # ให้ภาษาไทยแสดงผลถูกต้องเมื่อ output ถูก pipe หรือ redirect
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 try { $OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
@@ -154,11 +167,13 @@ try {
                 Write-Host ("  ใช้รายการที่เลือกไว้: {0} tweaks" -f $ids.Count) -ForegroundColor Cyan
                 $r = Invoke-L51Apply -TweakIds $ids -DryRun:$DryRun -Include $Include -Elevate:$Elevate
                 if ($r -and $r.PSObject.Properties['Elevated']) { break }
+                if ($r -and $r.RestartRequired) { Show-L51RestartAlert -Tweaks $r.RebootTweaks }
                 break
             }
             if (-not $Profile) { throw 'ต้องระบุ -Profile (ดูรายการได้ด้วย: .\Level51Tune.ps1 profiles)' }
             $r = Invoke-L51Apply -Profile $Profile -DryRun:$DryRun -Include $Include -Elevate:$Elevate
             if ($r -and $r.PSObject.Properties['Elevated']) { break }
+            if ($r -and $r.RestartRequired) { Show-L51RestartAlert -Tweaks $r.RebootTweaks }
             break
         }
 

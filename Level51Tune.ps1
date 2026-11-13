@@ -49,8 +49,10 @@ function Show-L51RestartAlert {
 
     Write-Host ''
     Write-Host ('  ' + ('!' * 66)) -ForegroundColor Yellow
-    Write-Host '  ต้องรีสตาร์ทเครื่อง (restart) ค่าเหล่านี้จึงจะมีผลเต็มที่:' -ForegroundColor Yellow
-    foreach ($id in @($Tweaks)) { Write-Host ("        - {0}" -f $id) -ForegroundColor Yellow }
+    $list = @($Tweaks | Where-Object { $_ })
+    Write-Host ('  ต้องรีสตาร์ทเครื่อง (restart) ค่าเหล่านี้จึงจะมีผลเต็มที่ ({0} รายการ):' -f $list.Count) -ForegroundColor Yellow
+    foreach ($id in @($list | Select-Object -First 8)) { Write-Host ("        - {0}" -f $id) -ForegroundColor Yellow }
+    if ($list.Count -gt 8) { Write-Host ("        … และอีก {0} รายการ (ดูทั้งหมดด้วย: .\Level51Tune.ps1 audit)" -f ($list.Count - 8)) -ForegroundColor Yellow }
     Write-Host '  รัน:  Restart-Computer' -ForegroundColor Yellow
     Write-Host '  (ถ้าปิดเครื่องแล้วค่าไม่ติด ให้ปิด Fast Startup ก่อน)' -ForegroundColor DarkGray
     Write-Host ('  ' + ('!' * 66)) -ForegroundColor Yellow

@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.9'
+$script:L51Version = '1.0.10'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -887,7 +887,7 @@ function Get-L51Status {
     if ($state -and $state.RebootPending) {
         Write-Host ''
         Write-Host '  !! ต้องรีสตาร์ทเครื่องจึงจะมีผลเต็มที่' -ForegroundColor Yellow
-        foreach ($id in @($state.RebootTweaks)) { Write-Host ("     - {0}" -f $id) -ForegroundColor Yellow }
+        foreach ($id in @($state.RebootTweaks | Where-Object { $_ })) { Write-Host ("     - {0}" -f $id) -ForegroundColor Yellow }
         Write-Host '     รัน: Restart-Computer' -ForegroundColor DarkGray
     }
     Write-Host ''

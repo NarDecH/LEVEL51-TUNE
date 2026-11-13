@@ -114,7 +114,7 @@ function Get-L51StatusPayload {
             backup        = $state.Backup
             scheme        = $state.SchemeGuid
             rebootPending = [bool]$state.RebootPending
-            rebootTweaks  = @($state.RebootTweaks)
+            rebootTweaks  = @($state.RebootTweaks | Where-Object { $_ })
         }
     }
     $schemeObj = $null

@@ -122,7 +122,7 @@ $timer.Add_Tick({
             if ($st -and $st.RebootPending -and -not $script:RestartNotified) {
                 $script:RestartNotified = $true
                 $notify.BalloonTipTitle = 'LEVEL51-TUNE · ต้องรีสตาร์ท'
-                $notify.BalloonTipText = 'มี tweaks ที่ต้อง restart: ' + (@($st.RebootTweaks) -join ', ')
+                $notify.BalloonTipText = 'มี tweaks ที่ต้อง restart: ' + ((@($st.RebootTweaks) | Where-Object { $_ }) -join ', ')
                 $notify.ShowBalloonTip(6000)
             }
             if (-not ($st -and $st.RebootPending)) { $script:RestartNotified = $false }

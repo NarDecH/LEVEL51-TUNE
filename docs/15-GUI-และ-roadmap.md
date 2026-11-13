@@ -113,12 +113,13 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 ### ระยะ 4 (บางส่วน)
 
 9. `tools/Build-Package.ps1` — สร้าง `dist/LEVEL51-TUNE-<version>.zip` พร้อมใช้ (เสร็จแล้ว)
-10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.3` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
+10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.4` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
 11. ~~profile detection~~ **เสร็จแล้ว**: `recommend` + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)
 12. ~~code signing~~ **ทำไปป์ไลน์แล้ว**: `Build-Package.ps1 -CertificateThumbprint <thumb>` ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา
 13. ~~MSIX~~ **เสร็จแล้ว**: `tools/Build-Msix.ps1` คอมไพล์ launcher (C# ผ่าน `csc.exe`) + `AppxManifest.xml` + assets แล้ว pack ด้วย `makeappx.exe` → `dist/LEVEL51-TUNE-<version>.msix`
-14. MSIX — ผลตรวจบนเครื่องนี้: แตกแพ็กเกจแล้วรัน launcher ได้จริง (สตาร์ท `Level51Tune.Web.ps1` และ dashboard ตอบ HTTP 401 โดยไม่มี token = เซิร์ฟเวอร์ทำงาน) แต่ **ติดตั้งไม่ได้ถ้าไม่ลงนาม**: `Add-AppxPackage -AllowUnsigned` ตอบ error `0x80073D2C` เพราะยังไม่เปิด Developer Mode — ต้องเลือกอย่างใดอย่างหนึ่ง: เปิด Settings → System → For developers → Developer Mode หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`
-15. ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ `Start-LEVEL51.cmd`)
+14. MSIX — ผลตรวจครบวงจรบนเครื่องนี้: `Build-Msix.ps1 -Unsigned` → `Add-AppxPackage -AllowUnsigned` (Administrator) ได้ `Status: Ok` → เปิดจาก Start ด้วย AUMID `NarDecH.LEVEL51TUNE_f8fxc7vhmgvhy!App` แล้วเซิร์ฟเวอร์รันจาก `C:\Program Files\WindowsApps\...\Level51Tune.Web.ps1` และ dashboard ตอบ 401 เมื่อไม่มี token → ถอนด้วย `Remove-AppxPackage` เรียบร้อย
+15. เงื่อนไขการติดตั้ง MSIX ที่ต้องรู้: แพ็กเกจ unsigned ต้องมี marker `OID.2.25.311729368913984317654407730594956997722=1` ต่อท้าย Publisher (สคริปต์ใส่ให้เมื่อใช้ `-Unsigned`) · ต้องเปิด Developer Mode · และเพราะมี `.exe` ต้องติดตั้งด้วย PowerShell แบบ Administrator
+16. ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ `Start-LEVEL51.cmd`)
 
 ## ข้อควรระวังในการทำ GUI ต่อ
 

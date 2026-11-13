@@ -21,7 +21,8 @@ param(
     [string]$Publisher = 'CN=LEVEL51-TUNE',
     [string]$AppName = 'LEVEL51-TUNE',
     [string]$PackageName = 'NarDecH.LEVEL51TUNE',
-    [string]$MakeAppxPath
+    [string]$MakeAppxPath,
+    [switch]$Unsigned
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +32,12 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } 
 
 $version = Get-L51Version
 $msixVersion = "$version.0"
+
+# MSIX ที่ไม่ลงนามต้องมี marker OID นี้ต่อท้าย Publisher เสมอ (ไม่เช่นนั้นจะได้ 0x80073D2C)
+$unsignedMarker = 'OID.2.25.311729368913984317654407730594956997722=1'
+if ($Unsigned -and $Publisher -notlike "*$unsignedMarker*") {
+    $Publisher = "$Publisher, $unsignedMarker"
+}
 
 function Find-L51MakeAppx {
     param([string]$Hint)
@@ -75,7 +82,9 @@ if (-not $csc) { throw 'ไม่พบ csc.exe (ต้องมี .NET Framewo
 
 $outRoot = Join-Path $root $OutDir
 $stage = Join-Path $outRoot 'msix-stage'
-$msixPath = Join-Path $outRoot ('LEVEL51-TUNE-{0}.msix' -f $version)
+$suffix = ''
+if ($Unsigned) { $suffix = '-unsigned' }
+$msixPath = Join-Path $outRoot ('LEVEL51-TUNE-{0}{1}.msix' -f $version, $suffix)
 
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
@@ -227,7 +236,14 @@ Write-Host '  สร้าง MSIX เสร็จ' -ForegroundColor Green
 Write-Host ('  ไฟล์  : {0}' -f $info.FullName)
 Write-Host ('  ขนาด : {0:N0} KB · เวอร์ชัน {1} · Publisher {2}' -f ($info.Length / 1KB), $msixVersion, $Publisher)
 Write-Host '  launcher เปิด dashboard แบบไม่ elevated — apply/restore ใช้ Start-LEVEL51.cmd' -ForegroundColor DarkGray
-Write-Host '  ยังไม่ได้ลงนาม: ติดตั้งได้หลังลงนามด้วย cert ที่ Publisher ตรงกัน' -ForegroundColor Yellow
+if ($Unsigned) {
+    Write-Host '  แพ็กเกจ unsigned (มี marker OID ใน Publisher) — ติดตั้งด้วย:' -ForegroundColor Yellow
+    Write-Host ('    Add-AppxPackage -Path "{0}" -AllowUnsigned' -f $info.FullName) -ForegroundColor DarkGray
+    Write-Host '  ต้องรันใน PowerShell แบบ Administrator เพราะแพ็กเกจมี .exe' -ForegroundColor DarkGray
+} else {
+    Write-Host '  ยังไม่ได้ลงนาม: ติดตั้งได้หลังลงนามด้วย cert ที่ Publisher ตรงกัน' -ForegroundColor Yellow
+    Write-Host '  สำหรับทดสอบบนเครื่องนี้เร็ว ๆ ใช้ .\tools\Build-Msix.ps1 -Unsigned' -ForegroundColor DarkGray
+}
 Write-Host ''
 
 return [pscustomobject]@{
@@ -237,4 +253,5 @@ return [pscustomobject]@{
     Version   = $msixVersion
     Publisher = $Publisher
     Signed    = $false
+    Unsigned  = [bool]$Unsigned
 }

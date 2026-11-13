@@ -76,6 +76,15 @@ MSIX (`Build-Msix.ps1`) ห่อแอปเป็นแพ็กเกจต�
 
 ไฟล์ `.msix` ที่ build ยังไม่ลงนาม: ติดตั้งได้เมื่อเปิด Developer Mode (`Add-AppxPackage -AllowUnsigned`) หรือลงนามด้วย certificate ที่ Publisher ตรงกับ `CN=LEVEL51-TUNE`
 
+สำหรับทดสอบบนเครื่องนี้ ใช้ `-Unsigned` ซึ่งจะเติม marker OID ที่ Windows ต้องการให้ Publisher และได้ไฟล์ชื่อ `...-unsigned.msix`:
+
+```powershell
+.\tools\Build-Msix.ps1 -Unsigned                      # → dist/LEVEL51-TUNE-<version>-unsigned.msix
+# แล้วรันใน PowerShell แบบ Administrator (แพ็กเกจมี .exe จึงต้องติดตั้งแบบ all-users)
+Add-AppxPackage -Path .\dist\LEVEL51-TUNE-<version>-unsigned.msix -AllowUnsigned
+Remove-AppxPackage -Package NarDecH.LEVEL51TUNE_<full-name>   # ถอน
+```
+
 ## โปรไฟล์
 
 | โปรไฟล์ | เหมาะกับ | แลกกับ |

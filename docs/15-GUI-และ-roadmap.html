@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -125,6 +125,7 @@
 <tr><td>5</td><td><del>per-app GPU preference</del> <strong>เสร็จแล้ว</strong>: แท็บ “GPU ต่อแอป” + CLI <code>gpuprefs</code></td><td>แก้ปัญหา Optimus ได้ในคลิกเดียว</td><td>เสร็จ</td></tr>
 <tr><td>6</td><td><del>ประวัติ + rollback</del> <strong>เสร็จแล้ว</strong>: แท็บ “ประวัติ/ย้อนกลับ” + CLI <code>history</code></td><td>ปลอดภัยขึ้นมาก</td><td>เสร็จ</td></tr>
 <tr><td>7</td><td><del>แพ็กเกจ</del> <strong>เสร็จบางส่วน</strong>: <code>tools/Build-Package.ps1</code> สร้าง zip แจกจ่าย (ยังไม่ sign/MSIX)</td><td>แจกจ่ายง่าย</td><td>เหลือ certificate</td></tr>
+<tr><td>8</td><td><del>แจ้งเตือนเมื่อต้อง restart</del> <strong>เสร็จแล้ว</strong>: <code>RestartRequired</code>/<code>RebootTweaks</code> จาก <code>Invoke-L51Apply</code> + <code>RebootPending</code> ใน state + แบนเนอร์ GUI + balloon/tooltip ของ tray + กรอบเตือนใน CLI</td><td>ผู้ใช้ไม่พลาดว่าค่ายังไม่เต็มที่</td><td>เสร็จ</td></tr>
 </tbody>
 </table></div>
 <h2 id="sec-8">Roadmap ที่แนะนำ</h2>
@@ -161,6 +162,10 @@
 <li>เงื่อนไขการติดตั้ง MSIX ที่ต้องรู้: แพ็กเกจ unsigned ต้องมี marker <code>OID.2.25.311729368913984317654407730594956997722=1</code> ต่อท้าย Publisher (สคริปต์ใส่ให้เมื่อใช้ <code>-Unsigned</code>) &#183; ต้องเปิด Developer Mode &#183; และเพราะมี <code>.exe</code> ต้องติดตั้งด้วย PowerShell แบบ Administrator</li>
 <li>ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ <code>Start-LEVEL51.cmd</code>)</li>
 <li>MSIX — การลงนาม: <code>Build-Msix.ps1 -PfxPath &lt;file.pfx&gt; -PfxPassword &lt;...&gt;</code> เรียก <code>signtool sign /fd SHA256</code> &#183; ถ้าเพิ่ม <code>-TimestampServer &lt;url&gt;</code> จะต่อเน็ตเพื่อประทับเวลา (opt-in เท่านั้น — invariant 13) &#183; ทดสอบบนเครื่องนี้ด้วย self-signed cert <code>CN=LEVEL51-TUNE</code> แล้วติดตั้งสำเร็จ — แต่สำหรับแจกจ่ายจริงยังต้องใช้ cert จาก CA ที่เชื่อถือได้</li>
+<li><del>แจ้งเตือนเมื่อต้อง restart</del> <strong>เสร็จแล้ว</strong>: engine คืน <code>RestartRequired</code> + <code>RebootTweaks</code>, เขียน <code>RebootPending</code> ลง <code>state/last.json</code> ทุก apply ที่สำเร็จ, GUI ขึ้นแบบเนอร์, tray ขึ้น balloon + tooltip “ต้องรีสตาร์ทเครื่อง”, CLI พิมพ์กรอบเตือน (8 รายการแรก + จำนวนที่เหลือ) และ <code>status</code> ก็แสดง</li>
+<li><del>เคลียร์ alert อัตโนมัติหลัง reboot</del> <strong>เสร็จแล้ว</strong>: <code>Get-L51RestartInfo</code> ใช้ <code>Test-L51RebootSinceApplied</code> เทียบ <code>LastBootUpTime</code> กับ <code>AppliedAt</code> — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)</li>
+<li><del>บันทึก state ทุก apply</del> <strong>แก้บั๊กแล้ว</strong>: เดิมการ save ถูกผูกกับ <code>$hasPower</code> ทำให้โปรไฟล์ที่ registry ล้วน (เช่น <code>balanced</code>) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ <code>New-L51ApplyState</code> และบันทึกทุกครั้งที่ apply สำเร็จ</li>
+<li>ทดสอบเมนู tray แบบไม่ต้องกด UAC: <code>.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]</code> แสดง tooltip จริง, ผลตรวจพอร์ต, และคำสั่งที่จะเปิด Dashboard (หรือแจ้งว่าเปิดอยู่แล้ว)</li>
 <li>ทางเลือกที่ไม่ต้องซื้อ cert: (ก) <code>tools/New-SigningCert.ps1</code> สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ <code>.cer</code> เข้า <code>TrustedPeople</code> ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) &#183; (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ <strong>SignPath Foundation</strong> (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ</li>
 </ol>
 <h2 id="sec-15">ข้อควรระวังในการทำ GUI ต่อ</h2>

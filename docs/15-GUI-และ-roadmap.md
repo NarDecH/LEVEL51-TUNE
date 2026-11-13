@@ -83,6 +83,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 | 5 | ~~per-app GPU preference~~ **เสร็จแล้ว**: แท็บ “GPU ต่อแอป” + CLI `gpuprefs` | แก้ปัญหา Optimus ได้ในคลิกเดียว | เสร็จ |
 | 6 | ~~ประวัติ + rollback~~ **เสร็จแล้ว**: แท็บ “ประวัติ/ย้อนกลับ” + CLI `history` | ปลอดภัยขึ้นมาก | เสร็จ |
 | 7 | ~~แพ็กเกจ~~ **เสร็จบางส่วน**: `tools/Build-Package.ps1` สร้าง zip แจกจ่าย (ยังไม่ sign/MSIX) | แจกจ่ายง่าย | เหลือ certificate |
+| 8 | ~~แจ้งเตือนเมื่อต้อง restart~~ **เสร็จแล้ว**: `RestartRequired`/`RebootTweaks` จาก `Invoke-L51Apply` + `RebootPending` ใน state + แบนเนอร์ GUI + balloon/tooltip ของ tray + กรอบเตือนใน CLI | ผู้ใช้ไม่พลาดว่าค่ายังไม่เต็มที่ | เสร็จ |
 
 ## Roadmap ที่แนะนำ
 
@@ -121,6 +122,10 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 15. เงื่อนไขการติดตั้ง MSIX ที่ต้องรู้: แพ็กเกจ unsigned ต้องมี marker `OID.2.25.311729368913984317654407730594956997722=1` ต่อท้าย Publisher (สคริปต์ใส่ให้เมื่อใช้ `-Unsigned`) · ต้องเปิด Developer Mode · และเพราะมี `.exe` ต้องติดตั้งด้วย PowerShell แบบ Administrator
 16. ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ `Start-LEVEL51.cmd`)
 17. MSIX — การลงนาม: `Build-Msix.ps1 -PfxPath <file.pfx> -PfxPassword <...>` เรียก `signtool sign /fd SHA256` · ถ้าเพิ่ม `-TimestampServer <url>` จะต่อเน็ตเพื่อประทับเวลา (opt-in เท่านั้น — invariant 13) · ทดสอบบนเครื่องนี้ด้วย self-signed cert `CN=LEVEL51-TUNE` แล้วติดตั้งสำเร็จ — แต่สำหรับแจกจ่ายจริงยังต้องใช้ cert จาก CA ที่เชื่อถือได้
+19. ~~แจ้งเตือนเมื่อต้อง restart~~ **เสร็จแล้ว**: engine คืน `RestartRequired` + `RebootTweaks`, เขียน `RebootPending` ลง `state/last.json` ทุก apply ที่สำเร็จ, GUI ขึ้นแบบเนอร์, tray ขึ้น balloon + tooltip “ต้องรีสตาร์ทเครื่อง”, CLI พิมพ์กรอบเตือน (8 รายการแรก + จำนวนที่เหลือ) และ `status` ก็แสดง
+20. ~~เคลียร์ alert อัตโนมัติหลัง reboot~~ **เสร็จแล้ว**: `Get-L51RestartInfo` ใช้ `Test-L51RebootSinceApplied` เทียบ `LastBootUpTime` กับ `AppliedAt` — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)
+21. ~~บันทึก state ทุก apply~~ **แก้บั๊กแล้ว**: เดิมการ save ถูกผูกกับ `$hasPower` ทำให้โปรไฟล์ที่ registry ล้วน (เช่น `balanced`) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ `New-L51ApplyState` และบันทึกทุกครั้งที่ apply สำเร็จ
+22. ทดสอบเมนู tray แบบไม่ต้องกด UAC: `.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]` แสดง tooltip จริง, ผลตรวจพอร์ต, และคำสั่งที่จะเปิด Dashboard (หรือแจ้งว่าเปิดอยู่แล้ว)
 18. ทางเลือกที่ไม่ต้องซื้อ cert: (ก) `tools/New-SigningCert.ps1` สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ `.cer` เข้า `TrustedPeople` ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) · (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ **SignPath Foundation** (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ
 
 ## ข้อควรระวังในการทำ GUI ต่อ

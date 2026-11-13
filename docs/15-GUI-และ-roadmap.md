@@ -45,6 +45,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 | `/api/settings` | GET/POST | อ่าน/บันทึก tweak ที่เลือกเอง (`state/custom.json`) | ไม่ |
 | `/api/live` | GET | ค่าสด: CPU load/clock, RAM, GPU clock/temp/power | ไม่ |
 | `/api/compare` | POST | วัด benchmark ใหม่ + เทียบกับครั้งก่อน | ไม่ |
+| `/api/open-dashboard` | POST + `X-L51-Open: 1` | ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL พร้อม token (ไม่ต้องมี token, ห้ามมี `Origin`) | ไม่ |
 | `/docs/*` | GET | เอกสาร HTML ใน `docs/` | ไม่ |
 
 ## ความปลอดภัยของ Web GUI
@@ -125,7 +126,8 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 19. ~~แจ้งเตือนเมื่อต้อง restart~~ **เสร็จแล้ว**: engine คืน `RestartRequired` + `RebootTweaks`, เขียน `RebootPending` ลง `state/last.json` ทุก apply ที่สำเร็จ, GUI ขึ้นแบบเนอร์, tray ขึ้น balloon + tooltip “ต้องรีสตาร์ทเครื่อง”, CLI พิมพ์กรอบเตือน (8 รายการแรก + จำนวนที่เหลือ) และ `status` ก็แสดง
 20. ~~เคลียร์ alert อัตโนมัติหลัง reboot~~ **เสร็จแล้ว**: `Get-L51RestartInfo` ใช้ `Test-L51RebootSinceApplied` เทียบ `LastBootUpTime` กับ `AppliedAt` — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)
 21. ~~บันทึก state ทุก apply~~ **แก้บั๊กแล้ว**: เดิมการ save ถูกผูกกับ `$hasPower` ทำให้โปรไฟล์ที่ registry ล้วน (เช่น `balanced`) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ `New-L51ApplyState` และบันทึกทุกครั้งที่ apply สำเร็จ
-22. ทดสอบเมนู tray แบบไม่ต้องกด UAC: `.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]` แสดง tooltip จริง, ผลตรวจพอร์ต, และคำสั่งที่จะเปิด Dashboard (หรือแจ้งว่าเปิดอยู่แล้ว)
+22. ทดสอบเมนู tray แบบไม่ต้องกด UAC: `.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]` แสดง tooltip จริง, ผลตรวจพอร์ต, ผลเรียก `/api/open-dashboard`, และคำสั่งที่จะเปิด Dashboard
+23. ~~เปิด Dashboard จาก tray แล้วได้หน้าเว็บจริง~~ **เสร็จแล้ว**: `Start-L51Dashboard` ถ้าเซิร์ฟเวอร์ยังไม่รันจะเปิดตัวใหม่แบบ Administrator (ไม่ใส่ `-NoBrowser` → เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL+token เอง) ถ้ารันอยู่แล้วจะ `POST /api/open-dashboard` ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ของตัวเอง — token ไม่ต้องผ่าน tray และไม่ลงดิสก์
 18. ทางเลือกที่ไม่ต้องซื้อ cert: (ก) `tools/New-SigningCert.ps1` สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ `.cer` เข้า `TrustedPeople` ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) · (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ **SignPath Foundation** (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ
 
 ## ข้อควรระวังในการทำ GUI ต่อ

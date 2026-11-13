@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item active" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.13</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.14</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -86,6 +86,7 @@
 <tr><td><code>/api/settings</code></td><td>GET/POST</td><td>อ่าน/บันทึก tweak ที่เลือกเอง (<code>state/custom.json</code>)</td><td>ไม่</td></tr>
 <tr><td><code>/api/live</code></td><td>GET</td><td>ค่าสด: CPU load/clock, RAM, GPU clock/temp/power</td><td>ไม่</td></tr>
 <tr><td><code>/api/compare</code></td><td>POST</td><td>วัด benchmark ใหม่ + เทียบกับครั้งก่อน</td><td>ไม่</td></tr>
+<tr><td><code>/api/open-dashboard</code></td><td>POST + <code>X-L51-Open: 1</code></td><td>ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL พร้อม token (ไม่ต้องมี token, ห้ามมี <code>Origin</code>)</td><td>ไม่</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML ใน <code>docs/</code></td><td>ไม่</td></tr>
 </tbody>
 </table></div>
@@ -165,7 +166,8 @@
 <li><del>แจ้งเตือนเมื่อต้อง restart</del> <strong>เสร็จแล้ว</strong>: engine คืน <code>RestartRequired</code> + <code>RebootTweaks</code>, เขียน <code>RebootPending</code> ลง <code>state/last.json</code> ทุก apply ที่สำเร็จ, GUI ขึ้นแบบเนอร์, tray ขึ้น balloon + tooltip “ต้องรีสตาร์ทเครื่อง”, CLI พิมพ์กรอบเตือน (8 รายการแรก + จำนวนที่เหลือ) และ <code>status</code> ก็แสดง</li>
 <li><del>เคลียร์ alert อัตโนมัติหลัง reboot</del> <strong>เสร็จแล้ว</strong>: <code>Get-L51RestartInfo</code> ใช้ <code>Test-L51RebootSinceApplied</code> เทียบ <code>LastBootUpTime</code> กับ <code>AppliedAt</code> — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)</li>
 <li><del>บันทึก state ทุก apply</del> <strong>แก้บั๊กแล้ว</strong>: เดิมการ save ถูกผูกกับ <code>$hasPower</code> ทำให้โปรไฟล์ที่ registry ล้วน (เช่น <code>balanced</code>) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ <code>New-L51ApplyState</code> และบันทึกทุกครั้งที่ apply สำเร็จ</li>
-<li>ทดสอบเมนู tray แบบไม่ต้องกด UAC: <code>.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]</code> แสดง tooltip จริง, ผลตรวจพอร์ต, และคำสั่งที่จะเปิด Dashboard (หรือแจ้งว่าเปิดอยู่แล้ว)</li>
+<li>ทดสอบเมนู tray แบบไม่ต้องกด UAC: <code>.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]</code> แสดง tooltip จริง, ผลตรวจพอร์ต, ผลเรียก <code>/api/open-dashboard</code>, และคำสั่งที่จะเปิด Dashboard</li>
+<li><del>เปิด Dashboard จาก tray แล้วได้หน้าเว็บจริง</del> <strong>เสร็จแล้ว</strong>: <code>Start-L51Dashboard</code> ถ้าเซิร์ฟเวอร์ยังไม่รันจะเปิดตัวใหม่แบบ Administrator (ไม่ใส่ <code>-NoBrowser</code> → เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL+token เอง) ถ้ารันอยู่แล้วจะ <code>POST /api/open-dashboard</code> ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ของตัวเอง — token ไม่ต้องผ่าน tray และไม่ลงดิสก์</li>
 <li>ทางเลือกที่ไม่ต้องซื้อ cert: (ก) <code>tools/New-SigningCert.ps1</code> สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ <code>.cer</code> เข้า <code>TrustedPeople</code> ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) &#183; (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ <strong>SignPath Foundation</strong> (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ</li>
 </ol>
 <h2 id="sec-15">ข้อควรระวังในการทำ GUI ต่อ</h2>

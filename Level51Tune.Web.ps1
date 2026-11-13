@@ -61,7 +61,23 @@ if (-not (Test-L51Admin)) {
 Write-Host '  กด Ctrl+C เพื่อหยุด' -ForegroundColor DarkGray
 Write-Host ''
 
-if (-not $NoBrowser) { try { Start-Process $url } catch { } }
+function Start-L51Browser {
+    param([string]$Target)
+
+    # เปิดผ่าน explorer.exe (shell ของผู้ใช้ที่ล็อกอิน) เพื่อไม่ให้เบราว์เซอร์
+    # สืบทอดสิทธิ์ Administrator จากการรัน dashboard แบบ elevated
+    try {
+        $explorer = Join-Path $env:WINDIR 'explorer.exe'
+        if (Test-Path $explorer) {
+            & $explorer $Target | Out-Null
+            return $true
+        }
+    } catch { }
+    try { Start-Process $Target; return $true } catch { }
+    return $false
+}
+
+if (-not $NoBrowser) { [void](Start-L51Browser -Target $url) }
 
 function Send-L51Response {
     param($Context, [string]$Body, [string]$ContentType = 'application/json; charset=utf-8', [int]$Status = 200)
@@ -180,6 +196,27 @@ try {
                     Send-L51Response $ctx (Get-Content $resolved -Raw -Encoding UTF8) $mime
                 } else {
                     Send-L51Response $ctx '{"error":"not found"}' 'application/json' 404
+                }
+                continue
+            }
+
+            # ---- เปิดเบราว์เซอร์ที่ URL พร้อม token (เรียกโดย tray) --------
+            # endpoint นี้ไม่ต้องใช้ token และไม่คืนข้อมูลใด ๆ : บังคับ POST +
+            # header X-L51-Open + ต้องมาจาก loopback + ห้ามมี Origin
+            # หน้าเว็บในเบราว์เซอร์เรียกไม่ได้เพราะ custom header ทำให้เกิด preflight
+            # และเซิร์ฟเวอร์นี้ไม่ส่ง CORS header ใด ๆ
+            if ($path -eq '/api/open-dashboard') {
+                $isLoopback = $false
+                try { $isLoopback = [System.Net.IPAddress]::IsLoopback($req.RemoteEndPoint.Address) } catch { }
+                $origin = $req.Headers['Origin']
+                if ($req.HttpMethod -ne 'POST' -or -not $isLoopback -or $req.Headers['X-L51-Open'] -ne '1' -or $origin) {
+                    Send-L51Response $ctx '{"error":"forbidden"}' 'application/json' 403
+                    continue
+                }
+                if (Start-L51Browser -Target $url) {
+                    Send-L51Response $ctx '{"opened":true}'
+                } else {
+                    Send-L51Response $ctx '{"opened":false}' 'application/json' 500
                 }
                 continue
             }

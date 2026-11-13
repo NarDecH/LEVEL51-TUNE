@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.13</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.14</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -256,10 +256,10 @@
 <pre><code class="lang-powershell">.\Level51Tune.ps1 update</code></pre>
 <p>อ่าน metadata ของ release ล่าสุดจาก GitHub (<code>api.github.com/repos/NarDecH/LEVEL51-TUNE/releases/latest</code>) แล้วเทียบกับเวอร์ชันในเครื่อง — <strong>คำสั่งเดียวในโปรแกรมที่ใช้เน็ต</strong>, ไม่อัปเดตหรือดาวน์โหลดอะไรให้เอง ถ้าไม่มีเน็ตจะรายงานว่า &quot;ตรวจไม่ได้&quot; และคำสั่งอื่นทั้งหมดยังทำงานแบบ offline</p>
 <p>ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน <code>/tags</code> และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:</p>
-<pre><code class="lang-bash">git tag -a v1.0.13 -m &quot;LEVEL51-TUNE 1.0.13&quot;
-git push origin v1.0.13</code></pre>
+<pre><code class="lang-bash">git tag -a v1.0.14 -m &quot;LEVEL51-TUNE 1.0.14&quot;
+git push origin v1.0.14</code></pre>
 <p>หรือสร้าง Release จากหน้า GitHub / <code>gh</code> CLI (แนบทั้ง zip และ msix):</p>
-<pre><code class="lang-bash">gh release create v1.0.13 dist/LEVEL51-TUNE-1.0.13.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title &quot;LEVEL51-TUNE 1.0.13&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
+<pre><code class="lang-bash">gh release create v1.0.14 dist/LEVEL51-TUNE-1.0.14.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title &quot;LEVEL51-TUNE 1.0.13&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
 <h2 id="sec-18">gpu</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
 <p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>
@@ -319,10 +319,12 @@ $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <tr><td><code>/api/gpu-prefs</code></td><td>GET/POST</td><td>อ่าน/ตั้ง/ลบ GPU preference ต่อแอป</td></tr>
 <tr><td><code>/api/processes</code></td><td>GET</td><td>รายชื่อโปรเซส (ตัวช่วยเลือก .exe)</td></tr>
 <tr><td><code>/api/update</code></td><td>GET</td><td>ตรวจเวอร์ชันล่าสุดบน GitHub</td></tr>
+<tr><td><code>/api/open-dashboard</code></td><td>POST</td><td>ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL พร้อม token ของตัวเอง (ใช้โดย tray)</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML</td></tr>
 </tbody>
 </table></div>
 <p>header ที่ต้องส่ง: <code>X-L51-Token: &lt;token&gt;</code> (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)</p>
+<p>ข้อยกเว้นเดียวคือ <code>/api/open-dashboard</code> ซึ่งไม่ต้องมี token และไม่คืนข้อมูลใด ๆ — บังคับให้เป็น <code>POST</code> พร้อม header <code>X-L51-Open: 1</code> มาจาก loopback และต้องไม่มี <code>Origin</code> ทำให้หน้าเว็บอื่นเรียกไม่ได้ (custom header บังคับ preflight แต่เซิร์ฟเวอร์ไม่ส่ง CORS header) จุดประสงค์คือให้ tray เปิด Dashboard ได้โดยไม่ต้องรู้ token และ token ยังไม่ถูกเขียนลงดิสก์</p>
 <p>ดูเหตุผลการออกแบบและ roadmap ที่ <a href="15-GUI-และ-roadmap.md">GUI และ roadmap</a></p>
 
     </article>

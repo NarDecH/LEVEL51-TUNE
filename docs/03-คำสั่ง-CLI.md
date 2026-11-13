@@ -281,14 +281,14 @@
 ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน `/tags` และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:
 
 ```bash
-git tag -a v1.0.14 -m "LEVEL51-TUNE 1.0.14"
-git push origin v1.0.14
+git tag -a v1.0.15 -m "LEVEL51-TUNE 1.0.15"
+git push origin v1.0.15
 ```
 
 หรือสร้าง Release จากหน้า GitHub / `gh` CLI (แนบทั้ง zip และ msix):
 
 ```bash
-gh release create v1.0.14 dist/LEVEL51-TUNE-1.0.14.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
+gh release create v1.0.15 dist/LEVEL51-TUNE-1.0.15.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
 ``` — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
 
 ## gpu
@@ -383,11 +383,11 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 | `/api/gpu-prefs` | GET/POST | อ่าน/ตั้ง/ลบ GPU preference ต่อแอป |
 | `/api/processes` | GET | รายชื่อโปรเซส (ตัวช่วยเลือก .exe) |
 | `/api/update` | GET | ตรวจเวอร์ชันล่าสุดบน GitHub |
-| `/api/open-dashboard` | POST | ให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL พร้อม token ของตัวเอง (ใช้โดย tray) |
+| `/api/open-dashboard` | POST | คืน URL พร้อม token ของ session นี้ (tray ใช้เปิดเบราว์เซอร์) |
 | `/docs/*` | GET | เอกสาร HTML |
 
 header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)
 
-ข้อยกเว้นเดียวคือ `/api/open-dashboard` ซึ่งไม่ต้องมี token และไม่คืนข้อมูลใด ๆ — บังคับให้เป็น `POST` พร้อม header `X-L51-Open: 1` มาจาก loopback และต้องไม่มี `Origin` ทำให้หน้าเว็บอื่นเรียกไม่ได้ (custom header บังคับ preflight แต่เซิร์ฟเวอร์ไม่ส่ง CORS header) จุดประสงค์คือให้ tray เปิด Dashboard ได้โดยไม่ต้องรู้ token และ token ยังไม่ถูกเขียนลงดิสก์
+ข้อยกเว้นเดียวคือ `/api/open-dashboard` ซึ่งไม่ต้องใช้ token ของหน้าเว็บ แต่คืนเฉพาะ URL ของ session นี้ — บังคับให้เป็น `POST` พร้อม header `X-L51-Open: 1` มาจาก loopback และต้องไม่มี `Origin` ทำให้หน้าเว็บอื่นเรียกไม่ได้ (custom header บังคับ preflight แต่เซิร์ฟเวอร์ไม่ส่ง CORS header) จุดประสงค์คือให้ tray ขอ URL แล้วเป็นคนเปิดเบราว์เซอร์เอง (tray ไม่ได้ elevated จึงได้เบราว์เซอร์แบบผู้ใช้ปกติ) และ token ยังไม่ถูกเขียนลงดิสก์
 
 ดูเหตุผลการออกแบบและ roadmap ที่ [GUI และ roadmap](15-GUI-และ-roadmap.md)

@@ -54,45 +54,68 @@ function Show-L51Notice {
     } catch { }
 }
 
-function Open-L51DashboardInBrowser {
+function Get-L51DashboardUrl {
     param([int]$TargetPort)
 
-    # ให้เซิร์ฟเวอร์ที่กำลังทำงานอยู่เป็นคนเปิดเบราว์เซอร์ที่ URL พร้อม token ของตัวเอง
-    # (token ไม่เคยถูกเขียนลงดิสก์ และ tray ไม่ต้องรู้ token)
+    # ขอ URL พร้อม token จากเซิร์ฟเวอร์ที่กำลังทำงาน (คืน $null ถ้าไม่ได้)
+    # token ไม่เคยถูกเขียนลงดิสก์ — อยู่ในหน่วยความจำของ tray เท่านั้น
     try {
         $uri = 'http://localhost:{0}/api/open-dashboard' -f $TargetPort
         # -Body '' จำเป็น: HttpListener ตอบ 411 ถ้า POST ไม่มี Content-Length
         $res = Invoke-WebRequest -Uri $uri -Method Post -Body '' -Headers @{ 'X-L51-Open' = '1' } -UseBasicParsing -TimeoutSec 8
-        return ($res.StatusCode -eq 200 -and $res.Content -match '"opened"\s*:\s*true')
+        if ($res.StatusCode -ne 200) { return $null }
+        $obj = $res.Content | ConvertFrom-Json
+        if (-not $obj.url) { return $null }
+        return [string]$obj.url
     } catch {
-        return $false
+        return $null
+    }
+}
+
+function Show-L51Dashboard {
+    param([string]$Url)
+
+    # tray ไม่ได้ elevated → ShellExecute เปิด default browser แบบผู้ใช้ปกติ
+    # ห้ามใช้ explorer.exe: มันตีความ URL เป็นพาธแล้วเปิด File Explorer แทน
+    try {
+        Start-Process -FilePath $Url
+        Show-L51Notice -Title 'LEVEL51-TUNE · Dashboard' -Text 'เปิด Dashboard ในเบราว์เซอร์แล้ว'
+    } catch {
+        Show-L51Notice -Title 'LEVEL51-TUNE · เปิดเบราว์เซอร์ไม่ได้' -Text ('ลองเปิดเอง: {0}' -f $Url)
     }
 }
 
 function Start-L51Dashboard {
-    # ถ้ามีเซิร์ฟเวอร์ของเราฟังพอร์ตนี้อยู่แล้ว ให้ขอให้มันเปิดเบราว์เซอร์เอง
-    if (Test-L51PortOpen -Port $Port) {
+    $url = $null
+    if (Test-L51PortOpen -Port $Port) { $url = Get-L51DashboardUrl -TargetPort $Port }
+
+    if (-not $url) {
+        # ยังไม่มีเซิร์ฟเวอร์ของเรา (หรือโปรแกรมอื่นยึดพอร์ต): เปิดตัวใหม่แบบ
+        # Administrator พร้อม -NoBrowser แล้วรอ URL มาเปิดเบราว์เซอร์เองจาก tray
+        $exe = (Get-Process -Id $PID).Path
+        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $script:Root 'Level51Tune.Web.ps1'), '-Port', "$Port", '-NoBrowser', '-Elevate')
         if ($script:SelfTest) {
-            Write-Host ('[action] would open browser: http://localhost:{0}/?t=<token ของเซิร์ฟเวอร์ที่รันอยู่>' -f $Port)
+            Write-Host ('[action] would launch: {0} {1}' -f $exe, ($argList -join ' '))
             return
         }
-        if (Open-L51DashboardInBrowser -TargetPort $Port) {
-            Show-L51Notice -Title 'LEVEL51-TUNE · Dashboard' -Text ('เปิด Dashboard ในเบราว์เซอร์แล้ว (http://localhost:{0})' -f $Port)
+        Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
+        for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 1
+            $url = Get-L51DashboardUrl -TargetPort $Port
+            if ($url) { break }
+        }
+        if (-not $url) {
+            Show-L51Notice -Title 'LEVEL51-TUNE · Dashboard' -Text (
+                'เปิดเซิร์ฟเวอร์แล้ว แต่ยังไม่ได้ URL — เปิด URL/token จากหน้าต่าง console ของเซิร์ฟเวอร์ (พอร์ต {0})' -f $Port)
             return
         }
-        Show-L51Notice -Title 'LEVEL51-TUNE · Dashboard เปิดอยู่แล้ว' -Text (
-            'พอร์ต {0} มีเซิร์ฟเวอร์ทำงานอยู่ แต่ไม่มี endpoint เปิดเบราว์เซอร์ — เปิด URL/token จากหน้าต่าง console ของเซิร์ฟเวอร์นั้น (ปิดตัวเดิมก่อนถ้าจะเปิดใหม่แบบ Administrator)' -f $Port)
-        return
     }
-    # ยังไม่มีเซิร์ฟเวอร์: เปิดตัวใหม่แบบ Administrator โดยไม่ใส่ -NoBrowser
-    # เพื่อให้เซิร์ฟเวอร์เปิดเบราว์เซอร์ที่ URL พร้อม token ของตัวเองทันที
-    $exe = (Get-Process -Id $PID).Path
-    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $script:Root 'Level51Tune.Web.ps1'), '-Port', "$Port", '-Elevate')
+
     if ($script:SelfTest) {
-        Write-Host ('[action] would launch: {0} {1}' -f $exe, ($argList -join ' '))
+        Write-Host ('[action] would open browser: {0}' -f $url)
         return
     }
-    Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
+    Show-L51Dashboard -Url $url
 }
 
 function Get-L51TraySummary {
@@ -115,7 +138,9 @@ if ($script:SelfTest) {
     Write-Host ''
     Write-Host ('  tray self-test · port {0} open = {1}' -f $Port, (Test-L51PortOpen -Port $Port))
     Write-Host ('  tray self-test · tooltip: {0}' -f (Get-L51TraySummary))
-    Write-Host ('  tray self-test · open endpoint = {0}' -f (Open-L51DashboardInBrowser -TargetPort $Port))
+    $dashUrl = $null
+    if (Test-L51PortOpen -Port $Port) { $dashUrl = Get-L51DashboardUrl -TargetPort $Port }
+    Write-Host ('  tray self-test · dashboard url = {0}' -f $(if ($dashUrl) { $dashUrl } else { '(ไม่พบเซิร์ฟเวอร์ของเรา)' }))
     Start-L51Dashboard
     Write-Host '  tray self-test · done'
     Write-Host ''

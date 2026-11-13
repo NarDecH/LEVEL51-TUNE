@@ -64,16 +64,9 @@ Write-Host ''
 function Start-L51Browser {
     param([string]$Target)
 
-    # เปิดผ่าน explorer.exe (shell ของผู้ใช้ที่ล็อกอิน) เพื่อไม่ให้เบราว์เซอร์
-    # สืบทอดสิทธิ์ Administrator จากการรัน dashboard แบบ elevated
-    try {
-        $explorer = Join-Path $env:WINDIR 'explorer.exe'
-        if (Test-Path $explorer) {
-            & $explorer $Target | Out-Null
-            return $true
-        }
-    } catch { }
-    try { Start-Process $Target; return $true } catch { }
+    # ใช้ ShellExecute (Start-Process) เปิด default browser โดยตรง
+    # ห้ามใช้ explorer.exe: มันตีความ URL เป็นพาธแล้วเปิด File Explorer แทน
+    try { Start-Process -FilePath $Target; return $true } catch { }
     return $false
 }
 
@@ -200,11 +193,12 @@ try {
                 continue
             }
 
-            # ---- เปิดเบราว์เซอร์ที่ URL พร้อม token (เรียกโดย tray) --------
-            # endpoint นี้ไม่ต้องใช้ token และไม่คืนข้อมูลใด ๆ : บังคับ POST +
-            # header X-L51-Open + ต้องมาจาก loopback + ห้ามมี Origin
-            # หน้าเว็บในเบราว์เซอร์เรียกไม่ได้เพราะ custom header ทำให้เกิด preflight
-            # และเซิร์ฟเวอร์นี้ไม่ส่ง CORS header ใด ๆ
+            # ---- คืน URL พร้อม token สำหรับเปิด dashboard (เรียกโดย tray) ---
+            # endpoint นี้ไม่ต้องใช้ token ของหน้าเว็บ แต่ให้ข้อมูลเฉพาะ URL ของ
+            # session นี้: บังคับ POST + header X-L51-Open + ต้องมาจาก loopback +
+            # ห้ามมี Origin — หน้าเว็บในเบราว์เซอร์เรียกไม่ได้เพราะ custom header
+            # ทำให้เกิด preflight และเซิร์ฟเวอร์นี้ไม่ส่ง CORS header ใด ๆ
+            # tray เป็นคนเปิดเบราว์เซอร์เอง เพื่อไม่ให้ได้เบราว์เซอร์แบบ elevated
             if ($path -eq '/api/open-dashboard') {
                 $isLoopback = $false
                 try { $isLoopback = [System.Net.IPAddress]::IsLoopback($req.RemoteEndPoint.Address) } catch { }
@@ -213,11 +207,7 @@ try {
                     Send-L51Response $ctx '{"error":"forbidden"}' 'application/json' 403
                     continue
                 }
-                if (Start-L51Browser -Target $url) {
-                    Send-L51Response $ctx '{"opened":true}'
-                } else {
-                    Send-L51Response $ctx '{"opened":false}' 'application/json' 500
-                }
+                Send-L51Response $ctx (@{ url = $url } | ConvertTo-Json -Compress)
                 continue
             }
 

@@ -113,7 +113,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 ### ระยะ 4 (บางส่วน)
 
 9. `tools/Build-Package.ps1` — สร้าง `dist/LEVEL51-TUNE-<version>.zip` พร้อมใช้ (เสร็จแล้ว)
-10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.6` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
+10. ~~หน้าตรวจอัปเดตเวอร์ชัน~~ **เสร็จแล้ว**: CLI `update` + ปุ่ม “ตรวจอัปเดต” ใน GUI (อ่านเฉพาะ metadata ของ release/tag — repo มี release `v1.0.7` พร้อมไฟล์ zip/msix แนบให้เทียบแล้ว)
 11. ~~profile detection~~ **เสร็จแล้ว**: `recommend` + การ์ด “คำแนะนำสำหรับเครื่องนี้” (เลือกโปรไฟล์ตาม RAM channel / CPU class / dGPU)
 12. ~~code signing~~ **ทำไปป์ไลน์แล้ว**: `Build-Package.ps1 -CertificateThumbprint <thumb>` ลงนามทุก .ps1/.psm1 ด้วย Authenticode — เหลือแค่ certificate ของผู้พัฒนา
 13. ~~MSIX~~ **เสร็จแล้ว**: `tools/Build-Msix.ps1` คอมไพล์ launcher (C# ผ่าน `csc.exe`) + `AppxManifest.xml` + assets แล้ว pack ด้วย `makeappx.exe` → `dist/LEVEL51-TUNE-<version>.msix`
@@ -121,6 +121,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 15. เงื่อนไขการติดตั้ง MSIX ที่ต้องรู้: แพ็กเกจ unsigned ต้องมี marker `OID.2.25.311729368913984317654407730594956997722=1` ต่อท้าย Publisher (สคริปต์ใส่ให้เมื่อใช้ `-Unsigned`) · ต้องเปิด Developer Mode · และเพราะมี `.exe` ต้องติดตั้งด้วย PowerShell แบบ Administrator
 16. ข้อจำกัดที่คงอยู่ของ MSIX: รันใน container จึงขอ UAC ไม่ได้ (launcher เปิด dashboard แบบไม่ elevated; apply/restore ต้องใช้ `Start-LEVEL51.cmd`)
 17. MSIX — การลงนาม: `Build-Msix.ps1 -PfxPath <file.pfx> -PfxPassword <...>` เรียก `signtool sign /fd SHA256` · ถ้าเพิ่ม `-TimestampServer <url>` จะต่อเน็ตเพื่อประทับเวลา (opt-in เท่านั้น — invariant 13) · ทดสอบบนเครื่องนี้ด้วย self-signed cert `CN=LEVEL51-TUNE` แล้วติดตั้งสำเร็จ — แต่สำหรับแจกจ่ายจริงยังต้องใช้ cert จาก CA ที่เชื่อถือได้
+18. ทางเลือกที่ไม่ต้องซื้อ cert: (ก) `tools/New-SigningCert.ps1` สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ `.cer` เข้า `TrustedPeople` ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) · (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ **SignPath Foundation** (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ
 
 ## ข้อควรระวังในการทำ GUI ต่อ
 

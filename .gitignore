@@ -5,6 +5,8 @@ reports/
 benchmarks/
 state/
 dist/
+cert/
+*.pfx
 *.log
 *.tmp
 

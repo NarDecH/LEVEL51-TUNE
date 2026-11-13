@@ -94,6 +94,24 @@ Remove-AppxPackage -Package NarDecH.LEVEL51TUNE_<full-name>   # ถอน
 
 `-TimestampServer` เป็นทางเลือกแบบ opt-in: ถ้าไม่ระบุ สคริปต์จะไม่ต่อเน็ตเลย
 
+### ไม่มีงบซื้อ cert? (ทางเลือกฟรี)
+
+1. **self-signed cert** — สร้างเองด้วยสคริปต์ในโปรเจกต์ (ฟรี ใช้ได้ทันที):
+
+```powershell
+.\tools\New-SigningCert.ps1                    # → cert\l51-signing.pfx + .cer + ไฟล์รหัส
+.\tools\Build-Msix.ps1 -PfxPath .\cert\l51-signing.pfx -PfxPassword (รหัสจากไฟล์) -TimestampServer http://timestamp.digicert.com
+# เครื่องปลายทาง (Administrator) — เชื่อถือ cert ก่อนติดตั้ง
+Import-Certificate -FilePath .\cert\l51-signing.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+Add-AppxPackage -Path .\dist\LEVEL51-TUNE-<version>.msix
+```
+
+ข้อจำกัด: Windows ไม่ได้เชื่อถือ cert นี้โดยปริยาย (ต้องติดตั้ง `.cer` ทุกเครื่อง) และไม่ช่วยเรื่อง SmartScreen — เหมาะกับแจกให้ตัวเอง/ทีม
+
+2. **SignPath Foundation** — ฟรีสำหรับโปรเจกต์ open source (MIT license ผ่านเกณฑ์) แต่ cert ออกในนามมูลนิธิและต้องเซ็นผ่าน pipeline ของเขา: https://signpath.org/apply
+
+3. **แบบพกพา (zip)** — ไม่ต้องมีลายเซ็นเลย; ผู้ใช้แตกไฟล์แล้วรัน `Start-LEVEL51.cmd`
+
 สคริปต์ไม่ประทับเวลา (timestamp) เพื่อไม่ให้คำสั่งอื่นนอก `update` แตะเน็ต — แพ็กเกจที่ได้ใช้ติดตั้งภายในเครื่อง/ทีมได้ แต่สำหรับแจกจ่ายสาธารณะควรลงนามใหม่พร้อม timestamp ด้วย cert จาก CA
 
 ## โปรไฟล์

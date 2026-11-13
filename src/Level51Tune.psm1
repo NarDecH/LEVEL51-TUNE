@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.6'
+$script:L51Version = '1.0.7'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null

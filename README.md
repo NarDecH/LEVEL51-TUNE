@@ -52,6 +52,7 @@ cd LEVEL51-TUNE
 
 ```powershell
 .\Start-LEVEL51.cmd              # 1 คลิก: UAC → http://localhost:8730/
+.\Start-LEVEL51-Tray.cmd         # 1 คลิก: ไอคอนที่ tray (ไม่ต้อง admin)
 .\Level51Tune.Web.ps1            # เปิดแบบไม่ elevate
 .\Level51Tune.Web.ps1 -Port 8899 -NoBrowser
 ```
@@ -163,6 +164,7 @@ Add-AppxPackage -Path .\dist\LEVEL51-TUNE-<version>.msix
 Level51Tune.ps1              CLI entry point
 Level51Tune.Web.ps1          Web GUI server (HttpListener + token, loopback only)
 Start-LEVEL51.cmd            ตัวเรียก 1 คลิก (ขอ UAC แล้วเปิด GUI)
+Start-LEVEL51-Tray.cmd      ตัวเรียก 1 คลิก (เปิด tray icon ไม่ขอ UAC — action ทีละครั้งขอเอง)
 Level51Tune.Tray.ps1         tray icon (สลับโปรไฟล์/ตรวจสถานะ/เปิด Dashboard)
 src/Level51Tune.psm1         engine (detect, backup, apply, restore, audit, status, docs)
 src/Catalog.ps1              นิยาม tweaks 60 รายการ (declarative)

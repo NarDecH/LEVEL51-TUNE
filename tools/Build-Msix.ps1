@@ -97,7 +97,7 @@ New-Item -ItemType Directory -Path $stage -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stage 'Assets') -Force | Out-Null
 
 # ---- ไฟล์แอป (ชุดเดียวกับ Build-Package) ----------------------------------
-foreach ($f in @('Level51Tune.ps1', 'Level51Tune.Web.ps1', 'Level51Tune.Tray.ps1', 'Start-LEVEL51.cmd', 'README.md', 'LICENSE')) {
+foreach ($f in @('Level51Tune.ps1', 'Level51Tune.Web.ps1', 'Level51Tune.Tray.ps1', 'Start-LEVEL51.cmd', 'Start-LEVEL51-Tray.cmd', 'README.md', 'LICENSE')) {
     $src = Join-Path $root $f
     if (Test-Path $src) { Copy-Item $src -Destination $stage -Force }
 }

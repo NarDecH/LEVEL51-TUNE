@@ -32,7 +32,7 @@ if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 
 # ไฟล์ระดับบนสุด
-foreach ($f in @('Level51Tune.ps1', 'Level51Tune.Web.ps1', 'Level51Tune.Tray.ps1', 'Start-LEVEL51.cmd', 'README.md', 'LICENSE')) {
+foreach ($f in @('Level51Tune.ps1', 'Level51Tune.Web.ps1', 'Level51Tune.Tray.ps1', 'Start-LEVEL51.cmd', 'Start-LEVEL51-Tray.cmd', 'README.md', 'LICENSE')) {
     $src = Join-Path $root $f
     if (Test-Path $src) { Copy-Item $src -Destination $staging -Force }
 }

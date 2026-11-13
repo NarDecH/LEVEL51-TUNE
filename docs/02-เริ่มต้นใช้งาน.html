@@ -30,7 +30,7 @@
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.7</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.8</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -164,6 +164,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
 .\Level51Tune.Web.ps1                     # เปิด GUI บนเบราว์เซอร์</code></pre>
 <h2 id="sec-12">ทางลัด: ใช้ GUI ผ่านเบราว์เซอร์</h2>
 <p>ถ้าไม่อยากพิมพ์คำสั่งทุกครั้ง ให้ดับเบิลคลิก <strong><code>Start-LEVEL51.cmd</code></strong> — จะขึ้น UAC ขอสิทธิ์ Administrator แล้วเปิด dashboard ให้อัตโนมัติ (ปุ่ม Apply/Restore ใช้ได้ทันที)</p>
+<p>ถ้าต้องการไอคอนค้างไว้ใน system tray เพื่อสลับโปรไฟล์เร็ว ๆ ให้ดับเบิลคลิก <strong><code>Start-LEVEL51-Tray.cmd</code></strong> — ตัวนี้ไม่ขอ UAC ตอนเปิด (แต่ละ action ที่แก้ระบบจะขอเองทีละครั้ง) และไม่เปิดหน้าต่าง console ค้างไว้</p>
 <p>หรือถ้าอยากเลือกเอง:</p>
 <pre><code class="lang-powershell">.\Level51Tune.Web.ps1                     # http://localhost:8730/ (ไม่ elevate)
 .\Level51Tune.Web.ps1 -Port 8899          # เปลี่ยน port

@@ -19,6 +19,7 @@
 | `src/Bench.ps1` | micro-benchmark, history, compare, `Measure-L51Latency` | แก้วิธีวัด |
 | `Level51Tune.Web.ps1` | Web GUI server: HttpListener, token, routing, เสิร์ฟ `/docs/*` | เพิ่ม/แก้ endpoint GUI |
 | `Start-LEVEL51.cmd` | ตัวเรียก GUI 1 คลิก (UAC → `Level51Tune.Web.ps1 -Elevate`) | แทบไม่ต้องแตะ |
+| `Start-LEVEL51-Tray.cmd` | ตัวเรียก tray 1 คลิก (ไม่ต้อง admin — tray ขอ UAC เอง) | แทบไม่ต้องแตะ |
 | `Level51Tune.Tray.ps1` | tray icon (WinForms): สลับโปรไฟล์/สถานะ/เปิด Dashboard | เพิ่มเมนู tray |
 | `tools/Build-Package.ps1` | สร้าง `dist/LEVEL51-TUNE-<version>.zip` | แก้รายการไฟล์ที่แจกจ่าย |
 | `tools/Build-Msix.ps1` | สร้าง MSIX (launcher C# + AppxManifest + makeappx) | แก้ manifest/launcher |

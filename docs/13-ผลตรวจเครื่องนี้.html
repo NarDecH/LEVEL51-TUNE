@@ -260,13 +260,31 @@ nvidia-smi -q -d PERFORMANCE</code></pre>
 </table></div>
 <h3 id="sec-26">วิธีตีความ</h3>
 <ul>
-<li><code>PROCTHROTTLEMIN = 100%</code> ทำให้ Windows ไม่ลด clock แม้เครื่องว่าง → ความร้อนตอน idle จึงสูงกว่าเครื่องทั่วไป (45–55 &#176;C) อย่างเห็นได้ชัด ค่านี้เป็น <strong>การตั้งใจของโปรไฟล์ max</strong> ไม่ใช่บั๊ก</li>
 <li>72.1 &#176;C ที่วัดตอน 11:20 ไม่ใช่ค่าตัวแทน: วัดทันทีหลังบูตขณะมีงาน boot/update ค้าง ตัวเลข 62.1 &#176;C ที่ load 5.7% จึงเป็นค่าที่ควรใช้</li>
-<li>GPU ปกติ (43 &#176;C, 23.7 W) — ความร้อนมาจากฝั่ง CPU/power plan ไม่ใช่การ์ดจอ</li>
-<li>ยังไม่ได้วัดอุณหภูมิเทียบกับโปรไฟล์ <code>performance</code>/<code>balanced</code> ในรอบนี้ เพราะต้อง apply (ต้องสิทธิ์ Administrator) — ถ้าต้องการตัวเลขเทียบ ใช้ <code>apply -Profile performance</code> แล้ววัดซ้ำด้วยคำสั่งเดียวกัน</li>
+<li><code>PROCTHROTTLEMIN = 100%</code> เป็นการตั้งใจของโปรไฟล์ <code>max</code> ไม่ใช่บั๊ก — แต่<strong>ยังไม่ได้พิสูจน์ว่าเป็นสาเหตุของอุณหภูมิ</strong> (ดูการวัดเทียบด้านล่าง)</li>
+<li>GPU ปกติ (43 &#176;C, 23.7 W ตอน Opera เปิด) — ไม่ใช่ต้นเหตุความร้อน</li>
 </ul>
-<h3 id="sec-27">ข้อแนะนำสำหรับเครื่องนี้</h3>
-<p>ใช้ <code>max</code> เฉพาะช่วงเล่นเกม/เรนเดอร์ แล้วสลับกลับ:</p>
+<h3 id="sec-27">วัดเทียบ: สลับเป็นโปรไฟล์ performance (13 พ.ย. 2026, 12:47)</h3>
+<p>รัน <code>apply -Profile performance</code> (17 OK / 1 SKIP: <code>power.cpu.cooling-active</code> เพราะเครื่องนี้ไม่มี <code>SYSCOOLPOL</code>) แล้ววัดซ้ำหลังรอ 40 วินาที:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ตัวชี้วัด</th><th>max</th><th>performance</th></tr></thead>
+<tbody>
+<tr><td><code>PROCTHROTTLEMIN</code> (AC)</td><td><code>0x64</code> = 100%</td><td><code>0x32</code> = 50%</td></tr>
+<tr><td>Thermal zone <code>TZ0__0</code></td><td>62.1 &#176;C</td><td><strong>63.1 &#176;C</strong></td></tr>
+<tr><td>CPU load</td><td>5.7%</td><td>6.0%</td></tr>
+<tr><td>GPU</td><td>43 &#176;C &#183; 23.7 W &#183; 303 MHz</td><td>39 &#176;C &#183; 5.8 W &#183; 265/405 MHz</td></tr>
+<tr><td>power scheme</td><td><code>ed44ad2f</code> (max)</td><td><code>1e9144ec</code> (performance)</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-28">ข้อสรุปที่ถูกต้อง</h3>
+<ul>
+<li><strong>การลด <code>PROCTHROTTLEMIN</code> 100% → 50% ไม่ได้ทำให้อุณหภูมิลดลง</strong> (62.1 → 63.1 &#176;C อยู่ในระดับ noise ของเซนเซอร์เดียวกัน) สมมติฐานที่ว่า min state 100% ทำให้ idle ร้อนจึง<strong>ไม่ได้รับการสนับสนุน</strong></li>
+<li><code>ACPI\ThermalZone\TZ0__0</code> ของเครื่องนี้ไม่ใช่ CPU package temperature — น่าจะเป็นเซนเซอร์ของ chassis/VRM ที่อ่านค่าคงที่ราว 62–63 &#176;C การจะยืนยันอุณหภูมิ CPU จริงต้องใช้ HWiNFO / LibreHardwareMonitor (โปรเจกต์นี้ไม่ดาวน์โหลดซอฟต์แวร์ให้)</li>
+<li>สิ่งที่เปลี่ยนชัดคือฝั่ง GPU: 23.7 W → 5.8 W และ clock ลดลง (จากสภาวะที่มี Opera เปิดค้าง เทียบกับตอน idle จริง) ไม่ใช่ผลของ power plan โดยตรง</li>
+<li>ยัง<strong>ไม่มีหลักฐาน</strong>ว่า <code>max</code> ทำให้เครื่องร้อนกว่า <code>performance</code> บนเครื่องนี้ ข้อแนะนำให้ใช้ <code>max</code> เฉพาะงานหนักยังคงใช้ได้ด้วยเหตุผลอื่น (กินไฟ, min state 100% ไม่มีประโยชน์ตอน idle) แต่ไม่ใช่ข้ออ้างเรื่องความร้อน</li>
+</ul>
+<h3 id="sec-29">ข้อแนะนำสำหรับเครื่องนี้</h3>
+<p>ใช้ <code>max</code> เฉพาะช่วงเล่นเกม/เรนเดอร์ แล้วสลับกลับ เพื่อไม่ให้ min state 100% ค้างไว้โดยไม่จำเป็น:</p>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 apply -Profile performance</code></pre>
 
     </article>

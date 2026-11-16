@@ -118,6 +118,14 @@ function Get-L51StatusPayload {
     $stateObj = $null
     if ($state) {
         $restart = Get-L51RestartInfo
+        $wdStatus = Get-L51WatchdogStatus
+        $watchdogObj = [pscustomobject]@{
+            active    = [bool]$wdStatus.Active
+            action    = $wdStatus.Action
+            reason    = $wdStatus.Reason
+            backup    = $wdStatus.Backup
+            expiresAt = $wdStatus.ExpiresAt
+        }
         $stateObj = [pscustomobject]@{
             profile       = $state.Profile
             appliedAt     = $state.AppliedAt
@@ -126,6 +134,7 @@ function Get-L51StatusPayload {
             rebootPending = [bool]$restart.Pending
             rebootTweaks  = @($restart.Tweaks)
             clearedByReboot = [bool]$restart.ClearedByReboot
+            watchdog      = $watchdogObj
         }
     }
     $schemeObj = $null
@@ -227,6 +236,32 @@ try {
             }
 
             # ---- API -------------------------------------------------------
+            # ---- watchdog -------------------------------------------------
+            # GET = สถานะ sentinel, POST {action:'confirm'} = ผู้ใช้ยืนยันว่าระบบปกติ
+            # confirm เขียนเฉพาะ state/watchdog.json ไม่แตะ registry/power scheme
+            if ($path -eq '/api/watchdog') {
+                if ($req.HttpMethod -eq 'POST') {
+                    $body = Get-L51JsonBody $ctx
+                    if ($body.action -eq 'confirm') {
+                        $r = Invoke-L51Watchdog -Confirm
+                        Send-L51Response $ctx ([pscustomobject]@{ action = $r.Action; reason = $r.Reason } | ConvertTo-Json -Depth 4)
+                        continue
+                    }
+                    Send-L51Response $ctx '{"error":"unknown action"}' 'application/json' 400
+                    continue
+                }
+                $st = Get-L51WatchdogStatus
+                Send-L51Response $ctx ([pscustomobject]@{
+                        active    = [bool]$st.Active
+                        action    = $st.Action
+                        reason    = $st.Reason
+                        backup    = $st.Backup
+                        profile   = $st.Profile
+                        expiresAt = $st.ExpiresAt
+                    } | ConvertTo-Json -Depth 4)
+                continue
+            }
+
             if ($path -eq '/api/status') {
                 Send-L51Response $ctx ((Get-L51StatusPayload) | ConvertTo-Json -Depth 6)
                 continue

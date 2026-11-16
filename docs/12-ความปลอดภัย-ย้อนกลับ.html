@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -29,23 +29,25 @@
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+      <a class="nav-item" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.15</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
   </aside>
   <main class="content">
     <article class="doc">
 <h1 id="sec-1">ความปลอดภัย การสำรอง และการย้อนกลับ</h1>
 <nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
 <li><a href="#sec-2">หลักประกัน 3 ชั้นของโปรแกรมนี้</a></li>
-<li><a href="#sec-3">รูปแบบไฟล์ backup</a></li>
-<li><a href="#sec-4">สิ่งที่ restore ทำได้และทำไม่ได้</a></li>
-<li><a href="#sec-6">กู้คืนเมื่อเครื่องมีปัญหา</a></li>
-<li><a href="#sec-12">Checklist ก่อน apply ครั้งแรก</a></li>
-<li><a href="#sec-13">Checklist หลัง apply</a></li>
-<li><a href="#sec-14">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</a></li>
-<li><a href="#sec-15">ข้อควรระวังเฉพาะเครื่องนี้</a></li>
-<li><a href="#sec-16">การเก็บ backup ระยะยาว</a></li>
-<li><a href="#sec-17">สรุป</a></li>
+<li><a href="#sec-3">ชั้นเสริม: watchdog ย้อนกลับอัตโนมัติ</a></li>
+<li><a href="#sec-4">รูปแบบไฟล์ backup</a></li>
+<li><a href="#sec-5">สิ่งที่ restore ทำได้และทำไม่ได้</a></li>
+<li><a href="#sec-7">กู้คืนเมื่อเครื่องมีปัญหา</a></li>
+<li><a href="#sec-13">Checklist ก่อน apply ครั้งแรก</a></li>
+<li><a href="#sec-14">Checklist หลัง apply</a></li>
+<li><a href="#sec-15">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</a></li>
+<li><a href="#sec-16">ข้อควรระวังเฉพาะเครื่องนี้</a></li>
+<li><a href="#sec-17">การเก็บ backup ระยะยาว</a></li>
+<li><a href="#sec-18">สรุป</a></li>
 </ol></nav>
 <h2 id="sec-2">หลักประกัน 3 ชั้นของโปรแกรมนี้</h2>
 <div class="table-wrap"><table>
@@ -56,7 +58,19 @@
 <tr><td>3</td><td><code>restore</code></td><td>คืนค่าทุกอย่างตามลำดับย้อนกลับ + ลบ scheme ที่สร้าง + สลับ scheme เดิม</td></tr>
 </tbody>
 </table></div>
-<h2 id="sec-3">รูปแบบไฟล์ backup</h2>
+<h2 id="sec-3">ชั้นเสริม: watchdog ย้อนกลับอัตโนมัติ</h2>
+<p>ทั้งสามชั้นข้างต้นยังต้องมีคนสั่ง <code>restore</code> ซึ่งเป็นไปไม่ได้ถ้าเครื่องบูตไม่ขึ้น — watchdog ปิดช่องว่างนั้น:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ขั้น</th><th>สิ่งที่เกิดขึ้น</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>ทุกครั้งที่ apply จริง จะเขียน <code>state/watchdog.json</code> เก็บ backup ที่เพิ่งสร้างและเวลาหมดอายุ</td></tr>
+<tr><td>2</td><td>ถ้าติดตั้ง Scheduled Task (<code>watchdog -Install</code>) ระบบจะตรวจที่ logon ว่าเครื่องบูตผ่านจริงและเสถียรหรือไม่</td></tr>
+<tr><td>3</td><td>ถ้าเจอ Event 41/1001/6008 หลัง apply → <code>restore</code> จาก backup ของ sentinel ให้เอง</td></tr>
+<tr><td>4</td><td>ถ้าปกติ → ปิด sentinel อัตโนมัติหลังใช้งานครบ 10 นาที หรือเมื่อผู้ใช้กดยืนยัน</td></tr>
+</tbody>
+</table></div>
+<p>รายละเอียดและข้อจำกัดอยู่ใน <a href="16-Watchdog.md">Watchdog</a></p>
+<h2 id="sec-4">รูปแบบไฟล์ backup</h2>
 <pre><code class="lang-json">{
   &quot;Version&quot;: 1,
   &quot;Created&quot;: &quot;2026-11-12T15:30:12.4821+07:00&quot;,
@@ -84,7 +98,7 @@
   ]
 }</code></pre>
 <p>จุดสำคัญ: <code>Previous.Exists = false</code> หมายถึงค่าเดิม <strong>ไม่มีอยู่</strong> — restore จะลบค่านั้นออก ไม่ใช่ตั้งเป็น 0</p>
-<h2 id="sec-4">สิ่งที่ restore ทำได้และทำไม่ได้</h2>
+<h2 id="sec-5">สิ่งที่ restore ทำได้และทำไม่ได้</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>ประเภท</th><th>restore อัตโนมัติ</th><th>หมายเหตุ</th></tr></thead>
 <tbody>
@@ -102,7 +116,7 @@
 <blockquote>
 <p><strong>ทำไม</strong>: tweaks ประเภท Script ให้ผลลัพธ์ที่ไม่สามารถอ่านกลับมาเปรียบเทียบเป็นค่าเดียวได้ (เช่น netsh คืนข้อความหลายบรรทัด) การ restore จึงเลือกที่จะไม่แตะและบอกผู้ใช้ตรง ๆ ดีกว่าเดาแล้วทำให้แย่ลง</p>
 </blockquote>
-<h3 id="sec-5">วิธีคืนค่า Script tweaks ด้วยมือ</h3>
+<h3 id="sec-6">วิธีคืนค่า Script tweaks ด้วยมือ</h3>
 <pre><code class="lang-powershell"># fsutil
 fsutil behavior set disablelastaccess 2      # กลับเป็น default (อัปเดตตามการเข้าถึง)
 fsutil behavior set disable8dot3 2           # กลับเป็น per-volume
@@ -122,13 +136,13 @@ Enable-ScheduledTask -TaskName ScheduledDefrag
 
 # power (hibernate)
 powercfg -h on</code></pre>
-<h2 id="sec-6">กู้คืนเมื่อเครื่องมีปัญหา</h2>
-<h3 id="sec-7">กรณีที่ 1: ระบบยังบูตได้ แต่พฤติกรรมแปลก</h3>
+<h2 id="sec-7">กู้คืนเมื่อเครื่องมีปัญหา</h2>
+<h3 id="sec-8">กรณีที่ 1: ระบบยังบูตได้ แต่พฤติกรรมแปลก</h3>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 restore</code></pre>
 <p>ถ้าลืมว่า backup ไฟล์ไหน:</p>
 <pre><code class="lang-powershell">Get-ChildItem .\backups\*_apply-*.json | Sort-Object LastWriteTime -Descending |
   Select-Object -First 5 Name, LastWriteTime</code></pre>
-<h3 id="sec-8">กรณีที่ 2: บูตช้า/ค้างหลังแก้ bcdedit</h3>
+<h3 id="sec-9">กรณีที่ 2: บูตช้า/ค้างหลังแก้ bcdedit</h3>
 <ol>
 <li>บูตเข้า <strong>Safe Mode</strong> (กด Shift ค้างตอนกด Restart → Troubleshoot → Advanced → Startup Settings → Safe Mode)</li>
 <li>เปิด Command Prompt (Admin)</li>
@@ -136,23 +150,23 @@ powercfg -h on</code></pre>
 <li>รีบูตปกติ</li>
 </ol>
 <p>หรือใช้ <strong>System Restore</strong> (<code>rstrui.exe</code>) ย้อนไปจุดก่อนหน้า</p>
-<h3 id="sec-9">กรณีที่ 3: power scheme เสียหายทั้งหมด</h3>
+<h3 id="sec-10">กรณีที่ 3: power scheme เสียหายทั้งหมด</h3>
 <pre><code class="lang-powershell"># คืนค่า scheme มาตรฐานของ Windows (ไม่ลบ scheme ที่สร้างเอง)
 powercfg -restoredefaultschemes</code></pre>
 <p>⚠️ คำสั่งนี้ลบ power plan ที่ผู้ใช้สร้าง<strong>ทั้งหมด</strong> รวม <code>LEVEL51 Ultimate Performance</code> และ <code>GameTurbo</code> ของคุณ — ใช้เป็นทางเลือกสุดท้าย</p>
-<h3 id="sec-10">กรณีที่ 4: บริการที่ปิดทำให้ Windows ทำงานผิดปกติ</h3>
+<h3 id="sec-11">กรณีที่ 4: บริการที่ปิดทำให้ Windows ทำงานผิดปกติ</h3>
 <pre><code class="lang-powershell"># เปิดบริการกลับเป็น Manual (ค่า default ของส่วนใหญ่)
 foreach ($s in &#39;SysMain&#39;,&#39;WSearch&#39;,&#39;DiagTrack&#39;,&#39;dmwappushservice&#39;,&#39;MapsBroker&#39;) {
   Set-Service -Name $s -StartupType Manual -ErrorAction SilentlyContinue
   Start-Service -Name $s -ErrorAction SilentlyContinue
 }</code></pre>
-<h3 id="sec-11">กรณีที่ 5: registry ผิดปกติ</h3>
+<h3 id="sec-12">กรณีที่ 5: registry ผิดปกติ</h3>
 <ul>
 <li>ใช้ <code>System Restore</code> (จะคืน registry snapshot)</li>
 <li>หรือใช้ <code>reg export</code>/<code>reg import</code> ถ้าสำรองไว้</li>
 <li><strong>อย่า</strong> แก้ registry ด้วยมือถ้าไม่แน่ใจ — <code>HKLM\SYSTEM</code> ผิดพลาดอาจทำให้บูตไม่ขึ้น</li>
 </ul>
-<h2 id="sec-12">Checklist ก่อน apply ครั้งแรก</h2>
+<h2 id="sec-13">Checklist ก่อน apply ครั้งแรก</h2>
 <pre><code>[ ] อ่าน docs/04-โปรไฟล์.md แล้วเลือกโปรไฟล์ที่ตรงกับงาน
 [ ] รัน bench -Label before และบันทึกผล
 [ ] รัน apply -DryRun และอ่านทุกรายการ
@@ -161,14 +175,14 @@ foreach ($s in &#39;SysMain&#39;,&#39;WSearch&#39;,&#39;DiagTrack&#39;,&#39;dmwa
 [ ] มีไฟล์สำคัญสำรองไว้
 [ ] รู้วิธีเข้าถึง Safe Mode
 [ ] รู้คำสั่ง restore</code></pre>
-<h2 id="sec-13">Checklist หลัง apply</h2>
+<h2 id="sec-14">Checklist หลัง apply</h2>
 <pre><code>[ ] รัน status — ไม่มีอะไรผิดปกติ
 [ ] รัน audit -Profile &lt;ชื่อ&gt; — ตรวจว่า OK ตามที่ควร
 [ ] ใช้งานปกติ 30 นาที — ไม่มีอาการแปลก
 [ ] เล่นเกม/ทำงานหนัก 15 นาที — ดูอุณหภูมิและ frametime
 [ ] bench -Label after แล้ว compare
 [ ] ถ้าไม่พอใจ → restore</code></pre>
-<h2 id="sec-14">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</h2>
+<h2 id="sec-15">ระดับความเสี่ยงและผลกระทบที่อาจเกิดขึ้น</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>Tweak</th><th>ถ้าผิดพลาดจะเป็นอย่างไร</th><th>ความสามารถกู้คืน</th></tr></thead>
 <tbody>
@@ -182,21 +196,21 @@ foreach ($s in &#39;SysMain&#39;,&#39;WSearch&#39;,&#39;DiagTrack&#39;,&#39;dmwa
 <tr><td>IDLEDISABLE</td><td>เครื่องร้อน idle</td><td>restore</td></tr>
 </tbody>
 </table></div>
-<h2 id="sec-15">ข้อควรระวังเฉพาะเครื่องนี้</h2>
+<h2 id="sec-16">ข้อควรระวังเฉพาะเครื่องนี้</h2>
 <ol>
 <li><strong>อย่า apply <code>max</code> แล้วปิดเครื่องทันที</strong> — scheme ใหม่จะยัง active อยู่ตอนบูตครั้งถัดไป ต้องรอให้แน่ใจว่าเครื่องเสถียรก่อน</li>
 <li><strong>Windows Update อาจรีเซ็ต registry บางค่า</strong> — audit หลังอัปเดตใหญ่ทุกครั้ง</li>
 <li><strong>อย่าใช้หลายเครื่องมือพร้อมกัน</strong> — ThrottleStop + Level51Tune + Control Center อาจเขียนทับกันจนหาสาเหตุไม่ได้</li>
 <li><strong>Fast Startup ปิดอยู่หรือไม่</strong> — ถ้าเปิด (default) การ shutdown จะไม่รีเซ็ตไดรเวอร์จริง ทำให้ tweak ที่ &quot;ต้อง reboot&quot; อาจไม่ทำงานจนกว่าจะ restart จริง</li>
 </ol>
-<h2 id="sec-16">การเก็บ backup ระยะยาว</h2>
+<h2 id="sec-17">การเก็บ backup ระยะยาว</h2>
 <p><code>backups/</code> ถูก gitignore ไว้ (ไม่ขึ้น GitHub) จึงควร:</p>
 <ul>
 <li>คัดลอกโฟลเดอร์ <code>backups/</code> ไปเก็บที่อื่นเป็นระยะ</li>
 <li>หรือรัน <code>report</code> เก็บไว้เป็นหลักฐานสถานะ</li>
 <li>เก็บไฟล์ <code>state/last.json</code> ไว้ด้วยถ้าอยากรู้ว่าล่าสุดทำอะไร</li>
 </ul>
-<h2 id="sec-17">สรุป</h2>
+<h2 id="sec-18">สรุป</h2>
 <ol>
 <li><code>-DryRun</code> ฟรีและปลอดภัย — ใช้ทุกครั้งก่อน apply</li>
 <li>backup ถูกสร้างอัตโนมัติ ไม่ต้องสั่งเอง</li>

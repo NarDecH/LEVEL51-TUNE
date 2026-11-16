@@ -129,7 +129,9 @@ function Get-L51TraySummary {
     } catch { }
     $restart = ''
     if ((Get-L51RestartInfo).Pending) { $restart = ' · ต้องรีสตาร์ทเครื่อง' }
-    return ('LEVEL51 · {0}{1}{2}' -f $profileName, $gpuText, $restart)
+    $watchdogText = ''
+    try { if ((Get-L51WatchdogStatus).Active) { $watchdogText = ' · watchdog รอตรวจ' } } catch { }
+    return ('LEVEL51 · {0}{1}{2}{3}' -f $profileName, $gpuText, $restart, $watchdogText)
 }
 
 if ($script:SelfTest) {
@@ -177,7 +179,15 @@ $miStatus.Add_Click({
             $notify.ShowBalloonTip(4000)
         } catch { }
     })
+$miWatch = New-Object System.Windows.Forms.ToolStripMenuItem('ยืนยันว่าระบบปกติ (watchdog)')
+$miWatch.Add_Click({
+        try {
+            $r = Invoke-L51Watchdog -Confirm
+            Show-L51Notice -Title 'LEVEL51-TUNE · watchdog' -Text $r.Reason
+        } catch { }
+    })
 [void]$menu.Items.Add($miStatus)
+[void]$menu.Items.Add($miWatch)
 
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 

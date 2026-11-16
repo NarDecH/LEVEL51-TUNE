@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.0.15'
+$script:L51Version = '1.1.0'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -518,6 +518,283 @@ function Save-L51State {
     $State | ConvertTo-Json -Depth 8 | Set-Content -Path $file -Encoding UTF8
 }
 
+# ===========================================================================
+# Watchdog (boot sentinel + auto-revert)
+# ===========================================================================
+
+$script:L51WatchdogGraceMinutes = 10
+$script:L51WatchdogExpireMinutes = 30
+
+function Get-L51WatchdogPath {
+    $paths = Get-L51Paths
+    return (Join-Path $paths.State 'watchdog.json')
+}
+
+function Get-L51WatchdogState {
+    param([string]$Path)
+
+    if (-not $Path) { $Path = Get-L51WatchdogPath }
+    if (-not (Test-Path $Path)) { return $null }
+    try { return (Get-Content -Path $Path -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { return $null }
+}
+
+function Save-L51WatchdogState {
+    param($State, [string]$Path)
+
+    if (-not $Path) { $Path = Get-L51WatchdogPath }
+    $State | ConvertTo-Json -Depth 6 | Set-Content -Path $Path -Encoding UTF8
+    return $Path
+}
+
+function Remove-L51WatchdogState {
+    param([string]$Path)
+
+    if (-not $Path) { $Path = Get-L51WatchdogPath }
+    if (Test-Path $Path) { Remove-Item -Path $Path -Force; return $true }
+    return $false
+}
+
+function New-L51WatchdogState {
+    # sentinel ที่เขียนก่อนคำสั่งเปลี่ยนแปลงแรกของ apply (invariant 1)
+    param(
+        [string]$BackupPath,
+        [string]$Profile,
+        [int]$ExpiresMinutes = 30,
+        [int]$GraceMinutes = 10,
+        $AppliedAt
+    )
+
+    if (-not $AppliedAt) { $AppliedAt = Get-Date }
+    $dt = [datetime]$AppliedAt
+    return [ordered]@{
+        Version      = 1
+        Created      = $dt.ToString('o')
+        AppliedAt    = $dt.ToString('o')
+        ExpiresAt    = $dt.AddMinutes($ExpiresMinutes).ToString('o')
+        GraceMinutes = $GraceMinutes
+        Profile      = $Profile
+        Backup       = $BackupPath
+        ConfirmedAt  = $null
+        RevertedAt   = $null
+        Reason       = $null
+    }
+}
+
+function Get-L51CrashEvents {
+    # เหตุการณ์ที่บ่งชี้ว่าเครื่อง shutdown/crash ผิดปกติหลัง apply
+    param([datetime]$Since, [int]$Max = 20)
+
+    $out = @()
+    if (-not $Since) { return $out }
+    try {
+        $filter = @{ LogName = 'System'; Id = @(41, 1001, 6008); StartTime = $Since }
+        $out = @(Get-WinEvent -FilterHashtable $filter -MaxEvents $Max -ErrorAction Stop | ForEach-Object {
+                [pscustomobject]@{
+                    Time     = $_.TimeCreated.ToString('o')
+                    Id       = $_.Id
+                    Provider = $_.ProviderName
+                    Summary  = (([string]$_.Message) -split "`r?`n")[0]
+                }
+            })
+    } catch { }
+    return $out
+}
+
+function Get-L51WatchdogDecision {
+    # ตรรกะล้วน (pure) เพื่อให้ทดสอบได้โดยไม่ต้องมีสิทธิ์ admin หรือ reboot จริง
+    param(
+        $Watchdog,
+        $BootTime,
+        $Now = (Get-Date),
+        $CrashEvents = @(),
+        [int]$DefaultGraceMinutes = 10
+    )
+
+    $res = [pscustomobject]@{
+        Action = 'None'; Reason = ''; AgeMinutes = 0; UptimeMinutes = 0
+        Rebooted = $false; Crashes = 0
+    }
+    if (-not $Watchdog) { $res.Reason = 'ไม่มี sentinel'; return $res }
+    if ($Watchdog.ConfirmedAt) { $res.Reason = ('ยืนยันแล้วเมื่อ ' + $Watchdog.ConfirmedAt); return $res }
+    if ($Watchdog.RevertedAt) { $res.Reason = ('ย้อนกลับแล้วเมื่อ ' + $Watchdog.RevertedAt); return $res }
+
+    $grace = $DefaultGraceMinutes
+    if ($Watchdog.GraceMinutes) { $grace = [int]$Watchdog.GraceMinutes }
+    try { $res.AgeMinutes = [math]::Round(([datetime]$Now - [datetime]$Watchdog.AppliedAt).TotalMinutes, 1) } catch { }
+
+    $res.Crashes = @($CrashEvents | Where-Object { $_ }).Count
+    $res.Rebooted = Test-L51RebootSinceApplied -AppliedAt $Watchdog.AppliedAt -BootTime $BootTime
+
+    if ($res.Crashes -gt 0) {
+        $res.Action = 'Revert'
+        $res.Reason = ('พบเหตุการณ์ crash/shutdown ผิดปกติ {0} ครั้งหลัง apply' -f $res.Crashes)
+        return $res
+    }
+    if ($res.Rebooted) {
+        try { $res.UptimeMinutes = [math]::Round(([datetime]$Now - [datetime]$BootTime).TotalMinutes, 1) } catch { }
+        if ($res.UptimeMinutes -ge $grace) {
+            $res.Action = 'Healthy'
+            $res.Reason = ('บูตผ่านและเสถียร {0} นาที' -f [math]::Round($res.UptimeMinutes, 0))
+        } else {
+            $res.Action = 'Wait'
+            $res.Reason = ('รออีก {0} นาทีเพื่อยืนยันความเสถียร' -f [math]::Round(($grace - $res.UptimeMinutes), 0))
+        }
+        return $res
+    }
+    if ($Watchdog.ExpiresAt) {
+        try {
+            if ([datetime]$Now -ge [datetime]$Watchdog.ExpiresAt) {
+                $res.Action = 'Expired'
+                $res.Reason = 'ไม่มีการ restart ภายในเวลาที่กำหนด (ถือว่าปกติ)'
+                return $res
+            }
+        } catch { }
+    }
+    $res.Action = 'Wait'
+    $res.Reason = 'รอ restart เพื่อยืนยัน'
+    return $res
+}
+
+function Get-L51WatchdogStatus {
+    param([switch]$Check, [string]$Path)
+
+    $wd = Get-L51WatchdogState -Path $Path
+    if (-not $wd) {
+        return [pscustomobject]@{
+            Active = $false; Action = 'None'; Reason = 'ไม่มี sentinel'; Rebooted = $false
+            UptimeMinutes = 0; AgeMinutes = 0; ExpiresAt = $null; Profile = $null
+            Backup = $null; Watchdog = $null; Crashes = @()
+        }
+    }
+
+    $boot = $null
+    try { $boot = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime } catch { }
+    $crashes = @()
+    if ($Check) {
+        try { $crashes = @(Get-L51CrashEvents -Since ([datetime]$wd.AppliedAt)) } catch { }
+    }
+    $d = Get-L51WatchdogDecision -Watchdog $wd -BootTime $boot -CrashEvents $crashes
+    # Active = "ยังต้องให้ความสนใจ" — sentinel ที่ยืนยัน/ย้อนกลับแล้วไม่นับ
+    $needsAttention = $true
+    if ($wd.ConfirmedAt -or $wd.RevertedAt) { $needsAttention = $false }
+    return [pscustomobject]@{
+        Active        = $needsAttention
+        Action        = $d.Action
+        Reason        = $d.Reason
+        Rebooted      = $d.Rebooted
+        UptimeMinutes = $d.UptimeMinutes
+        AgeMinutes    = $d.AgeMinutes
+        ExpiresAt     = $wd.ExpiresAt
+        Profile       = $wd.Profile
+        Backup        = $wd.Backup
+        Watchdog      = $wd
+        Crashes       = $crashes
+    }
+}
+
+function Invoke-L51Watchdog {
+    # -Confirm : ผู้ใช้บอกว่าเครื่องปกติ → ปิด sentinel
+    # -Auto    : ตัดสินใจเอง (ใช้โดย Scheduled Task ตอน logon)
+    # ไม่ระบุสวิตช์ : แสดงสถานะเท่านั้น
+    param([switch]$Confirm, [switch]$Auto, [switch]$DryRun)
+
+    $status = Get-L51WatchdogStatus -Check
+
+    if ($Confirm) {
+        if (-not $status.Watchdog) {
+            return [pscustomobject]@{ Action = 'None'; Reason = 'ไม่มี sentinel ให้ยืนยัน'; Backup = $null }
+        }
+        $wd = $status.Watchdog
+        $merged = [ordered]@{}
+        foreach ($p in $wd.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+        $merged['ConfirmedAt'] = (Get-Date).ToString('o')
+        $merged['Reason'] = 'ผู้ใช้ยืนยันว่าระบบทำงานปกติ'
+        Save-L51WatchdogState -State $merged | Out-Null
+        Write-L51Log 'watchdog: ผู้ใช้ยืนยันว่าระบบปกติ — ปิด sentinel' 'OK'
+        return [pscustomobject]@{ Action = 'Confirmed'; Reason = $merged['Reason']; Backup = $wd.Backup }
+    }
+
+    if (-not $status.Active) {
+        # แสดงสถานะ (ไม่ระบุ -Auto) ต้องคืนออบเจกต์เต็มที่่มี Watchdog มาด้วย
+        if (-not $Auto) { return $status }
+        Write-L51Log 'watchdog: sentinel ถูกปิดไปแล้ว — ไม่มีอะไรต้องทำ' 'DEBUG'
+        return [pscustomobject]@{ Action = 'None'; Reason = $status.Reason; Backup = $status.Backup }
+    }
+    if (-not $Auto) { return $status }
+
+    $wd = $status.Watchdog
+    $merged = [ordered]@{}
+    foreach ($p in $wd.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+
+    if ($status.Action -eq 'Healthy') {
+        $merged['ConfirmedAt'] = (Get-Date).ToString('o')
+        $merged['Reason'] = $status.Reason
+        Save-L51WatchdogState -State $merged | Out-Null
+        Write-L51Log ('watchdog: {0} — ปิด sentinel' -f $status.Reason) 'OK'
+        return [pscustomobject]@{ Action = 'Healthy'; Reason = $status.Reason; Backup = $wd.Backup }
+    }
+
+    if ($status.Action -eq 'Expired') {
+        $null = Remove-L51WatchdogState
+        Write-L51Log ('watchdog: {0} — ลบ sentinel' -f $status.Reason) 'INFO'
+        return [pscustomobject]@{ Action = 'Expired'; Reason = $status.Reason; Backup = $wd.Backup }
+    }
+
+    if ($status.Action -eq 'Revert') {
+        if ($DryRun) {
+            return [pscustomobject]@{ Action = 'Revert'; Reason = ('จะย้อนกลับจาก ' + $wd.Backup); Backup = $wd.Backup; DryRun = $true }
+        }
+        $ok = $false
+        $err = ''
+        try {
+            $null = Invoke-L51Restore -BackupPath $wd.Backup
+            $ok = $true
+        } catch {
+            $err = $_.Exception.Message
+        }
+        $merged['RevertedAt'] = (Get-Date).ToString('o')
+        if ($ok) { $merged['Reason'] = ('ย้อนกลับอัตโนมัติ: ' + $status.Reason) }
+        else { $merged['Reason'] = ('ย้อนกลับล้มเหลว: ' + $err) }
+        Save-L51WatchdogState -State $merged | Out-Null
+        if ($ok) { Write-L51Log ('watchdog: {0} — ย้อนกลับจาก {1} แล้ว' -f $status.Reason, $wd.Backup) 'WARN' }
+        else { Write-L51Log ('watchdog: ย้อนกลับล้มเหลว — ' + $err) 'ERR' }
+        return [pscustomobject]@{ Action = 'Reverted'; Reason = $merged['Reason']; Backup = $wd.Backup; Ok = $ok }
+    }
+
+    Write-L51Log ('watchdog: {0}' -f $status.Reason) 'DEBUG'
+    return [pscustomobject]@{ Action = $status.Action; Reason = $status.Reason; Backup = $wd.Backup }
+}
+
+function Install-L51Watchdog {
+    # ติดตั้ง/ถอน Scheduled Task (AtLogOn, SYSTEM) ที่รัน `watchdog -Auto`
+    param([switch]$Uninstall)
+
+    Assert-L51Admin -Action 'การติดตั้ง watchdog (Scheduled Task)'
+    $taskName = 'LEVEL51-TUNE Watchdog'
+
+    if ($Uninstall) {
+        $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+        if ($task) {
+            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+            Write-L51Log 'watchdog: ลบ Scheduled Task แล้ว' 'OK'
+            return $true
+        }
+        Write-L51Log 'watchdog: ไม่มี Scheduled Task ให้ลบ' 'INFO'
+        return $false
+    }
+
+    $cli = Join-Path $script:L51Root 'Level51Tune.ps1'
+    $arg = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" watchdog -Auto' -f $cli
+    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arg
+    $trigger = New-ScheduledTaskTrigger -AtLogOn
+    $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings `
+        -Description 'LEVEL51-TUNE watchdog: ตรวจ sentinel หลัง logon และย้อนกลับถ้าเครื่องไม่เสถียร' -Force | Out-Null
+    Write-L51Log 'watchdog: ติดตั้ง Scheduled Task (AtLogOn, SYSTEM) แล้ว' 'OK'
+    return $true
+}
+
 function New-L51BackupFile {
     param($Backup)
     $paths = Get-L51Paths
@@ -736,6 +1013,14 @@ function Invoke-L51Apply {
             -SchemeGuid $stateScheme -BaseScheme $stateBase `
             -RestartRequired $restartRequired -RebootTweaks $rebootTweaks
         Save-L51State -State $state
+
+        # watchdog sentinel: ถ้าเครื่องบูตไม่ขึ้น/BSOD หลัง apply จะย้อนกลับให้อัตโนมัติ
+        if ($backupPath) {
+            $watchdog = New-L51WatchdogState -BackupPath $backupPath -Profile $Profile `
+                -ExpiresMinutes $script:L51WatchdogExpireMinutes -GraceMinutes $script:L51WatchdogGraceMinutes
+            Save-L51WatchdogState -State $watchdog | Out-Null
+            Write-L51Log 'watchdog: ตั้ง sentinel รอการยืนยัน (ปิดได้ด้วย: .\Level51Tune.ps1 watchdog -Confirm)' 'INFO'
+        }
 
         if ($hasPower -and $lastState -and $lastState.SchemeGuid -and $lastState.SchemeGuid -ne $tuneGuid) {
             Remove-L51Scheme -Guid $lastState.SchemeGuid
@@ -1435,6 +1720,9 @@ Export-ModuleMember -Function @(
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
     'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'Get-L51Status', 'New-L51Report',
+    'Get-L51WatchdogPath', 'Get-L51WatchdogState', 'Save-L51WatchdogState', 'Remove-L51WatchdogState',
+    'New-L51WatchdogState', 'Get-L51WatchdogDecision', 'Get-L51WatchdogStatus', 'Invoke-L51Watchdog',
+    'Install-L51Watchdog', 'Get-L51CrashEvents',
     'Test-L51TweakApplied', 'Test-L51PortOpen', 'Build-L51Docs', 'Get-L51Version', 'Get-L51DashboardHtml',
     'Invoke-L51Bench', 'Get-L51BenchHistory', 'Compare-L51Bench', 'Measure-L51Latency', 'Get-L51LiveMetrics',
     'Get-L51CustomSelection', 'Save-L51CustomSelection',

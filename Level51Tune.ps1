@@ -33,7 +33,11 @@ param(
     [switch]$Custom,
     [string]$AppPath,
     [string]$Mode = 'dgpu',
-    [switch]$Remove
+    [switch]$Remove,
+    [switch]$Confirm,
+    [switch]$Auto,
+    [switch]$Install,
+    [switch]$Uninstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,6 +92,7 @@ function Show-L51Help {
         @('recommend', 'วิเคราะห์ฮาร์ดแวร์และแนะนำโปรไฟล์/จุดที่ควรแก้'),
         @('update', 'ตรวจว่ามีเวอร์ชันใหม่บน GitHub หรือไม่ (อ่าน metadata เท่านั้น)'),
         @('history', 'รายการ backup ทั้งหมด (ระบุไฟล์เพื่อ restore ทีละครั้ง)'),
+        @('watchdog [-Confirm|-Auto|-Install|-Uninstall]', 'สถานะ watchdog / ยืนยันว่าเครื่องปกติ / ติดตั้ง Scheduled Task'),
         @('gpuprefs [-AppPath FILE -Mode dgpu|igpu|auto] [-Remove]', 'ตั้ง GPU ต่อแอป (Optimus)'),
         @('gpu', 'สรุปสถานะ GPU จาก nvidia-smi'),
         @('docs [-Open]', 'สร้าง docs/*.html จาก docs/*.md'),
@@ -256,6 +261,49 @@ try {
             Write-Host ("  ล่าสุดบน GitHub : {0}{1}" -f $u.Latest, $pubText)
             if ($u.UpToDate) { Write-Host '  → เป็นเวอร์ชันล่าสุดแล้ว' -ForegroundColor Green }
             else { Write-Host ("  → มีเวอร์ชันใหม่: {0}" -f $u.Url) -ForegroundColor Yellow }
+            break
+        }
+
+        'watchdog' {
+            if ($Install -or $Uninstall) {
+                $null = Install-L51Watchdog -Uninstall:$Uninstall
+                if ($Uninstall) { Write-Host '  ลบ Scheduled Task ของ watchdog แล้ว' -ForegroundColor Green }
+                else { Write-Host '  ติดตั้ง Scheduled Task "LEVEL51-TUNE Watchdog" (AtLogOn, SYSTEM) แล้ว' -ForegroundColor Green }
+                break
+            }
+            if ($Confirm) {
+                $r = Invoke-L51Watchdog -Confirm
+                Write-Host ('  watchdog: {0} — {1}' -f $r.Action, $r.Reason) -ForegroundColor Green
+                break
+            }
+            if ($Auto) {
+                $null = Invoke-L51Watchdog -Auto -DryRun:$DryRun
+                break
+            }
+
+            $st = Invoke-L51Watchdog
+            Write-Host ''
+            if (-not $st.Watchdog) {
+                Write-Host '  watchdog: ไม่มี sentinel ค้างอยู่ (ยังไม่ได้ apply หรือยืนยันไปแล้ว)' -ForegroundColor DarkGray
+                Write-Host '  ให้ตรวจอัตโนมัติทุกครั้งที่ logon: .\Level51Tune.ps1 watchdog -Install' -ForegroundColor DarkGray
+                Write-Host ''
+                break
+            }
+            $color = 'Yellow'
+            if ($st.Action -in @('Healthy', 'Expired')) { $color = 'Green' }
+            if ($st.Action -eq 'Revert') { $color = 'Red' }
+            Write-Host ('  watchdog: {0} — {1}' -f $st.Action, $st.Reason) -ForegroundColor $color
+            Write-Host ('  โปรไฟล์  : {0}' -f $st.Profile)
+            Write-Host ('  backup    : {0}' -f $st.Backup)
+            Write-Host ('  หมดอายุ   : {0}' -f $st.ExpiresAt)
+            Write-Host ''
+            if ($st.Action -eq 'Revert') {
+                Write-Host '  ย้อนกลับทันที: .\Level51Tune.ps1 watchdog -Auto' -ForegroundColor Red
+            } else {
+                Write-Host '  ถ้าเครื่องทำงานปกติ: .\Level51Tune.ps1 watchdog -Confirm' -ForegroundColor DarkGray
+                Write-Host '  ตรวจอัตโนมัติที่ logon: .\Level51Tune.ps1 watchdog -Install (ต้อง admin)' -ForegroundColor DarkGray
+            }
+            Write-Host ''
             break
         }
 

@@ -46,6 +46,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 | `/api/live` | GET | ค่าสด: CPU load/clock, RAM, GPU clock/temp/power | ไม่ |
 | `/api/compare` | POST | วัด benchmark ใหม่ + เทียบกับครั้งก่อน | ไม่ |
 | `/api/open-dashboard` | POST + `X-L51-Open: 1` | คืน URL พร้อม token ของ session (ไม่ต้องมี token, ห้ามมี `Origin`) | ไม่ |
+| `/api/watchdog` | GET / POST `{action:'confirm'}` | สถานะ sentinel / ปิด sentinel เมื่อผู้ใช้ยืนยันว่าเครื่องปกติ | ไม่ |
 | `/docs/*` | GET | เอกสาร HTML ใน `docs/` | ไม่ |
 
 ## ความปลอดภัยของ Web GUI
@@ -127,6 +128,7 @@ Level51Tune.psm1  ← engine (detect / backup / apply / restore / audit / bench 
 20. ~~เคลียร์ alert อัตโนมัติหลัง reboot~~ **เสร็จแล้ว**: `Get-L51RestartInfo` ใช้ `Test-L51RebootSinceApplied` เทียบ `LastBootUpTime` กับ `AppliedAt` — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)
 21. ~~บันทึก state ทุก apply~~ **แก้บั๊กแล้ว**: เดิมการ save ถูกผูกกับ `$hasPower` ทำให้โปรไฟล์ที่ registry ล้วน (เช่น `balanced`) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ `New-L51ApplyState` และบันทึกทุกครั้งที่ apply สำเร็จ
 22. ทดสอบเมนู tray แบบไม่ต้องกด UAC: `.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]` แสดง tooltip จริง, ผลตรวจพอร์ต, ผลเรียก `/api/open-dashboard`, และคำสั่งที่จะเปิด Dashboard
+24. ~~watchdog กันเครื่องพังหลัง apply~~ **เสร็จแล้ว**: sentinel `state/watchdog.json` เขียนทุกครั้งที่ apply จริง + `Get-L51WatchdogDecision` (ตรรกะล้วน ทดสอบได้โดยไม่ reboot) + `watchdog -Auto` ให้ Scheduled Task (AtLogOn, SYSTEM) ตรวจและ `restore` อัตโนมัติเมื่อเจอ Event 41/1001/6008 — GUI มีแบนเนอร์ + ปุ่มยืนยัน, tray มีเมนูยืนยัน (ดู [Watchdog](16-Watchdog.md))
 23. ~~เปิด Dashboard จาก tray แล้วได้หน้าเว็บจริง~~ **เสร็จแล้ว**: `Start-L51Dashboard` ขอ URL จาก `POST /api/open-dashboard` แล้ว tray เป็นคนเรียก `Start-Process <url>` เอง (tray ไม่ได้ elevated → ได้เบราว์เซอร์ของผู้ใช้ปกติ) ถ้ายังไม่มีเซิร์ฟเวอร์จะเปิดตัวใหม่แบบ Administrator พร้อม `-NoBrowser` แล้วรอ URL สูงสุด 60 วินาที — token ไม่ถูกเขียนลงดิสก์ และห้ามใช้ `explorer.exe` เปิด URL เพราะมันตีความเป็นพาธแล้วเปิด File Explorer
 18. ทางเลือกที่ไม่ต้องซื้อ cert: (ก) `tools/New-SigningCert.ps1` สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ `.cer` เข้า `TrustedPeople` ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) · (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ **SignPath Foundation** (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ
 

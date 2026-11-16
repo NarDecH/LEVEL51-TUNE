@@ -27,6 +27,9 @@
 | `recommend` | ไม่ | ไม่ | 1-2 วินาที | วิเคราะห์ฮาร์ดแวร์และแนะนำโปรไฟล์ |
 | `update` | ไม่ | ไม่ | 1-3 วินาที | ตรวจเวอร์ชันใหม่บน GitHub (ต้องต่อเน็ต) |
 | `history` | ไม่ | ไม่ | ทันที | รายการ backup ทั้งหมด (เลือก restore ทีละครั้ง) |
+| `watchdog` | ไม่ | ไม่ | ทันที | สถานะ sentinel ที่ apply ไว้ (ดู [Watchdog](16-Watchdog.md)) |
+| `watchdog -Confirm` | ไม่ | ไม่ | ทันที | ยืนยันว่าเครื่องปกติ → ปิด sentinel |
+| `watchdog -Install` | ใช่ | ใช่ | 1-2 วินาที | ติดตั้ง Scheduled Task (AtLogOn, SYSTEM) ให้ตรวจอัตโนมัติ |
 | `gpuprefs` | ไม่ | ใช่ (HKCU เท่านั้น) | ทันที | ตั้ง GPU ต่อแอป (Optimus) |
 | `compare` | ไม่ | ไม่ | ทันที | เทียบผลวัด |
 | `gpu` | ไม่ | ไม่ | 1 วินาที | สถานะ GPU |
@@ -281,14 +284,14 @@
 ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน `/tags` และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:
 
 ```bash
-git tag -a v1.0.15 -m "LEVEL51-TUNE 1.0.15"
-git push origin v1.0.15
+git tag -a v1.1.0 -m "LEVEL51-TUNE 1.1.0"
+git push origin v1.1.0
 ```
 
 หรือสร้าง Release จากหน้า GitHub / `gh` CLI (แนบทั้ง zip และ msix):
 
 ```bash
-gh release create v1.0.15 dist/LEVEL51-TUNE-1.0.15.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
+gh release create v1.1.0 dist/LEVEL51-TUNE-1.1.0.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
 ``` — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
 
 ## gpu
@@ -384,6 +387,7 @@ dashboard มี 5 แท็บ: **ภาพรวม** (ฮาร์ดแว�
 | `/api/processes` | GET | รายชื่อโปรเซส (ตัวช่วยเลือก .exe) |
 | `/api/update` | GET | ตรวจเวอร์ชันล่าสุดบน GitHub |
 | `/api/open-dashboard` | POST | คืน URL พร้อม token ของ session นี้ (tray ใช้เปิดเบราว์เซอร์) |
+| `/api/watchdog` | GET/POST | สถานะ sentinel / `{action:"confirm"}` เพื่อปิด sentinel |
 | `/docs/*` | GET | เอกสาร HTML |
 
 header ที่ต้องส่ง: `X-L51-Token: <token>` (token พิมพ์อยู่ใน console ตอนเริ่ม และฝังใน URL ของ dashboard แล้ว)

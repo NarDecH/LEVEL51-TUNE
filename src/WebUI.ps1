@@ -108,6 +108,7 @@ canvas{width:100%;height:70px;display:block}
   </header>
 
   <div class="restartbar" id="restart-banner" style="display:none"></div>
+  <div class="restartbar" id="watchdog-banner" style="display:none"></div>
 
   <div class="tabs">
     <button class="tab active" data-view="overview" onclick="switchView('overview')">ภาพรวม</button>
@@ -252,6 +253,16 @@ function busy(on, text){
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
+async function confirmWatchdog(){
+  try {
+    busy(true, 'กำลังยืนยัน…');
+    const r = await api('/api/watchdog', { action: 'confirm' });
+    toast('watchdog: ' + r.reason);
+    loadStatus();
+  } catch (e) { toast('ยืนยันไม่สำเร็จ: ' + e.message, true); }
+  finally { busy(false, ''); }
+}
+
 function switchView(name){
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
@@ -280,6 +291,16 @@ async function loadStatus(){
       rbar.innerHTML = '<span>⚠</span><span><b>ต้องรีสตาร์ทเครื่อง</b> ค่าบางรายการจะยังไม่เต็มที่จนกว่าจะ restart: <code>' +
         esc((d.state.rebootTweaks || []).join(', ')) + '</code><br><span class="hint">รัน <code>Restart-Computer</code> ใน PowerShell — ถ้าปิดเครื่องแล้วค่าไม่ติด ให้ปิด Fast Startup ก่อน</span></span>';
     } else { rbar.style.display = 'none'; rbar.innerHTML = ''; }
+
+    // watchdog sentinel: แสดงเฉพาะตอนที่ยังไม่ยืนยัน/ยังไม่หมดอายุ
+    const wbar = document.getElementById('watchdog-banner');
+    const wd = d.state && d.state.watchdog;
+    if (wd && wd.active && wd.action !== 'None' && wd.action !== 'Healthy' && wd.action !== 'Expired') {
+      wbar.style.display = 'flex';
+      wbar.innerHTML = '<span>🛡</span><span><b>watchdog</b> ' + esc(wd.action) + ' — ' + esc(wd.reason) +
+        '<br><span class="hint">ถ้าเครื่องทำงานปกติ กดปุ่มด้านขวาเพื่อปิด sentinel (ไม่ต้อง admin) — ถ้าเครื่อง crash หลัง apply ระบบจะย้อนกลับจาก backup ให้เอง</span></span>' +
+        '<button data-keep="1" onclick="confirmWatchdog()">ยืนยันว่าระบบปกติ</button>';
+    } else { wbar.style.display = 'none'; wbar.innerHTML = ''; }
 
     const g = d.gpu;
     const hw = [

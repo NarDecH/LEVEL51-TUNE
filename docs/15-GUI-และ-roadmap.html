@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -29,8 +29,9 @@
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item active" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+      <a class="nav-item" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.15</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -87,6 +88,7 @@
 <tr><td><code>/api/live</code></td><td>GET</td><td>ค่าสด: CPU load/clock, RAM, GPU clock/temp/power</td><td>ไม่</td></tr>
 <tr><td><code>/api/compare</code></td><td>POST</td><td>วัด benchmark ใหม่ + เทียบกับครั้งก่อน</td><td>ไม่</td></tr>
 <tr><td><code>/api/open-dashboard</code></td><td>POST + <code>X-L51-Open: 1</code></td><td>คืน URL พร้อม token ของ session (ไม่ต้องมี token, ห้ามมี <code>Origin</code>)</td><td>ไม่</td></tr>
+<tr><td><code>/api/watchdog</code></td><td>GET / POST <code>{action:&#39;confirm&#39;}</code></td><td>สถานะ sentinel / ปิด sentinel เมื่อผู้ใช้ยืนยันว่าเครื่องปกติ</td><td>ไม่</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML ใน <code>docs/</code></td><td>ไม่</td></tr>
 </tbody>
 </table></div>
@@ -167,6 +169,7 @@
 <li><del>เคลียร์ alert อัตโนมัติหลัง reboot</del> <strong>เสร็จแล้ว</strong>: <code>Get-L51RestartInfo</code> ใช้ <code>Test-L51RebootSinceApplied</code> เทียบ <code>LastBootUpTime</code> กับ <code>AppliedAt</code> — ถ้า reboot ไปแล้วจะเคลียร์ flag และเขียน state ใหม่ (ทดสอบด้วยการจำลองเวลา boot แล้ว ไม่ต้องรีบูตจริง)</li>
 <li><del>บันทึก state ทุก apply</del> <strong>แก้บั๊กแล้ว</strong>: เดิมการ save ถูกผูกกับ <code>$hasPower</code> ทำให้โปรไฟล์ที่ registry ล้วน (เช่น <code>balanced</code>) ไม่เขียน state → สถานะ/แบนเนอร์ล้าสมัย ตอนนี้ใช้ <code>New-L51ApplyState</code> และบันทึกทุกครั้งที่ apply สำเร็จ</li>
 <li>ทดสอบเมนู tray แบบไม่ต้องกด UAC: <code>.\Level51Tune.Tray.ps1 -SelfTest [-Port 8899]</code> แสดง tooltip จริง, ผลตรวจพอร์ต, ผลเรียก <code>/api/open-dashboard</code>, และคำสั่งที่จะเปิด Dashboard</li>
+<li><del>watchdog กันเครื่องพังหลัง apply</del> <strong>เสร็จแล้ว</strong>: sentinel <code>state/watchdog.json</code> เขียนทุกครั้งที่ apply จริง + <code>Get-L51WatchdogDecision</code> (ตรรกะล้วน ทดสอบได้โดยไม่ reboot) + <code>watchdog -Auto</code> ให้ Scheduled Task (AtLogOn, SYSTEM) ตรวจและ <code>restore</code> อัตโนมัติเมื่อเจอ Event 41/1001/6008 — GUI มีแบนเนอร์ + ปุ่มยืนยัน, tray มีเมนูยืนยัน (ดู <a href="16-Watchdog.md">Watchdog</a>)</li>
 <li><del>เปิด Dashboard จาก tray แล้วได้หน้าเว็บจริง</del> <strong>เสร็จแล้ว</strong>: <code>Start-L51Dashboard</code> ขอ URL จาก <code>POST /api/open-dashboard</code> แล้ว tray เป็นคนเรียก <code>Start-Process &lt;url&gt;</code> เอง (tray ไม่ได้ elevated → ได้เบราว์เซอร์ของผู้ใช้ปกติ) ถ้ายังไม่มีเซิร์ฟเวอร์จะเปิดตัวใหม่แบบ Administrator พร้อม <code>-NoBrowser</code> แล้วรอ URL สูงสุด 60 วินาที — token ไม่ถูกเขียนลงดิสก์ และห้ามใช้ <code>explorer.exe</code> เปิด URL เพราะมันตีความเป็นพาธแล้วเปิด File Explorer</li>
 <li>ทางเลือกที่ไม่ต้องซื้อ cert: (ก) <code>tools/New-SigningCert.ps1</code> สร้าง self-signed cert + PFX/CER ให้ฟรี แล้วเครื่องปลายทางนำ <code>.cer</code> เข้า <code>TrustedPeople</code> ก่อนติดตั้งแอป (เหมาะกับแจกให้ตัวเอง/ทีม; Windows ไม่ได้เชื่อถือโดยปริยายและไม่ช่วยเรื่อง SmartScreen) &#183; (ข) โปรเจกต์นี้ใช้ MIT license จึงยื่นขอ <strong>SignPath Foundation</strong> (ฟรีสำหรับ OSS, cert ออกในนามมูลนิธิ, เซ็นผ่าน pipeline ของเขา) ได้ที่ signpath.org — ต้องรออนุมัติ</li>
 </ol>
@@ -186,7 +189,7 @@
 </ul>
 
     </article>
-      <nav class="pager"><a class="pager-prev" href="14-แก้ปัญหา-FAQ.html">&larr; แก้ปัญหาและคำถามที่พบบ่อย</a><span></span></nav>
+      <nav class="pager"><a class="pager-prev" href="14-แก้ปัญหา-FAQ.html">&larr; แก้ปัญหาและคำถามที่พบบ่อย</a><a class="pager-next" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply &rarr;</a></nav>
     <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
   </main>
 </div>

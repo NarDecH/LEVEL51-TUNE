@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -29,8 +29,9 @@
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+      <a class="nav-item" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.15</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -138,6 +139,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
   รัน:  Restart-Computer
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</code></pre>
 <p>ค่า tweaks ที่ <code>Reboot = $true</code> จะถูกสรุปเป็นกรอบเตือนหลัง apply เสมอ และถูกบันทึกไว้ใน <code>state/last.json</code> (<code>RebootPending</code>) — Web GUI จะขึ้นแบบเนอร์เหนือแท็บและใน tray จะขึ้น balloon จนกว่าจะ restart หรือ restore</p>
+<p>นอกจากนี้ทุก apply จะเขียน sentinel ของ <strong>watchdog</strong> ไว้ด้วย: ถ้าเครื่อง crash หรือบูตไม่ขึ้นหลัง apply ระบบสามารถ <code>restore</code> ให้อัตโนมัติที่ logon ถัดไป (ติดตั้งด้วย <code>watchdog -Install</code> ครั้งเดียว) — ดู <a href="16-Watchdog.md">Watchdog</a></p>
 <h2 id="sec-9">ขั้นตอนที่ 7: วัดผลหลัง และเปรียบเทียบ</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 bench -Label after
 .\Level51Tune.ps1 compare</code></pre>

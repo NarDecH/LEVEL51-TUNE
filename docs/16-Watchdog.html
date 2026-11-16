@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watchdog: กันเครื่องพังหลัง apply · LEVEL51-TUNE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">L51</span><span class="brand-text">LEVEL51-TUNE<small>performance toolkit</small></span></a>
+    <nav class="nav">
+      <a class="nav-item" href="01-ภาพรวม.html">ภาพรวมโปรเจกต์และปรัชญาการจูน</a>
+      <a class="nav-item" href="02-เริ่มต้นใช้งาน.html">ติดตั้งและเริ่มต้นใช้งาน</a>
+      <a class="nav-item" href="03-คำสั่ง-CLI.html">คู่มือคำสั่ง CLI</a>
+      <a class="nav-item" href="04-โปรไฟล์.html">โปรไฟล์และสิ่งที่แต่ละโปรไฟล์เปลี่ยน</a>
+      <a class="nav-item" href="05-CPU.html">จูน CPU เชิงลึก (Core i9-9900K)</a>
+      <a class="nav-item" href="06-GPU.html">จูน GPU (GTX 1060 + UHD 630)</a>
+      <a class="nav-item" href="07-POWER.html">พลังงาน แบตเตอรี่ และความร้อน</a>
+      <a class="nav-item" href="08-RAM-STORAGE.html">RAM และ Storage</a>
+      <a class="nav-item" href="09-NETWORK.html">เครือข่ายและ latency</a>
+      <a class="nav-item" href="10-WINDOWS-และ-SERVICES.html">Windows, services และ debloat</a>
+      <a class="nav-item" href="11-เชิงลึก-BIOS-และฮาร์ดแวร์.html">เชิงลึก: BIOS, ฮาร์ดแวร์ และการวัดผล</a>
+      <a class="nav-item" href="12-ความปลอดภัย-ย้อนกลับ.html">ความปลอดภัย การสำรอง และการย้อนกลับ</a>
+      <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
+      <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
+      <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+      <a class="nav-item active" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
+    </nav>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
+  </aside>
+  <main class="content">
+    <article class="doc">
+<h1 id="sec-1">Watchdog: กันเครื่องพังหลัง apply</h1>
+<p>บทนี้พูดถึงกลไกกันตายที่ทำให้การลอง tweaks (รวมถึงของเสี่ยงสูง) ย้อนกลับได้เอง แม้เครื่องจะบูตไม่ขึ้นหรือ BSOD หลัง apply</p>
+<nav class="toc"><div class="toc-title">ในหน้านี้</div><ol>
+<li><a href="#sec-2">ปัญหาที่แก้</a></li>
+<li><a href="#sec-3">หลักการ</a></li>
+<li><a href="#sec-4">ลำดับการทำงาน</a></li>
+<li><a href="#sec-5">คำสั่ง</a></li>
+<li><a href="#sec-6">สิ่งที่ watchdog ไม่ได้ทำ</a></li>
+<li><a href="#sec-7">ความปลอดภัย</a></li>
+<li><a href="#sec-8">ตรวจสอบด้วยตัวเอง</a></li>
+<li><a href="#sec-9">ข้อจำกัดที่ควรรู้</a></li>
+</ol></nav>
+<h2 id="sec-2">ปัญหาที่แก้</h2>
+<p>ก่อนมี watchdog ความปลอดภัยทั้งหมดพึ่งความจำของผู้ใช้: apply แล้วถ้าเครื่องมีปัญหา ต้องเปิด PowerShell ให้ได้ จำได้ว่า backup ไฟล์ล่าสุดชื่ออะไร แล้วรัน <code>restore</code> ให้ทัน — ซึ่งเป็นตอนที่เครื่องอาจใช้งานไม่ได้อยู่แล้ว ถ้าอาการหนักถึงขั้นบูตไม่ขึ้น ก็แทบไม่มีทางย้อนกลับได้เลย</p>
+<h2 id="sec-3">หลักการ</h2>
+<p>watchdog คือ <strong>sentinel file + ตัวตัดสินใจ + Scheduled Task</strong> อย่างละหนึ่ง</p>
+<div class="table-wrap"><table>
+<thead><tr><th>องค์ประกอบ</th><th>ไฟล์/คำสั่ง</th><th>หน้าที่</th></tr></thead>
+<tbody>
+<tr><td>sentinel</td><td><code>state/watchdog.json</code></td><td>บันทึกว่า &quot;apply เมื่อไร, backup ไฟล์ไหน, ต้องยืนยันภายในกี่นาที&quot;</td></tr>
+<tr><td>ตัวตัดสินใจ</td><td><code>Get-L51WatchdogDecision</code></td><td>ตรรกะล้วน รับ sentinel + เวลา boot + เหตุการณ์ crash แล้วตอบว่าจะทำอะไร</td></tr>
+<tr><td>ตัวทำงาน</td><td><code>Invoke-L51Watchdog -Auto</code></td><td>ทำตามคำตอบ (ปิด sentinel / ย้อนกลับ / เฉย ๆ)</td></tr>
+<tr><td>ตัวเรียกอัตโนมัติ</td><td>Scheduled Task <code>LEVEL51-TUNE Watchdog</code></td><td>รัน <code>watchdog -Auto</code> ทุกครั้งที่ logon (SYSTEM)</td></tr>
+</tbody>
+</table></div>
+<h2 id="sec-4">ลำดับการทำงาน</h2>
+<ol>
+<li><code>apply</code> เขียน backup ตามปกติ แล้วเขียน sentinel ทันทีในบล็อก <code>if (-not $DryRun)</code> — เก็บ <code>AppliedAt</code>, <code>ExpiresAt</code> (ค่าเริ่มต้น 30 นาที), <code>GraceMinutes</code> (10 นาที) และ path ของ backup</li>
+<li>ผู้ใช้ restart เครื่องตามที่ระบบแจ้ง (หรือใช้งานต่อถ้าไม่ต้อง restart)</li>
+<li>ที่ logon ครั้งถัดไป Scheduled Task เรียก <code>.\Level51Tune.ps1 watchdog -Auto</code></li>
+<li>ตัวตัดสินใจเลือกอย่างใดอย่างหนึ่งตามตารางด้านล่าง</li>
+</ol>
+<div class="table-wrap"><table>
+<thead><tr><th>สถานะ</th><th>เงื่อนไข</th><th>สิ่งที่ทำ</th></tr></thead>
+<tbody>
+<tr><td><code>None</code></td><td>ไม่มี sentinel / ยืนยันไปแล้ว / ย้อนกลับไปแล้ว</td><td>ไม่ทำอะไร</td></tr>
+<tr><td><code>Revert</code></td><td>พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก <code>AppliedAt</code></td><td><code>restore</code> จาก backup ของ sentinel แล้วบันทึก <code>RevertedAt</code></td></tr>
+<tr><td><code>Healthy</code></td><td>boot ใหม่หลัง <code>AppliedAt</code> และ uptime ≥ <code>GraceMinutes</code></td><td>ปิด sentinel อัตโนมัติ</td></tr>
+<tr><td><code>Wait</code></td><td>boot ใหม่แล้วแต่ยังไม่ครบ grace / ยังไม่ถึงกำหนด</td><td>รอรอบถัดไป</td></tr>
+<tr><td><code>Expired</code></td><td>ไม่มีการ restart ภายใน <code>ExpiresAt</code> (เช่น apply แล้วไม่รีบูต)</td><td>ลบ sentinel ถือว่าปกติ</td></tr>
+</tbody>
+</table></div>
+<p><code>Healthy</code> คือกรณีที่พบบ่อยที่สุด: apply → restart → ใช้งานได้ 10 นาที → watchdog ปิดตัวเองโดยไม่ต้องทำอะไร</p>
+<h2 id="sec-5">คำสั่ง</h2>
+<pre><code class="lang-powershell"># ดูสถานะ sentinel (ไม่ต้อง admin)
+.\Level51Tune.ps1 watchdog
+
+# บอกว่าเครื่องทำงานปกติ → ปิด sentinel (ไม่ต้อง admin)
+.\Level51Tune.ps1 watchdog -Confirm
+
+# ให้ตัวตัดสินใจทำงานหนึ่งรอบ (ใช้โดย Scheduled Task)
+.\Level51Tune.ps1 watchdog -Auto
+.\Level51Tune.ps1 watchdog -Auto -DryRun   # ดูว่าจะทำอะไร ไม่แก้อะไร
+
+# ติดตั้ง/ถอน Scheduled Task (ต้อง admin)
+.\Level51Tune.ps1 watchdog -Install
+.\Level51Tune.ps1 watchdog -Uninstall</code></pre>
+<p>บน GUI: แบนเนอร์ &quot;watchdog&quot; ที่ด้านบนของ dashboard แสดงสถานะและมีปุ่ม <strong>ยืนยันว่าระบบปกติ</strong> บน tray: เมนู <strong>ยืนยันว่าระบบปกติ (watchdog)</strong> และ tooltip จะต่อท้ายด้วย <code>&#183; watchdog รอตรวจ</code> เมื่อยังไม่ปิด sentinel</p>
+<h2 id="sec-6">สิ่งที่ watchdog ไม่ได้ทำ</h2>
+<ul>
+<li><strong>ไม่แทน backup</strong> — ถ้าไม่มี backup (apply ล้มเหลวก่อนเขียนไฟล์) จะไม่มีการย้อนกลับ</li>
+<li><strong>ไม่ตรวจว่า tweak ได้ผล</strong> — ตรวจเฉพาะ &quot;เครื่องยังไม่พัง&quot; เท่านั้น การตรวจค่าจริงเป็นงานของ <code>audit</code></li>
+<li><strong>ไม่ครอบคลุม crash ที่ไม่มี event</strong> — เช่นแอปค้างอย่างเดียว ระบบจะไม่รู้ว่าผิดปกติ (ใช้ <code>watchdog -Confirm</code> เมื่อพอใจแล้ว)</li>
+<li><strong>ไม่ทำงานถ้าไม่ได้ติดตั้ง Scheduled Task</strong> — sentinel จะยังถูกเขียนและ <code>watchdog</code> แสดงสถานะได้ แต่จะไม่มีการตรวจอัตโนมัติ</li>
+<li><strong>ไม่ดาวน์โหลดอะไร</strong> — ทั้งหมดทำงานในเครื่อง เป็นไปตาม invariant 13</li>
+</ul>
+<h2 id="sec-7">ความปลอดภัย</h2>
+<ul>
+<li>sentinel มีเฉพาะ path ของ backup กับเวลา ไม่มี token/รหัสผ่าน</li>
+<li><code>watchdog -Confirm</code> เขียนเฉพาะ <code>state/watchdog.json</code> ไม่แตะ registry หรือ power scheme จึงไม่ต้อง admin</li>
+<li>การย้อนกลับเรียก <code>Invoke-L51Restore</code> ตัวเดียวกับที่ผู้ใช้เรียกเอง (มี <code>Assert-L51Admin</code> ภายใน) — ถ้า Scheduled Task ไม่ได้รันด้วยสิทธิ์ที่พอ จะบันทึก <code>ย้อนกลับล้มเหลว</code> ลง log แทนการเงียบ</li>
+<li>Scheduled Task รันเป็น <code>SYSTEM</code> เฉพาะสคริปต์ในโฟลเดอร์โปรเจกต์ ไม่ได้เปิดพอร์ตหรือรับคำสั่งจากภายนอก</li>
+</ul>
+<h2 id="sec-8">ตรวจสอบด้วยตัวเอง</h2>
+<pre><code class="lang-powershell"># หลัง apply ควรมี sentinel
+Get-Content .\state\watchdog.json
+
+# ดูการตัดสินใจโดยไม่ต้องรีบูตจริง
+.\Level51Tune.ps1 watchdog -Auto -DryRun
+
+# ดู log ของ watchdog
+Get-Content .\logs\l51-$(Get-Date -Format yyyyMMdd).log | Select-String watchdog</code></pre>
+<h2 id="sec-9">ข้อจำกัดที่ควรรู้</h2>
+<ul>
+<li>ถ้าเครื่อง crash <strong>ก่อน</strong> logon (เช่น boot loop) Scheduled Task แบบ AtLogOn จะไม่ทำงาน — ต้องใช้ Safe Mode หรือ <code>restore</code> จาก install media ในกรณีนั้น</li>
+<li><code>GraceMinutes</code> 10 นาทีเป็นค่าคงที่ในโค้ด (<code>$script:L51WatchdogGraceMinutes</code>) ถ้าต้องการปรับ ต้องแก้ที่ <code>src/Level51Tune.psm1</code></li>
+<li>การตรวจจับ crash อาศัย System event log ซึ่งอาจถูกเขียนทับหรือล้างได้ในเครื่องที่ log หมุนเร็ว</li>
+</ul>
+
+    </article>
+      <nav class="pager"><a class="pager-prev" href="15-GUI-และ-roadmap.html">&larr; GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a><span></span></nav>
+    <footer class="doc-foot">LEVEL51-TUNE · จัดทำเพื่อเครื่อง LEVEL51 (N95TP6) · ใช้ด้วยความระมัดระวังและสำรองข้อมูลก่อนเสมอ</footer>
+  </main>
+</div>
+</body>
+</html>

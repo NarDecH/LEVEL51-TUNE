@@ -140,6 +140,7 @@ Add-AppxPackage -Path .\dist\LEVEL51-TUNE-<version>.msix
 
 - ทุก `apply` สร้าง backup JSON ที่บรรจุค่าก่อนหน้าทุกตัว ไว้ใน `backups/`
 - `restore` คืนค่า power/registry/services ได้ 100% และลบ power scheme ที่สร้าง
+- **watchdog**: ทุก apply เขียน sentinel ไว้ ถ้าเครื่อง crash/บูตไม่ขึ้นหลัง apply จะย้อนกลับอัตโนมัติที่ logon — `watchdog -Install` (admin) ติดตั้ง Scheduled Task, `watchdog -Confirm` ปิด sentinel เมื่อเครื่องปกติดี (ดู `docs/16-Watchdog.md`)
 - โปรไฟล์ `max` มี tweaks ความเสี่ยงสูง 4 รายการที่ต้องเปิดด้วย `-Include high` เอง
 - ไม่แตะ BIOS, ไม่ติดตั้งไดรเวอร์, ไม่ปิด Windows Update/Defender, ไม่ดาวน์โหลดอะไรจากอินเทอร์เน็ต
 

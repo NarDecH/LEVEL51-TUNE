@@ -307,6 +307,99 @@ Test-Case 'tray -SelfTest: พอร์ตว่าง → แสดงคำส
     $out -match 'Level51Tune.Web.ps1'
 }
 
+Test-Case 'watchdog: sentinel มีฟิลด์ครบและ TTL ถูกต้อง' {
+    $s = New-L51WatchdogState -BackupPath 'C:\x\b.json' -Profile 'gaming' -ExpiresMinutes 30 -GraceMinutes 10
+    if ($s.Version -ne 1) { throw 'Version ผิด' }
+    if (-not $s.Backup) { throw 'ไม่มี Backup' }
+    if ($s.ConfirmedAt -or $s.RevertedAt) { throw 'ต้องยังไม่ถูกปิด sentinel' }
+    $ttl = ([datetime]$s.ExpiresAt - [datetime]$s.AppliedAt).TotalMinutes
+    if ([math]::Abs($ttl - 30) -gt 0.1) { throw ('TTL ผิด: ' + $ttl) }
+    $s.GraceMinutes -eq 10
+}
+
+Test-Case 'watchdog: บันทึก/อ่าน/ลบ sentinel ด้วย path ที่กำหนดเอง' {
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('l51-wd-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'max'
+        $null = Save-L51WatchdogState -State $s -Path $tmp
+        $back = Get-L51WatchdogState -Path $tmp
+        if (-not $back) { throw 'อ่านกลับไม่ได้' }
+        if ($back.Profile -ne 'max') { throw 'Profile ไม่ครบ' }
+        if (-not (Remove-L51WatchdogState -Path $tmp)) { throw 'ลบไม่สำเร็จ' }
+        if (Test-Path $tmp) { throw 'ไฟล์ยังอยู่หลังลบ' }
+    } finally { if (Test-Path $tmp) { Remove-Item $tmp -Force } }
+}
+
+Test-Case 'watchdog: ไม่มี sentinel → Action None' {
+    $d = Get-L51WatchdogDecision -Watchdog $null -BootTime (Get-Date)
+    if ($d.Action -ne 'None') { throw ('ได้ ' + $d.Action) }
+    $d.Action -eq 'None'
+}
+
+Test-Case 'watchdog: reboot หลัง apply + เสถียร 20 นาที → Healthy' {
+    $now = Get-Date
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-40)
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-20) -Now $now
+    if ($d.Action -ne 'Healthy') { throw ('ได้ ' + $d.Action + ' :: ' + $d.Reason) }
+    $d.Rebooted
+}
+
+Test-Case 'watchdog: reboot แล้วแต่ยังไม่ครบ grace → Wait' {
+    $now = Get-Date
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-10)
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-3) -Now $now
+    if ($d.Action -ne 'Wait') { throw ('ได้ ' + $d.Action) }
+    $d.Reason -like '*รอ*'
+}
+
+Test-Case 'watchdog: พบ crash/shutdown ผิดปกติหลัง apply → Revert' {
+    $now = Get-Date
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-30)
+    $crash = @([pscustomobject]@{ Id = 41; Time = $now.AddMinutes(-5).ToString('o') })
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-20) -Now $now -CrashEvents $crash
+    if ($d.Action -ne 'Revert') { throw ('ได้ ' + $d.Action) }
+    $d.Crashes -eq 1
+}
+
+Test-Case 'watchdog: ยังไม่ reboot และเลยกำหนด → Expired (ไม่สั่ง revert)' {
+    $now = Get-Date
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-45) -ExpiresMinutes 30
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-120) -Now $now
+    if ($d.Action -ne 'Expired') { throw ('ได้ ' + $d.Action + ' :: ' + $d.Reason) }
+    (-not $d.Rebooted)
+}
+
+Test-Case 'watchdog: ยืนยันแล้ว → Action None' {
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming'
+    $s.ConfirmedAt = (Get-Date).ToString('o')
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime (Get-Date)
+    $d.Action -eq 'None'
+}
+
+Test-Case 'watchdog: status ของ sentinel ที่ยืนยันแล้ว → Active=false แต่ยังอ่านรายละเอียดได้' {
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ('l51-wd-st-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming'
+        $s.ConfirmedAt = (Get-Date).ToString('o')
+        $null = Save-L51WatchdogState -State $s -Path $tmp
+        $st = Get-L51WatchdogStatus -Path $tmp
+        if (-not $st.Watchdog) { throw 'ไม่คืนรายละเอียด sentinel' }
+        if ($st.Active) { throw 'Active ควรเป็น false หลังยืนยัน' }
+        $st.Action -eq 'None'
+    } finally { if (Test-Path $tmp) { Remove-Item $tmp -Force } }
+}
+
+Test-Case 'watchdog: apply -DryRun ไม่แตะ sentinel (invariant 3)' {
+    $p = Get-L51WatchdogPath
+    $before = 'absent'
+    if (Test-Path $p) { $before = (Get-Item $p).LastWriteTimeUtc.ToString('o') + '|' + (Get-Content $p -Raw -Encoding UTF8) }
+    $null = Invoke-L51Apply -Profile 'balanced' -DryRun 2>&1
+    $after = 'absent'
+    if (Test-Path $p) { $after = (Get-Item $p).LastWriteTimeUtc.ToString('o') + '|' + (Get-Content $p -Raw -Encoding UTF8) }
+    if ($before -ne $after) { throw 'DryRun เปลี่ยน sentinel' }
+    $true
+}
+
 Test-Case 'New-L51ApplyState: บันทึก state ได้แม้โปรไฟล์ไม่มี power tweak' {
     $s = New-L51ApplyState -Profile 'balanced' -Backup 'x.json' -HasPower $false -SchemeGuid 'guid-keep' -BaseScheme 'base' -RestartRequired $true -RebootTweaks @('gpu.hags', '')
     if ($s.Profile -ne 'balanced') { throw 'Profile ไม่ถูก' }

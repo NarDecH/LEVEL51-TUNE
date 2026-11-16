@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -29,8 +29,9 @@
       <a class="nav-item" href="13-ผลตรวจเครื่องนี้.html">ผลตรวจเครื่อง LEVEL51 (ค่าจริง)</a>
       <a class="nav-item" href="14-แก้ปัญหา-FAQ.html">แก้ปัญหาและคำถามที่พบบ่อย</a>
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
+      <a class="nav-item" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.0.15</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -81,6 +82,9 @@
 <tr><td><code>recommend</code></td><td>ไม่</td><td>ไม่</td><td>1-2 วินาที</td><td>วิเคราะห์ฮาร์ดแวร์และแนะนำโปรไฟล์</td></tr>
 <tr><td><code>update</code></td><td>ไม่</td><td>ไม่</td><td>1-3 วินาที</td><td>ตรวจเวอร์ชันใหม่บน GitHub (ต้องต่อเน็ต)</td></tr>
 <tr><td><code>history</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>รายการ backup ทั้งหมด (เลือก restore ทีละครั้ง)</td></tr>
+<tr><td><code>watchdog</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>สถานะ sentinel ที่ apply ไว้ (ดู <a href="16-Watchdog.md">Watchdog</a>)</td></tr>
+<tr><td><code>watchdog -Confirm</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>ยืนยันว่าเครื่องปกติ → ปิด sentinel</td></tr>
+<tr><td><code>watchdog -Install</code></td><td>ใช่</td><td>ใช่</td><td>1-2 วินาที</td><td>ติดตั้ง Scheduled Task (AtLogOn, SYSTEM) ให้ตรวจอัตโนมัติ</td></tr>
 <tr><td><code>gpuprefs</code></td><td>ไม่</td><td>ใช่ (HKCU เท่านั้น)</td><td>ทันที</td><td>ตั้ง GPU ต่อแอป (Optimus)</td></tr>
 <tr><td><code>compare</code></td><td>ไม่</td><td>ไม่</td><td>ทันที</td><td>เทียบผลวัด</td></tr>
 <tr><td><code>gpu</code></td><td>ไม่</td><td>ไม่</td><td>1 วินาที</td><td>สถานะ GPU</td></tr>
@@ -256,10 +260,10 @@
 <pre><code class="lang-powershell">.\Level51Tune.ps1 update</code></pre>
 <p>อ่าน metadata ของ release ล่าสุดจาก GitHub (<code>api.github.com/repos/NarDecH/LEVEL51-TUNE/releases/latest</code>) แล้วเทียบกับเวอร์ชันในเครื่อง — <strong>คำสั่งเดียวในโปรแกรมที่ใช้เน็ต</strong>, ไม่อัปเดตหรือดาวน์โหลดอะไรให้เอง ถ้าไม่มีเน็ตจะรายงานว่า &quot;ตรวจไม่ได้&quot; และคำสั่งอื่นทั้งหมดยังทำงานแบบ offline</p>
 <p>ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน <code>/tags</code> และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:</p>
-<pre><code class="lang-bash">git tag -a v1.0.15 -m &quot;LEVEL51-TUNE 1.0.15&quot;
-git push origin v1.0.15</code></pre>
+<pre><code class="lang-bash">git tag -a v1.1.0 -m &quot;LEVEL51-TUNE 1.1.0&quot;
+git push origin v1.1.0</code></pre>
 <p>หรือสร้าง Release จากหน้า GitHub / <code>gh</code> CLI (แนบทั้ง zip และ msix):</p>
-<pre><code class="lang-bash">gh release create v1.0.15 dist/LEVEL51-TUNE-1.0.15.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title &quot;LEVEL51-TUNE 1.0.13&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
+<pre><code class="lang-bash">gh release create v1.1.0 dist/LEVEL51-TUNE-1.1.0.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title &quot;LEVEL51-TUNE 1.0.13&quot; --notes &quot;สรุปการเปลี่ยนแปลงของเวอร์ชันนี้&quot;</code></pre>
 <h2 id="sec-18">gpu</h2>
 <pre><code class="lang-powershell">.\Level51Tune.ps1 gpu</code></pre>
 <p>แสดงรายละเอียด GPU จาก <code>nvidia-smi</code> แบบ list และแนะนำคำสั่งตรวจเชิงลึก:</p>
@@ -320,6 +324,7 @@ $result.Results | Where-Object Status -ne &#39;OK&#39;</code></pre>
 <tr><td><code>/api/processes</code></td><td>GET</td><td>รายชื่อโปรเซส (ตัวช่วยเลือก .exe)</td></tr>
 <tr><td><code>/api/update</code></td><td>GET</td><td>ตรวจเวอร์ชันล่าสุดบน GitHub</td></tr>
 <tr><td><code>/api/open-dashboard</code></td><td>POST</td><td>คืน URL พร้อม token ของ session นี้ (tray ใช้เปิดเบราว์เซอร์)</td></tr>
+<tr><td><code>/api/watchdog</code></td><td>GET/POST</td><td>สถานะ sentinel / <code>{action:&quot;confirm&quot;}</code> เพื่อปิด sentinel</td></tr>
 <tr><td><code>/docs/*</code></td><td>GET</td><td>เอกสาร HTML</td></tr>
 </tbody>
 </table></div>

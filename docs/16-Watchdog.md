@@ -19,7 +19,9 @@ watchdog คือ **sentinel file + ตัวตัดสินใจ + Schedul
 
 ## ลำดับการทำงาน
 
-1. `apply` เขียน backup ตามปกติ แล้วเขียน sentinel ทันทีในบล็อก `if (-not $DryRun)` — เก็บ `AppliedAt`, `ExpiresAt` (ค่าเริ่มต้น 30 นาที), `GraceMinutes` (10 นาที) และ path ของ backup
+1. `apply` เขียน backup แล้วเขียน sentinel **ทันที ก่อน tweak ตัวแรก** (ทั้งคู่อยู่ในบล็อก `if (-not $DryRun)`) — sentinel เก็บ `AppliedAt`, `ExpiresAt` (ค่าเริ่มต้น 30 นาที), `GraceMinutes` (10 นาที) และ path ของ backup
+
+การเขียน sentinel ก่อน tweak ตัวแรกสำคัญเพราะช่วงที่เสี่ยงที่สุดคือ **ระหว่าง** apply: ถ้าเครื่อง crash หรือค้างกลางลูปโดยยังไม่มี sentinel ระบบจะไม่รู้ว่ามีงานค้างและจะไม่ย้อนกลับให้ (เดิมโค้ดเขียน sentinel หลังจากลูปจบ ซึ่งสายเกินไป)
 2. ผู้ใช้ restart เครื่องตามที่ระบบแจ้ง (หรือใช้งานต่อถ้าไม่ต้อง restart)
 3. ที่ logon ครั้งถัดไป Scheduled Task เรียก `.\Level51Tune.ps1 watchdog -Auto`
 4. ตัวตัดสินใจเลือกอย่างใดอย่างหนึ่งตามตารางด้านล่าง
@@ -27,7 +29,7 @@ watchdog คือ **sentinel file + ตัวตัดสินใจ + Schedul
 | สถานะ | เงื่อนไข | สิ่งที่ทำ |
 |---|---|---|
 | `None` | ไม่มี sentinel / ยืนยันไปแล้ว / ย้อนกลับไปแล้ว | ไม่ทำอะไร |
-| `Revert` | พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก `AppliedAt` | `restore` จาก backup ของ sentinel แล้วบันทึก `RevertedAt` |
+| `Revert` | พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก `AppliedAt` (รวมถึง crash ที่เกิดระหว่าง apply) | `restore` จาก backup ของ sentinel แล้วบันทึก `RevertedAt` |
 | `Healthy` | boot ใหม่หลัง `AppliedAt` และ uptime ≥ `GraceMinutes` | ปิด sentinel อัตโนมัติ |
 | `Wait` | boot ใหม่แล้วแต่ยังไม่ครบ grace / ยังไม่ถึงกำหนด | รอรอบถัดไป |
 | `Expired` | ไม่มีการ restart ภายใน `ExpiresAt` (เช่น apply แล้วไม่รีบูต) | ลบ sentinel ถือว่าปกติ |

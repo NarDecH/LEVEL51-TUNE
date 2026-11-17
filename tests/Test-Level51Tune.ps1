@@ -389,6 +389,17 @@ Test-Case 'watchdog: status ของ sentinel ที่ยืนยันแล
     } finally { if (Test-Path $tmp) { Remove-Item $tmp -Force } }
 }
 
+Test-Case 'watchdog: sentinel ถูกเขียนหลัง backup และก่อน tweak ตัวแรก' {
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    $iBackup = $src.IndexOf('$backupPath = New-L51BackupFile')
+    $iSentinel = $src.IndexOf('watchdog: ตั้ง sentinel')
+    $iApply = $src.IndexOf('# ---- apply')
+    if ($iBackup -lt 0 -or $iSentinel -lt 0 -or $iApply -lt 0) { throw 'หา landmark ในซอร์สไม่เจอ' }
+    if (-not ($iBackup -lt $iSentinel)) { throw 'sentinel ถูกเขียนก่อน backup' }
+    if (-not ($iSentinel -lt $iApply)) { throw 'sentinel ถูกเขียนหลังจุดเริ่ม apply tweaks (ไม่ครอบ crash ระหว่าง apply)' }
+    $true
+}
+
 Test-Case 'watchdog: apply -DryRun ไม่แตะ sentinel (invariant 3)' {
     $p = Get-L51WatchdogPath
     $before = 'absent'

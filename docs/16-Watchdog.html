@@ -31,7 +31,7 @@
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
       <a class="nav-item active" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.0</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.1</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -62,7 +62,10 @@
 </table></div>
 <h2 id="sec-4">ลำดับการทำงาน</h2>
 <ol>
-<li><code>apply</code> เขียน backup ตามปกติ แล้วเขียน sentinel ทันทีในบล็อก <code>if (-not $DryRun)</code> — เก็บ <code>AppliedAt</code>, <code>ExpiresAt</code> (ค่าเริ่มต้น 30 นาที), <code>GraceMinutes</code> (10 นาที) และ path ของ backup</li>
+<li><code>apply</code> เขียน backup แล้วเขียน sentinel <strong>ทันที ก่อน tweak ตัวแรก</strong> (ทั้งคู่อยู่ในบล็อก <code>if (-not $DryRun)</code>) — sentinel เก็บ <code>AppliedAt</code>, <code>ExpiresAt</code> (ค่าเริ่มต้น 30 นาที), <code>GraceMinutes</code> (10 นาที) และ path ของ backup</li>
+</ol>
+<p>การเขียน sentinel ก่อน tweak ตัวแรกสำคัญเพราะช่วงที่เสี่ยงที่สุดคือ <strong>ระหว่าง</strong> apply: ถ้าเครื่อง crash หรือค้างกลางลูปโดยยังไม่มี sentinel ระบบจะไม่รู้ว่ามีงานค้างและจะไม่ย้อนกลับให้ (เดิมโค้ดเขียน sentinel หลังจากลูปจบ ซึ่งสายเกินไป)</p>
+<ol>
 <li>ผู้ใช้ restart เครื่องตามที่ระบบแจ้ง (หรือใช้งานต่อถ้าไม่ต้อง restart)</li>
 <li>ที่ logon ครั้งถัดไป Scheduled Task เรียก <code>.\Level51Tune.ps1 watchdog -Auto</code></li>
 <li>ตัวตัดสินใจเลือกอย่างใดอย่างหนึ่งตามตารางด้านล่าง</li>
@@ -71,7 +74,7 @@
 <thead><tr><th>สถานะ</th><th>เงื่อนไข</th><th>สิ่งที่ทำ</th></tr></thead>
 <tbody>
 <tr><td><code>None</code></td><td>ไม่มี sentinel / ยืนยันไปแล้ว / ย้อนกลับไปแล้ว</td><td>ไม่ทำอะไร</td></tr>
-<tr><td><code>Revert</code></td><td>พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก <code>AppliedAt</code></td><td><code>restore</code> จาก backup ของ sentinel แล้วบันทึก <code>RevertedAt</code></td></tr>
+<tr><td><code>Revert</code></td><td>พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก <code>AppliedAt</code> (รวมถึง crash ที่เกิดระหว่าง apply)</td><td><code>restore</code> จาก backup ของ sentinel แล้วบันทึก <code>RevertedAt</code></td></tr>
 <tr><td><code>Healthy</code></td><td>boot ใหม่หลัง <code>AppliedAt</code> และ uptime ≥ <code>GraceMinutes</code></td><td>ปิด sentinel อัตโนมัติ</td></tr>
 <tr><td><code>Wait</code></td><td>boot ใหม่แล้วแต่ยังไม่ครบ grace / ยังไม่ถึงกำหนด</td><td>รอรอบถัดไป</td></tr>
 <tr><td><code>Expired</code></td><td>ไม่มีการ restart ภายใน <code>ExpiresAt</code> (เช่น apply แล้วไม่รีบูต)</td><td>ลบ sentinel ถือว่าปกติ</td></tr>

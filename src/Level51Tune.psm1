@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.1.0'
+$script:L51Version = '1.1.1'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -930,6 +930,16 @@ function Invoke-L51Apply {
     if (-not $DryRun) {
         $backupPath = New-L51BackupFile -Backup $backup
         Write-L51Log "snapshot: $backupPath" 'OK'
+
+        # เขียน sentinel ทันทีหลัง backup ก่อน tweak ตัวแรก — ถ้าเครื่อง crash
+        # ระหว่าง apply เอง watchdog ต้องย้อนกลับได้ (เดิมเขียนหลังลูป tweak
+        # ทำให้ช่วงที่เสี่ยงที่สุดไม่มี sentinel เลย)
+        if ($backupPath) {
+            $watchdog = New-L51WatchdogState -BackupPath $backupPath -Profile $Profile `
+                -ExpiresMinutes $script:L51WatchdogExpireMinutes -GraceMinutes $script:L51WatchdogGraceMinutes
+            Save-L51WatchdogState -State $watchdog | Out-Null
+            Write-L51Log 'watchdog: ตั้ง sentinel ก่อนเริ่มแก้ค่า (ปิดได้ด้วย: .\Level51Tune.ps1 watchdog -Confirm)' 'INFO'
+        }
     }
 
     # ---- apply
@@ -1013,14 +1023,6 @@ function Invoke-L51Apply {
             -SchemeGuid $stateScheme -BaseScheme $stateBase `
             -RestartRequired $restartRequired -RebootTweaks $rebootTweaks
         Save-L51State -State $state
-
-        # watchdog sentinel: ถ้าเครื่องบูตไม่ขึ้น/BSOD หลัง apply จะย้อนกลับให้อัตโนมัติ
-        if ($backupPath) {
-            $watchdog = New-L51WatchdogState -BackupPath $backupPath -Profile $Profile `
-                -ExpiresMinutes $script:L51WatchdogExpireMinutes -GraceMinutes $script:L51WatchdogGraceMinutes
-            Save-L51WatchdogState -State $watchdog | Out-Null
-            Write-L51Log 'watchdog: ตั้ง sentinel รอการยืนยัน (ปิดได้ด้วย: .\Level51Tune.ps1 watchdog -Confirm)' 'INFO'
-        }
 
         if ($hasPower -and $lastState -and $lastState.SchemeGuid -and $lastState.SchemeGuid -ne $tuneGuid) {
             Remove-L51Scheme -Guid $lastState.SchemeGuid

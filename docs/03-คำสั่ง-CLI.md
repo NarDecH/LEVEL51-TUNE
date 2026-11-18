@@ -19,7 +19,7 @@
 | `list` | ไม่ | ไม่ | ทันที | tweaks ในแค็ตตาล็อก |
 | `audit` | ไม่ | ไม่ | 2-5 วินาที | ตรวจว่าอะไรถูกปรับแล้ว |
 | `apply` | ใช่ (ยกเว้น `-DryRun`) | ใช่ | 3-10 วินาที | ปรับตามโปรไฟล์ |
-| `restore` | ใช่ | ใช่ | 2-5 วินาที | ย้อนกลับจาก backup |
+| `restore` | ใช่ | ใช่ | 2-5 วินาที | ย้อนกลับจาก backup (อัปเดต state เป็น `reverted` ให้ GUI/tray ตรงความจริง) |
 | `backup` | ใช่ | ไม่ (แค่อ่าน) | 1 วินาที | snapshot สถานะ |
 | `report` | ไม่ | ไม่ | 3-6 วินาที | รายงาน markdown |
 | `bench` | ไม่ | ไม่ | 15-25 วินาที | วัดประสิทธิภาพ |
@@ -284,14 +284,14 @@
 ถ้า repo ยังไม่มี release จะ fallback ไปอ่าน `/tags` และใช้ tag ล่าสุดแทน — การ publish ครั้งแรกทำได้ด้วย:
 
 ```bash
-git tag -a v1.1.1 -m "LEVEL51-TUNE 1.1.1"
-git push origin v1.1.1
+git tag -a v1.1.2 -m "LEVEL51-TUNE 1.1.2"
+git push origin v1.1.2
 ```
 
 หรือสร้าง Release จากหน้า GitHub / `gh` CLI (แนบทั้ง zip และ msix):
 
 ```bash
-gh release create v1.1.1 dist/LEVEL51-TUNE-1.1.1.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
+gh release create v1.1.2 dist/LEVEL51-TUNE-1.1.2.zip dist/LEVEL51-TUNE-1.0.13.msix dist/LEVEL51-TUNE-1.0.13-unsigned.msix --title "LEVEL51-TUNE 1.0.13" --notes "สรุปการเปลี่ยนแปลงของเวอร์ชันนี้"
 ``` — เวอร์ชันในโค้ด (`Get-L51Version`) ต้องตรงกับชื่อ tag โดยไม่นับ `v` นำหน้า
 
 ## gpu

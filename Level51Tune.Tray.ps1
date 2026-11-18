@@ -122,6 +122,7 @@ function Get-L51TraySummary {
     $state = Get-L51State
     $profileName = 'ยังไม่ apply'
     if ($state) { $profileName = [string]$state.Profile }
+    if ($state -and $state.Profile -eq 'reverted') { $profileName = 'ย้อนกลับค่าเดิมแล้ว' }
     $gpuText = ''
     try {
         $gpu = @(Get-L51GpuState | Where-Object { $_.Source -eq 'nvidia-smi' } | Select-Object -First 1)

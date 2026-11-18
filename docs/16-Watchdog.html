@@ -31,7 +31,7 @@
       <a class="nav-item" href="15-GUI-และ-roadmap.html">GUI และ roadmap: ทำให้ใช้ง่ายขึ้นได้แค่ไหน</a>
       <a class="nav-item active" href="16-Watchdog.html">Watchdog: กันเครื่องพังหลัง apply</a>
     </nav>
-    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.1</div>
+    <div class="sidebar-foot">เอกสารภาษาไทย · v1.1.2</div>
   </aside>
   <main class="content">
     <article class="doc">
@@ -42,10 +42,11 @@
 <li><a href="#sec-3">หลักการ</a></li>
 <li><a href="#sec-4">ลำดับการทำงาน</a></li>
 <li><a href="#sec-5">คำสั่ง</a></li>
-<li><a href="#sec-6">สิ่งที่ watchdog ไม่ได้ทำ</a></li>
-<li><a href="#sec-7">ความปลอดภัย</a></li>
-<li><a href="#sec-8">ตรวจสอบด้วยตัวเอง</a></li>
-<li><a href="#sec-9">ข้อจำกัดที่ควรรู้</a></li>
+<li><a href="#sec-6">state หลังย้อนกลับ</a></li>
+<li><a href="#sec-7">สิ่งที่ watchdog ไม่ได้ทำ</a></li>
+<li><a href="#sec-8">ความปลอดภัย</a></li>
+<li><a href="#sec-9">ตรวจสอบด้วยตัวเอง</a></li>
+<li><a href="#sec-10">ข้อจำกัดที่ควรรู้</a></li>
 </ol></nav>
 <h2 id="sec-2">ปัญหาที่แก้</h2>
 <p>ก่อนมี watchdog ความปลอดภัยทั้งหมดพึ่งความจำของผู้ใช้: apply แล้วถ้าเครื่องมีปัญหา ต้องเปิด PowerShell ให้ได้ จำได้ว่า backup ไฟล์ล่าสุดชื่ออะไร แล้วรัน <code>restore</code> ให้ทัน — ซึ่งเป็นตอนที่เครื่องอาจใช้งานไม่ได้อยู่แล้ว ถ้าอาการหนักถึงขั้นบูตไม่ขึ้น ก็แทบไม่มีทางย้อนกลับได้เลย</p>
@@ -74,10 +75,10 @@
 <thead><tr><th>สถานะ</th><th>เงื่อนไข</th><th>สิ่งที่ทำ</th></tr></thead>
 <tbody>
 <tr><td><code>None</code></td><td>ไม่มี sentinel / ยืนยันไปแล้ว / ย้อนกลับไปแล้ว</td><td>ไม่ทำอะไร</td></tr>
-<tr><td><code>Revert</code></td><td>พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก <code>AppliedAt</code> (รวมถึง crash ที่เกิดระหว่าง apply)</td><td><code>restore</code> จาก backup ของ sentinel แล้วบันทึก <code>RevertedAt</code></td></tr>
+<tr><td><code>Revert</code></td><td>พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก <code>AppliedAt</code> (รวมถึง crash ที่เกิดระหว่าง apply) <strong>และยังไม่เลย <code>ExpiresAt</code></strong></td><td><code>restore</code> จาก backup ของ sentinel แล้วบันทึก <code>RevertedAt</code></td></tr>
 <tr><td><code>Healthy</code></td><td>boot ใหม่หลัง <code>AppliedAt</code> และ uptime ≥ <code>GraceMinutes</code></td><td>ปิด sentinel อัตโนมัติ</td></tr>
 <tr><td><code>Wait</code></td><td>boot ใหม่แล้วแต่ยังไม่ครบ grace / ยังไม่ถึงกำหนด</td><td>รอรอบถัดไป</td></tr>
-<tr><td><code>Expired</code></td><td>ไม่มีการ restart ภายใน <code>ExpiresAt</code> (เช่น apply แล้วไม่รีบูต)</td><td>ลบ sentinel ถือว่าปกติ</td></tr>
+<tr><td><code>Expired</code></td><td>ไม่มีการ restart ภายใน <code>ExpiresAt</code> <strong>หรือ</strong> พบ crash แต่เลยกำหนดยืนยันไปแล้ว</td><td>ลบ sentinel โดยไม่ย้อนกลับ (สายเกินกว่าจะสรุปว่า apply เป็นเหตุ)</td></tr>
 </tbody>
 </table></div>
 <p><code>Healthy</code> คือกรณีที่พบบ่อยที่สุด: apply → restart → ใช้งานได้ 10 นาที → watchdog ปิดตัวเองโดยไม่ต้องทำอะไร</p>
@@ -96,7 +97,19 @@
 .\Level51Tune.ps1 watchdog -Install
 .\Level51Tune.ps1 watchdog -Uninstall</code></pre>
 <p>บน GUI: แบนเนอร์ &quot;watchdog&quot; ที่ด้านบนของ dashboard แสดงสถานะและมีปุ่ม <strong>ยืนยันว่าระบบปกติ</strong> บน tray: เมนู <strong>ยืนยันว่าระบบปกติ (watchdog)</strong> และ tooltip จะต่อท้ายด้วย <code>&#183; watchdog รอตรวจ</code> เมื่อยังไม่ปิด sentinel</p>
-<h2 id="sec-6">สิ่งที่ watchdog ไม่ได้ทำ</h2>
+<h2 id="sec-6">state หลังย้อนกลับ</h2>
+<p>ทั้ง <code>restore</code> ที่ผู้ใช้สั่งเองและ auto-revert ของ watchdog เขียน <code>state/last.json</code> เป็น:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>field</th><th>ค่า</th></tr></thead>
+<tbody>
+<tr><td><code>Profile</code></td><td><code>reverted</code> (GUI/tray แสดง &quot;ย้อนกลับค่าเดิมแล้ว&quot; ไม่ใช่โปรไฟล์ที่ถูกคืนค่าไปแล้ว)</td></tr>
+<tr><td><code>LastProfile</code></td><td>โปรไฟล์ที่ถูกย้อนกลับ</td></tr>
+<tr><td><code>RevertedAt</code> / <code>RevertedFrom</code></td><td>เวลาที่ย้อนกลับ และไฟล์ backup ที่ใช้</td></tr>
+<tr><td><code>RebootPending</code></td><td><code>false</code> — ไม่มีอะไรค้างรอ restart หลังย้อนกลับ</td></tr>
+</tbody>
+</table></div>
+<p>ก่อนหน้านี้ <code>restore</code> แก้เฉพาะ flag restart ทำให้ GUI กับ tray ยังรายงานว่าโปรไฟล์นั้นทำงานอยู่ทั้งที่ค่าถูกคืนไปแล้ว</p>
+<h2 id="sec-7">สิ่งที่ watchdog ไม่ได้ทำ</h2>
 <ul>
 <li><strong>ไม่แทน backup</strong> — ถ้าไม่มี backup (apply ล้มเหลวก่อนเขียนไฟล์) จะไม่มีการย้อนกลับ</li>
 <li><strong>ไม่ตรวจว่า tweak ได้ผล</strong> — ตรวจเฉพาะ &quot;เครื่องยังไม่พัง&quot; เท่านั้น การตรวจค่าจริงเป็นงานของ <code>audit</code></li>
@@ -104,14 +117,14 @@
 <li><strong>ไม่ทำงานถ้าไม่ได้ติดตั้ง Scheduled Task</strong> — sentinel จะยังถูกเขียนและ <code>watchdog</code> แสดงสถานะได้ แต่จะไม่มีการตรวจอัตโนมัติ</li>
 <li><strong>ไม่ดาวน์โหลดอะไร</strong> — ทั้งหมดทำงานในเครื่อง เป็นไปตาม invariant 13</li>
 </ul>
-<h2 id="sec-7">ความปลอดภัย</h2>
+<h2 id="sec-8">ความปลอดภัย</h2>
 <ul>
 <li>sentinel มีเฉพาะ path ของ backup กับเวลา ไม่มี token/รหัสผ่าน</li>
 <li><code>watchdog -Confirm</code> เขียนเฉพาะ <code>state/watchdog.json</code> ไม่แตะ registry หรือ power scheme จึงไม่ต้อง admin</li>
 <li>การย้อนกลับเรียก <code>Invoke-L51Restore</code> ตัวเดียวกับที่ผู้ใช้เรียกเอง (มี <code>Assert-L51Admin</code> ภายใน) — ถ้า Scheduled Task ไม่ได้รันด้วยสิทธิ์ที่พอ จะบันทึก <code>ย้อนกลับล้มเหลว</code> ลง log แทนการเงียบ</li>
 <li>Scheduled Task รันเป็น <code>SYSTEM</code> เฉพาะสคริปต์ในโฟลเดอร์โปรเจกต์ ไม่ได้เปิดพอร์ตหรือรับคำสั่งจากภายนอก</li>
 </ul>
-<h2 id="sec-8">ตรวจสอบด้วยตัวเอง</h2>
+<h2 id="sec-9">ตรวจสอบด้วยตัวเอง</h2>
 <pre><code class="lang-powershell"># หลัง apply ควรมี sentinel
 Get-Content .\state\watchdog.json
 
@@ -120,7 +133,7 @@ Get-Content .\state\watchdog.json
 
 # ดู log ของ watchdog
 Get-Content .\logs\l51-$(Get-Date -Format yyyyMMdd).log | Select-String watchdog</code></pre>
-<h2 id="sec-9">ข้อจำกัดที่ควรรู้</h2>
+<h2 id="sec-10">ข้อจำกัดที่ควรรู้</h2>
 <ul>
 <li>ถ้าเครื่อง crash <strong>ก่อน</strong> logon (เช่น boot loop) Scheduled Task แบบ AtLogOn จะไม่ทำงาน — ต้องใช้ Safe Mode หรือ <code>restore</code> จาก install media ในกรณีนั้น</li>
 <li><code>GraceMinutes</code> 10 นาทีเป็นค่าคงที่ในโค้ด (<code>$script:L51WatchdogGraceMinutes</code>) ถ้าต้องการปรับ ต้องแก้ที่ <code>src/Level51Tune.psm1</code></li>

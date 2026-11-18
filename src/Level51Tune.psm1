@@ -5,7 +5,7 @@
 # All snapshots are JSON so `restore` can undo an apply exactly.
 # ---------------------------------------------------------------------------
 
-$script:L51Version = '1.1.1'
+$script:L51Version = '1.1.2'
 $script:L51Root = Split-Path -Parent $PSScriptRoot
 $script:L51LogFile = $null
 $script:L51Hardware = $null
@@ -473,6 +473,23 @@ function New-L51ApplyState {
     }
 }
 
+function New-L51RevertState {
+    # state หลัง restore: ค่าในเครื่องกลับเป็นของเดิมแล้ว จึงไม่ควรแสดงโปรไฟล์ที่ apply ไว้
+    param([string]$BackupPath, [string]$LastProfile, $SchemeGuid, $BaseScheme)
+
+    return [ordered]@{
+        Profile       = 'reverted'
+        LastProfile   = $LastProfile
+        RevertedAt    = (Get-Date).ToString('o')
+        RevertedFrom  = $BackupPath
+        Backup        = $BackupPath
+        SchemeGuid    = $SchemeGuid
+        BaseScheme    = $BaseScheme
+        RebootPending = $false
+        RebootTweaks  = @()
+    }
+}
+
 function Test-L51RebootSinceApplied {
     # $true เมื่อเครื่อง boot หลังจากเวลา apply (แปลว่า restart ไปแล้วหลัง apply)
     param($AppliedAt, $BootTime)
@@ -625,7 +642,18 @@ function Get-L51WatchdogDecision {
     $res.Crashes = @($CrashEvents | Where-Object { $_ }).Count
     $res.Rebooted = Test-L51RebootSinceApplied -AppliedAt $Watchdog.AppliedAt -BootTime $BootTime
 
+    # หน้าต่างที่ยังอนุมานได้ว่า apply เป็นเหตุ — เลย ExpiresAt แล้วให้หยุด ไม่ revert
+    $expired = $false
+    if ($Watchdog.ExpiresAt) {
+        try { $expired = ([datetime]$Now -ge [datetime]$Watchdog.ExpiresAt) } catch { }
+    }
+
     if ($res.Crashes -gt 0) {
+        if ($expired) {
+            $res.Action = 'Expired'
+            $res.Reason = ('พบเหตุการณ์ผิดปกติ {0} ครั้ง แต่เลยกำหนดยืนยันแล้ว — ไม่ย้อนกลับ' -f $res.Crashes)
+            return $res
+        }
         $res.Action = 'Revert'
         $res.Reason = ('พบเหตุการณ์ crash/shutdown ผิดปกติ {0} ครั้งหลัง apply' -f $res.Crashes)
         return $res
@@ -641,14 +669,10 @@ function Get-L51WatchdogDecision {
         }
         return $res
     }
-    if ($Watchdog.ExpiresAt) {
-        try {
-            if ([datetime]$Now -ge [datetime]$Watchdog.ExpiresAt) {
-                $res.Action = 'Expired'
-                $res.Reason = 'ไม่มีการ restart ภายในเวลาที่กำหนด (ถือว่าปกติ)'
-                return $res
-            }
-        } catch { }
+    if ($expired) {
+        $res.Action = 'Expired'
+        $res.Reason = 'ไม่มีการ restart ภายในเวลาที่กำหนด (ถือว่าปกติ)'
+        return $res
     }
     $res.Action = 'Wait'
     $res.Reason = 'รอ restart เพื่อยืนยัน'
@@ -1117,15 +1141,14 @@ function Invoke-L51Restore {
     }
     if ($data.TuneScheme) { Remove-L51Scheme -Guid $data.TuneScheme }
 
-    # restore แล้วไม่มีอะไรค้างรอ restart — เคลียร์ flag ใน state
-    $restoreState = Get-L51State
-    if ($restoreState) {
-        $merged = [ordered]@{}
-        foreach ($p in $restoreState.PSObject.Properties) { $merged[$p.Name] = $p.Value }
-        $merged['RebootPending'] = $false
-        $merged['RebootTweaks'] = @()
-        Save-L51State -State $merged
-    }
+    # อัปเดต state ให้ตรงความจริง: ค่าในเครื่องถูกย้อนกลับแล้ว ไม่ใช่โปรไฟล์ที่ apply ไว้
+    # (เดิมแก้แค่ flag restart ทำให้ GUI/tray ยังแสดงโปรไฟล์ที่ถูกย้อนกลับไปแล้ว)
+    $lastState = Get-L51State
+    $lastProfile = $null
+    if ($lastState -and $lastState.Profile) { $lastProfile = [string]$lastState.Profile }
+    $revertState = New-L51RevertState -BackupPath $BackupPath -LastProfile $lastProfile `
+        -SchemeGuid $data.ActiveSchemeBefore -BaseScheme $data.BaseScheme
+    Save-L51State -State $revertState
 
     $failed = @($results | Where-Object { $_.Status -eq 'FAIL' }).Count
     Write-L51Log ("restore เสร็จ: {0} รายการ, ล้มเหลว {1}" -f $results.Count, $failed) $(if ($failed -gt 0) { 'WARN' } else { 'OK' })
@@ -1721,7 +1744,7 @@ Export-ModuleMember -Function @(
     'Get-L51Catalog', 'Get-L51Profiles', 'Get-L51Profile', 'Get-L51ProfileTweaks',
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
-    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'Get-L51Status', 'New-L51Report',
+    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'New-L51RevertState', 'Get-L51Status', 'New-L51Report',
     'Get-L51WatchdogPath', 'Get-L51WatchdogState', 'Save-L51WatchdogState', 'Remove-L51WatchdogState',
     'New-L51WatchdogState', 'Get-L51WatchdogDecision', 'Get-L51WatchdogStatus', 'Invoke-L51Watchdog',
     'Install-L51Watchdog', 'Get-L51CrashEvents',

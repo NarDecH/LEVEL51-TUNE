@@ -352,13 +352,45 @@ Test-Case 'watchdog: reboot แล้วแต่ยังไม่ครบ gra
     $d.Reason -like '*รอ*'
 }
 
-Test-Case 'watchdog: พบ crash/shutdown ผิดปกติหลัง apply → Revert' {
+Test-Case 'watchdog: พบ crash/shutdown ผิดปกติระหว่างหน้าต่างยืนยัน → Revert' {
     $now = Get-Date
-    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-30)
-    $crash = @([pscustomobject]@{ Id = 41; Time = $now.AddMinutes(-5).ToString('o') })
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-5) -ExpiresMinutes 30
+    $crash = @([pscustomobject]@{ Id = 41; Time = $now.AddMinutes(-3).ToString('o') })
     $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-20) -Now $now -CrashEvents $crash
     if ($d.Action -ne 'Revert') { throw ('ได้ ' + $d.Action) }
     $d.Crashes -eq 1
+}
+
+Test-Case 'watchdog: พบ crash แต่เลย ExpiresAt → Expired (ไม่ย้อนกลับ)' {
+    $now = Get-Date
+    $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddHours(-14) -ExpiresMinutes 30
+    $crash = @([pscustomobject]@{ Id = 41; Time = $now.AddMinutes(-10).ToString('o') })
+    $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-20) -Now $now -CrashEvents $crash
+    if ($d.Action -ne 'Expired') { throw ('ได้ ' + $d.Action + ' :: ' + $d.Reason) }
+    if ($d.Reason -notlike '*ไม่ย้อนกลับ*') { throw ('เหตุผลไม่ชัด: ' + $d.Reason) }
+    $d.Crashes -eq 1
+}
+
+Test-Case 'revert state: โปรไฟล์ที่แสดงต้องไม่ใช่โปรไฟล์ที่ถูกย้อนกลับ' {
+    $s = New-L51RevertState -BackupPath 'b.json' -LastProfile 'gaming' -SchemeGuid 'scheme-before' -BaseScheme 'base'
+    if ($s.Profile -ne 'reverted') { throw ('Profile = ' + $s.Profile) }
+    if ($s.LastProfile -ne 'gaming') { throw 'ไม่เก็บ LastProfile' }
+    if ($s.RebootPending) { throw 'ต้องไม่ค้าง restart' }
+    if (@($s.RebootTweaks).Count -ne 0) { throw 'ต้องไม่มี RebootTweaks' }
+    if (-not $s.RevertedAt) { throw 'ไม่มี RevertedAt' }
+    if ($s.RevertedFrom -ne 'b.json') { throw 'ไม่มี RevertedFrom' }
+    $s.SchemeGuid -eq 'scheme-before'
+}
+
+Test-Case 'restore: เขียน state เป็น reverted ผ่าน New-L51RevertState' {
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    $iFn = $src.IndexOf('function Invoke-L51Restore {')
+    $iNext = $src.IndexOf('function Test-L51TweakApplied')
+    if ($iFn -lt 0 -or $iNext -lt 0) { throw 'หา landmark ไม่เจอ' }
+    $body = $src.Substring($iFn, $iNext - $iFn)
+    if ($body -notmatch 'New-L51RevertState') { throw 'restore ไม่ได้อัปเดต state เป็น reverted' }
+    if ($body -notmatch 'Save-L51State') { throw 'restore ไม่ได้บันทึก state' }
+    $true
 }
 
 Test-Case 'watchdog: ยังไม่ reboot และเลยกำหนด → Expired (ไม่สั่ง revert)' {
@@ -366,6 +398,7 @@ Test-Case 'watchdog: ยังไม่ reboot และเลยกำหนด
     $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-45) -ExpiresMinutes 30
     $d = Get-L51WatchdogDecision -Watchdog $s -BootTime $now.AddMinutes(-120) -Now $now
     if ($d.Action -ne 'Expired') { throw ('ได้ ' + $d.Action + ' :: ' + $d.Reason) }
+    if ($d.Crashes -ne 0) { throw 'กรณีนี้ไม่ควรมี crash event' }
     (-not $d.Rebooted)
 }
 

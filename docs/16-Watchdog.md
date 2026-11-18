@@ -29,10 +29,10 @@ watchdog คือ **sentinel file + ตัวตัดสินใจ + Schedul
 | สถานะ | เงื่อนไข | สิ่งที่ทำ |
 |---|---|---|
 | `None` | ไม่มี sentinel / ยืนยันไปแล้ว / ย้อนกลับไปแล้ว | ไม่ทำอะไร |
-| `Revert` | พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก `AppliedAt` (รวมถึง crash ที่เกิดระหว่าง apply) | `restore` จาก backup ของ sentinel แล้วบันทึก `RevertedAt` |
+| `Revert` | พบ Event ID 41, 1001 หรือ 6008 ใน System log หลังจาก `AppliedAt` (รวมถึง crash ที่เกิดระหว่าง apply) **และยังไม่เลย `ExpiresAt`** | `restore` จาก backup ของ sentinel แล้วบันทึก `RevertedAt` |
 | `Healthy` | boot ใหม่หลัง `AppliedAt` และ uptime ≥ `GraceMinutes` | ปิด sentinel อัตโนมัติ |
 | `Wait` | boot ใหม่แล้วแต่ยังไม่ครบ grace / ยังไม่ถึงกำหนด | รอรอบถัดไป |
-| `Expired` | ไม่มีการ restart ภายใน `ExpiresAt` (เช่น apply แล้วไม่รีบูต) | ลบ sentinel ถือว่าปกติ |
+| `Expired` | ไม่มีการ restart ภายใน `ExpiresAt` **หรือ** พบ crash แต่เลยกำหนดยืนยันไปแล้ว | ลบ sentinel โดยไม่ย้อนกลับ (สายเกินกว่าจะสรุปว่า apply เป็นเหตุ) |
 
 `Healthy` คือกรณีที่พบบ่อยที่สุด: apply → restart → ใช้งานได้ 10 นาที → watchdog ปิดตัวเองโดยไม่ต้องทำอะไร
 
@@ -56,6 +56,19 @@ watchdog คือ **sentinel file + ตัวตัดสินใจ + Schedul
 
 บน GUI: แบนเนอร์ "watchdog" ที่ด้านบนของ dashboard แสดงสถานะและมีปุ่ม **ยืนยันว่าระบบปกติ**
 บน tray: เมนู **ยืนยันว่าระบบปกติ (watchdog)** และ tooltip จะต่อท้ายด้วย `· watchdog รอตรวจ` เมื่อยังไม่ปิด sentinel
+
+## state หลังย้อนกลับ
+
+ทั้ง `restore` ที่ผู้ใช้สั่งเองและ auto-revert ของ watchdog เขียน `state/last.json` เป็น:
+
+| field | ค่า |
+|---|---|
+| `Profile` | `reverted` (GUI/tray แสดง "ย้อนกลับค่าเดิมแล้ว" ไม่ใช่โปรไฟล์ที่ถูกคืนค่าไปแล้ว) |
+| `LastProfile` | โปรไฟล์ที่ถูกย้อนกลับ |
+| `RevertedAt` / `RevertedFrom` | เวลาที่ย้อนกลับ และไฟล์ backup ที่ใช้ |
+| `RebootPending` | `false` — ไม่มีอะไรค้างรอ restart หลังย้อนกลับ |
+
+ก่อนหน้านี้ `restore` แก้เฉพาะ flag restart ทำให้ GUI กับ tray ยังรายงานว่าโปรไฟล์นั้นทำงานอยู่ทั้งที่ค่าถูกคืนไปแล้ว
 
 ## สิ่งที่ watchdog ไม่ได้ทำ
 

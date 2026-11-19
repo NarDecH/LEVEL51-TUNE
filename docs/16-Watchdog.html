@@ -109,6 +109,7 @@
 </tbody>
 </table></div>
 <p>ก่อนหน้านี้ <code>restore</code> แก้เฉพาะ flag restart ทำให้ GUI กับ tray ยังรายงานว่าโปรไฟล์นั้นทำงานอยู่ทั้งที่ค่าถูกคืนไปแล้ว</p>
+<p><code>BaseScheme</code> ที่ค้างอยู่ใน state แบบ <code>reverted</code> เป็นเพียงบันทึกว่าฐานของรอบก่อนหน้าคือ scheme ใด — <code>apply</code> ครั้งถัดไปจะไม่ใช้มันเป็นฐาน (ผ่าน <code>Get-L51BaseScheme</code>) แต่จะใช้ scheme ที่ทำงานอยู่จริงในตอนนั้น เพราะ scheme เดิมอาจถูกลบไปแล้วระหว่างย้อนกลับ</p>
 <h2 id="sec-7">สิ่งที่ watchdog ไม่ได้ทำ</h2>
 <ul>
 <li><strong>ไม่แทน backup</strong> — ถ้าไม่มี backup (apply ล้มเหลวก่อนเขียนไฟล์) จะไม่มีการย้อนกลับ</li>

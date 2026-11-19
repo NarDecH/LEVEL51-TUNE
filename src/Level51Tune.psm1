@@ -490,6 +490,20 @@ function New-L51RevertState {
     }
 }
 
+function Get-L51BaseScheme {
+    # เลือก base scheme ที่จะใช้เป็นฐานของ apply
+    # state เดิมใช้ได้เฉพาะเมื่อมันยังชี้ไปที่ scheme ที่ tune อยู่จริง (SchemeGuid = scheme ที่ทำงานอยู่)
+    # state หลัง restore/auto-revert (Profile='reverted') ห้ามใช้ — BaseScheme ของมันคือฐานของรอบที่จบไปแล้ว
+    # และ scheme นั้นอาจถูกลบไปแล้ว ถ้านำมาใช้ต่อจะ duplicate scheme ที่ไม่มีอยู่จริง
+    param($LastState, $ActiveScheme)
+
+    if ($ActiveScheme -and $LastState -and $LastState.Profile -ne 'reverted' -and
+        $LastState.SchemeGuid -eq $ActiveScheme -and $LastState.BaseScheme) {
+        return $LastState.BaseScheme
+    }
+    return $ActiveScheme
+}
+
 function Test-L51RebootSinceApplied {
     # $true เมื่อเครื่อง boot หลังจากเวลา apply (แปลว่า restart ไปแล้วหลัง apply)
     param($AppliedAt, $BootTime)
@@ -915,10 +929,7 @@ function Invoke-L51Apply {
     $activeBefore = $null
     if ($hw.PowerScheme) { $activeBefore = $hw.PowerScheme.Guid }
     $lastState = Get-L51State
-    $baseScheme = $activeBefore
-    if ($lastState -and $lastState.SchemeGuid -eq $activeBefore -and $lastState.BaseScheme) {
-        $baseScheme = $lastState.BaseScheme
-    }
+    $baseScheme = Get-L51BaseScheme -LastState $lastState -ActiveScheme $activeBefore
 
     $hasPower = @($apply | Where-Object { $_.Type -eq 'Power' }).Count -gt 0
     $tuneGuid = $null
@@ -1038,9 +1049,12 @@ function Invoke-L51Apply {
         $stateBase = $baseScheme
         if ($hasPower) {
             $stateScheme = $tuneGuid
-        } elseif ($lastState) {
+        } elseif ($lastState -and $lastState.Profile -ne 'reverted') {
+            # โปรไฟล์ที่ไม่มี power tweak: scheme ที่ tune ไว้รอบก่อนยังทำงานอยู่
             $stateScheme = $lastState.SchemeGuid
-            if ($lastState.BaseScheme) { $stateBase = $lastState.BaseScheme }
+        } else {
+            # ไม่มี state เดิม หรือ state นั้นถูกย้อนกลับแล้ว → scheme ที่ทำงานอยู่คือของจริง
+            $stateScheme = $activeBefore
         }
 
         $state = New-L51ApplyState -Profile $Profile -Backup $backupPath -HasPower $hasPower `
@@ -1744,7 +1758,7 @@ Export-ModuleMember -Function @(
     'Get-L51Catalog', 'Get-L51Profiles', 'Get-L51Profile', 'Get-L51ProfileTweaks',
     'Get-L51Hardware', 'Get-L51GpuState', 'Get-L51ThermalZones',
     'Invoke-L51Apply', 'Invoke-L51Restore', 'Invoke-L51Audit', 'Invoke-L51Backup',
-    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'New-L51RevertState', 'Get-L51Status', 'New-L51Report',
+    'Get-L51State', 'Save-L51State', 'Get-L51RestartInfo', 'Test-L51RebootSinceApplied', 'New-L51ApplyState', 'New-L51RevertState', 'Get-L51BaseScheme', 'Get-L51Status', 'New-L51Report',
     'Get-L51WatchdogPath', 'Get-L51WatchdogState', 'Save-L51WatchdogState', 'Remove-L51WatchdogState',
     'New-L51WatchdogState', 'Get-L51WatchdogDecision', 'Get-L51WatchdogStatus', 'Invoke-L51Watchdog',
     'Install-L51Watchdog', 'Get-L51CrashEvents',

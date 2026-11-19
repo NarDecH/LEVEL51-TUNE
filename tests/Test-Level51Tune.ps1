@@ -393,6 +393,37 @@ Test-Case 'restore: เขียน state เป็น reverted ผ่าน New
     $true
 }
 
+Test-Case 'Get-L51BaseScheme: state หลัง restore ไม่ถูกใช้เป็นฐานของ apply ถัดไป' {
+    $reverted = New-L51RevertState -BackupPath 'b.json' -LastProfile 'gaming' -SchemeGuid 'scheme-restored' -BaseScheme 'scheme-stale-base'
+    $base = Get-L51BaseScheme -LastState $reverted -ActiveScheme 'scheme-restored'
+    if ($base -ne 'scheme-restored') { throw ('ได้ base = ' + $base) }
+    $base -is [string]
+}
+
+Test-Case 'Get-L51BaseScheme: state ปกติที่ยัง tune อยู่ → ใช้ BaseScheme เดิมต่อ (ไม่สร้างฐานใหม่)' {
+    $applied = New-L51ApplyState -Profile 'gaming' -Backup 'x.json' -HasPower $true -SchemeGuid 'scheme-tuned' -BaseScheme 'scheme-original'
+    $base = Get-L51BaseScheme -LastState $applied -ActiveScheme 'scheme-tuned'
+    if ($base -ne 'scheme-original') { throw ('ได้ base = ' + $base) }
+    $dif = Get-L51BaseScheme -LastState $applied -ActiveScheme 'scheme-other'
+    if ($dif -ne 'scheme-other') { throw 'state ที่ไม่ตรงกับ scheme ปัจจุบันต้องไม่ถูกใช้' }
+    $none = Get-L51BaseScheme -LastState $null -ActiveScheme 'scheme-active'
+    $none -eq 'scheme-active'
+}
+
+Test-Case 'apply: ใช้ Get-L51BaseScheme และไม่หยิบ BaseScheme ของ state ตรง ๆ อีก' {
+    $src = Get-Content (Join-Path $root 'src\Level51Tune.psm1') -Raw -Encoding UTF8
+    $iFn = $src.IndexOf('function Invoke-L51Apply {')
+    $iNext = $src.IndexOf('function Invoke-L51Restore {')
+    if ($iFn -lt 0 -or $iNext -lt 0) { throw 'หา landmark ไม่เจอ' }
+    $body = $src.Substring($iFn, $iNext - $iFn)
+    if ($body -notmatch 'Get-L51BaseScheme') { throw 'apply ไม่ได้เรียก Get-L51BaseScheme' }
+    if ($body -match '\$lastState\.BaseScheme') { throw 'apply ยังหยิบ $lastState.BaseScheme ตรง ๆ' }
+    if ($body -notmatch "elseif \(\`$lastState -and \`$lastState\.Profile -ne 'reverted'\)") {
+        throw 'สาขา state ของ profile ที่ไม่มี power tweak ยังรับ state ที่ reverted มาคิด'
+    }
+    $true
+}
+
 Test-Case 'watchdog: ยังไม่ reboot และเลยกำหนด → Expired (ไม่สั่ง revert)' {
     $now = Get-Date
     $s = New-L51WatchdogState -BackupPath 'b.json' -Profile 'gaming' -AppliedAt $now.AddMinutes(-45) -ExpiresMinutes 30
